@@ -1,0 +1,53 @@
+# ===============================
+# Environment variables
+# ===============================
+.env
+
+# ===============================
+# Python virtual environments
+# ===============================
+backend/myenv/
+venv/
+.env/
+
+# ===============================
+# Python bytecode / cache
+# ===============================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# ===============================
+# Logs
+# ===============================
+*.log
+
+# ===============================
+# OS / Editor files
+# ===============================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ===============================
+# Test / coverage artifacts
+# ===============================
+.coverage
+htmlcov/
+
+# ===============================
+# Local data & model artifacts
+# (optional but recommended)
+# ===============================
+backend/data/
+backend/models/
+backend/experiments/
+
+# ===============================
+# Temporary / uploads
+# ===============================
+*.tmp
+*.temp
+*.bak
