@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registration</title>
+</head>
+
+<body class="page page--register">
+
+    <main class="main main--register">
+        <section class="register register--section">
+
+            <header class="register__header">
+                <h1 class="register__title">Create Account</h1>
+                <p class="register__subtitle">Fill the details to register</p>
+            </header>
+
+            <form class="register__form" action="#" method="POST" autocomplete="on">
+
+                <!-- Username -->
+                <div class="form__group form__group--username">
+                    <label class="form__label form__label--username" for="username">Username</label>
+                    <input class="form__input form__input--username" type="text" id="username" name="username"
+                        placeholder="Choose a username" required />
+                </div>
+
+                <!-- Email -->
+                <div class="form__group form__group--email">
+                    <label class="form__label form__label--email" for="email">Email</label>
+                    <input class="form__input form__input--email" type="email" id="email" name="email"
+                        placeholder="Enter your email" required />
+                </div>
+
+                <!-- Password -->
+                <div class="form__group form__group--password">
+                    <label class="form__label form__label--password" for="password">Password</label>
+                    <input class="form__input form__input--password" type="password" id="password" name="password"
+                        placeholder="Create a password" required />
+                </div>
+
+                <!-- Submit -->
+                <div class="form__group form__group--submit">
+                    <button class="form__button form__button--submit" type="submit">
+                        Register
+                    </button>
+                </div>
+
+                <!-- Login Redirect -->
+                <footer class="register__footer">
+                    <p class="register__text register__text--login">
+                        Already have an account?
+                        <a class="register__link register__link--login" href="login.html">Login</a>
+                    </p>
+                </footer>
+
+            </form>
+        </section>
+    </main>
+
+</body>
+
+</html>

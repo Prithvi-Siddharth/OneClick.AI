@@ -10,13 +10,9 @@ from app.core.config import (
     DB_DATABASE
 )
 
-BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.dirname(__file__)
-    )
-)
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
 
-CA_CERT_PATH = os.path.join(BASE_DIR, "certs", "tidb-ca.pem")
+CA_CERT_PATH = os.path.join(BASE_DIR, "backend", "certs", "tidb-ca.pem")
 
 DATABASE_URL = (
     f"mysql+pymysql://{DB_USERNAME}:{DB_PASSWORD}"
@@ -40,3 +36,10 @@ SessionLocal = sessionmaker(
 )
 
 Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
