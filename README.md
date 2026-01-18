@@ -90,4 +90,5 @@ Once the server is running, you can explore the interactive API documentation at
 
 *   Viswanath Balla
 *   Aditya Yarakaraju
-*   Prithvi Siddharth Manepally
+
+*   Prithvi Siddharth Manepalli
