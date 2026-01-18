@@ -19,8 +19,9 @@ templates = Jinja2Templates(directory="app/templates")
 Base.metadata.create_all(bind=engine)
 
 @app.get("/")
-def read_root():
-    return {"message": "Hello World"}
+def read_root(request: Request, response_class=HTMLResponse):
+    return templates.TemplateResponse("home.html", {"request": request})
+    
 
 
 # Rendering of the register.html page
