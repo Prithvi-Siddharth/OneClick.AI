@@ -14,3 +14,30 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class Dataset(Base):
+    __tablename__ = "datasets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False) # Foreign Key relationship to be enforced by application logic or add ForeignKey
+    filename = Column(String(255), nullable=False)
+    s3_key = Column(String(1024), nullable=False)
+    s3_bucket = Column(String(255), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    row_count = Column(Integer, nullable=True)
+    upload_date = Column(DateTime, default=datetime.utcnow)
+    feature_schema = Column(String(4096), nullable=True) # Storing JSON as string
+
+# class Experiment(Base):
+#     __tablename__ = "experiments"
+
+#     id = Column(Integer, primary_key=True, index=True)
+#     dataset_id = Column(Integer, nullable=False)
+#     name = Column(String(255), nullable=True) # Added name
+#     target_column = Column(String(255), nullable=True)
+#     algorithm = Column(String(100), nullable=True)
+#     hyperparameters = Column(String(4096), nullable=True) # JSON as string
+#     metrics = Column(String(4096), nullable=True) # JSON as string
+#     status = Column(String(50), default="PENDING")
+#     model_artifact_path = Column(String(1024), nullable=True)
+#     created_at = Column(DateTime, default=datetime.utcnow)
