@@ -17,7 +17,19 @@
                 <p class="register__subtitle">Fill the details to register</p>
             </header>
 
-            <form class="register__form" action="#" method="POST" autocomplete="on">
+            <form class="register__form" action="/register" method="POST" autocomplete="on">
+
+                {% if message %}
+                <div style="color: green; margin-bottom: 20px; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+                    {{ message }}
+                </div>
+                {% endif %}
+
+                {% if error %}
+                <div style="color: red; margin-bottom: 20px; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+                    {{ error }}
+                </div>
+                {% endif %}
 
                 <!-- Username -->
                 <div class="form__group form__group--username">
@@ -36,8 +48,13 @@
                 <!-- Password -->
                 <div class="form__group form__group--password">
                     <label class="form__label form__label--password" for="password">Password</label>
-                    <input class="form__input form__input--password" type="password" id="password" name="password"
-                        placeholder="Create a password" required />
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input class="form__input form__input--password" type="password" id="password" name="password"
+                            placeholder="Create a password" required />
+                        <button type="button" onclick="togglePasswordVisibility('password')" style="padding: 5px 10px; background-color: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Show
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Submit -->
@@ -51,13 +68,27 @@
                 <footer class="register__footer">
                     <p class="register__text register__text--login">
                         Already have an account?
-                        <a class="register__link register__link--login" href="login.html">Login</a>
+                        <a class="register__link register__link--login" href="/login">Login</a>
                     </p>
                 </footer>
 
             </form>
         </section>
     </main>
+
+    <script>
+        function togglePasswordVisibility(fieldId) {
+            const field = document.getElementById(fieldId);
+            const button = event.target;
+            if (field.type === 'password') {
+                field.type = 'text';
+                button.textContent = 'Hide';
+            } else {
+                field.type = 'password';
+                button.textContent = 'Show';
+            }
+        }
+    </script>
 
 </body>
 

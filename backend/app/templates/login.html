@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+
+<body>
+
+<div id="page">
+
+    <div id="login-container">
+
+        <div id="login-header">
+            <h2>Login</h2>
+        </div>
+
+        <div id="login-form">
+            <form method="post" action="/login">
+
+                <div class="form-group">
+                    <label for="email">Email</label><br>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        required
+                    >
+                </div>
+
+                <br>
+
+                <div class="form-group">
+                    <label for="password">Password</label><br>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            required
+                            style="flex: 1;"
+                        >
+                        <button type="button" onclick="togglePasswordVisibility('password')" style="padding: 5px 10px; background-color: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Show
+                        </button>
+                    </div>
+                </div>
+
+                <br>
+
+                <div class="form-group">
+                    <button type="submit">Login</button>
+                </div>
+
+            </form>
+        </div>
+
+        <div id="login-footer">
+            <p>
+                Don't have an account?
+                <a href="/register">Register</a>
+            </p>
+        </div>
+
+        {% if error %}
+        <div id="error-message">
+            <p>{{ error }}</p>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
+<script>
+    function togglePasswordVisibility(fieldId) {
+        const field = document.getElementById(fieldId);
+        const button = event.target;
+        if (field.type === 'password') {
+            field.type = 'text';
+            button.textContent = 'Hide';
+        } else {
+            field.type = 'password';
+            button.textContent = 'Show';
+        }
+    }
+</script>
+
+</body>
+</html>
