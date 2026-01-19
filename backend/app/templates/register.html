@@ -17,16 +17,27 @@
                 <p class="register__subtitle">Fill the details to register</p>
             </header>
 
+            <!--
+            when the endpoint given in the backend is post, the action is performed according to the backend
+            -->
             <form class="register__form" action="/register" method="POST" autocomplete="on">
 
+                <!--
+                the message is passed from the backend if the registration is successful
+                -->
                 {% if message %}
-                <div style="color: green; margin-bottom: 20px; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+                <div
+                    style="color: green; margin-bottom: 20px; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
                     {{ message }}
                 </div>
                 {% endif %}
 
+                <!--
+                the error is passed from the backend if the registration fails
+                -->
                 {% if error %}
-                <div style="color: red; margin-bottom: 20px; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
+                <div
+                    style="color: red; margin-bottom: 20px; padding: 10px; background-color: #f0f0f0; border-radius: 4px;">
                     {{ error }}
                 </div>
                 {% endif %}
@@ -34,6 +45,9 @@
                 <!-- Username -->
                 <div class="form__group form__group--username">
                     <label class="form__label form__label--username" for="username">Username</label>
+                    <!--
+                    the name is the variable where the data is stored(the data typed here is stored in the name variable)
+                    -->
                     <input class="form__input form__input--username" type="text" id="username" name="username"
                         placeholder="Choose a username" required />
                 </div>
@@ -51,7 +65,8 @@
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <input class="form__input form__input--password" type="password" id="password" name="password"
                             placeholder="Create a password" required />
-                        <button type="button" onclick="togglePasswordVisibility('password')" style="padding: 5px 10px; background-color: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        <button type="button" onclick="togglePasswordVisibility('password')"
+                            style="padding: 5px 10px; background-color: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer;">
                             Show
                         </button>
                     </div>
@@ -76,6 +91,9 @@
         </section>
     </main>
 
+    <!--
+    this method is to hide and show the password
+    -->
     <script>
         function togglePasswordVisibility(fieldId) {
             const field = document.getElementById(fieldId);
