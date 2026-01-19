@@ -28,16 +28,16 @@ class Dataset(Base):
     upload_date = Column(DateTime, default=datetime.utcnow)
     feature_schema = Column(String(4096), nullable=True) # Storing JSON as string
 
-# class Experiment(Base):
-#     __tablename__ = "experiments"
+class Experiment(Base):
+    __tablename__ = "experiments"
 
-#     id = Column(Integer, primary_key=True, index=True)
-#     dataset_id = Column(Integer, nullable=False)
-#     name = Column(String(255), nullable=True) # Added name
-#     target_column = Column(String(255), nullable=True)
-#     algorithm = Column(String(100), nullable=True)
-#     hyperparameters = Column(String(4096), nullable=True) # JSON as string
-#     metrics = Column(String(4096), nullable=True) # JSON as string
-#     status = Column(String(50), default="PENDING")
-#     model_artifact_path = Column(String(1024), nullable=True)
-#     created_at = Column(DateTime, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True, index=True)
+    dataset_id = Column(Integer, nullable=False)
+    name = Column(String(255), nullable=True) # Added name
+    target_column = Column(String(255), nullable=True)
+    algorithm = Column(String(100), nullable=True)
+    hyperparameters = Column(String(4096), nullable=True) # JSON as string
+    metrics = Column(String(4096), nullable=True) # JSON as string
+    status = Column(String(50), default="PENDING")
+    model_artifact_path = Column(String(1024), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

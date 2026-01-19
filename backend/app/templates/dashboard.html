@@ -1,14 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
 </head>
+
 <body>
     <div class="container">
         <h1>Welcome to your dashboard, {{ username }}!</h1>
         <a href="/logout" class="logout-btn">Logout</a>
+
+        <br><br>
+
+        <fieldset>
+            <legend>Data Catalog</legend>
+            <div style="margin-bottom: 10px;">
+                <button onclick="alert('View Datasets - functionality to be implemented')">View Datasets</button>
+                <button onclick="alert('Upload Dataset - functionality to be implemented')">Upload Dataset</button>
+            </div>
+            {% if datasets %}
+            <ul>
+                {% for dataset in datasets %}
+                <li>{{ dataset.filename }} ({{ dataset.row_count }} rows) - Uploaded: {{
+                    dataset.upload_date.strftime('%Y-%m-%d') }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No datasets available.</p>
+            {% endif %}
+        </fieldset>
+
+        <br>
+
+        <fieldset>
+            <legend>Model Catalog</legend>
+            <div style="margin-bottom: 10px;">
+                <button onclick="alert('View Models - functionality to be implemented')">View Models</button>
+                <button onclick="alert('Upload Model - functionality to be implemented')">Upload Model</button>
+            </div>
+            {% if models %}
+            <ul>
+                {% for model in models %}
+                <li>{{ model.name }} ({{ model.algorithm }}) - Status: {{ model.status }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No models available.</p>
+            {% endif %}
+        </fieldset>
+
+        <br><br>
+
+        <h2>Get Started Quickly</h2>
+        <div style="display: flex; gap: 20px;">
+            <div style="border: 1px solid #ccc; padding: 15px; flex: 1;">
+                <h3>Upload Your Data</h3>
+                <p>Upload new datasets to the platform securely.</p>
+                <button onclick="alert('Upload Service - coming soon')">Upload Data</button>
+            </div>
+            <div style="border: 1px solid #ccc; padding: 15px; flex: 1;">
+                <h3>Train a New Model</h3>
+                <p>Configure and train a new machine learning model.</p>
+                <button onclick="alert('Training Service - coming soon')">Train Model</button>
+            </div>
+            <div style="border: 1px solid #ccc; padding: 15px; flex: 1;">
+                <h3>Deploy Your Model</h3>
+                <p>Deploy your trained models for inference.</p>
+                <button onclick="alert('Deployment Service - coming soon')">Deploy Model</button>
+            </div>
+        </div>
     </div>
 </body>
+
 </html>

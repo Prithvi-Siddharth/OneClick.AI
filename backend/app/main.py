@@ -4,9 +4,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.db import engine, get_db
-from app.models import Base, User
+from app.models import Base, User, Dataset, Experiment
 from app.schemas import RegisterRequest, RegisterResponse
 from app.security import hash_password, verify_password, create_access_token, get_current_user_id
+from app.services.s3_operations import get_user_datasets, get_user_models
 
 
 
@@ -177,7 +178,15 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    return templates.TemplateResponse("dashboard.html", {"request": request, "username": user.username})
+    datasets = get_user_datasets(db, user.user_id)
+    models = get_user_models(db, user.user_id)
+    
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request, 
+        "username": user.username,
+        "datasets": datasets,
+        "models": models
+    })
 
 
 # when the logout button is clicked, the access token cookie is deleted and redirected to login page
