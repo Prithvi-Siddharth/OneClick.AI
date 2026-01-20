@@ -2,6 +2,12 @@
 #run this file using python debug_db.py
 #use this to check the database tables and data
 
+import sys
+import os
+
+# Add the backend directory to sys.path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../backend')))
+
 from app.db import get_db
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
