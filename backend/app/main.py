@@ -188,6 +188,12 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
         "models": models
     })
 
+@app.post("/upload_dataset")
+def upload_dataset(request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
 
 # when the logout button is clicked, the access token cookie is deleted and redirected to login page
 @app.get("/logout")

@@ -18,7 +18,10 @@
             <legend>Data Catalog</legend>
             <div style="margin-bottom: 10px;">
                 <button onclick="alert('View Datasets - functionality to be implemented')">View Datasets</button>
-                <button onclick="alert('Upload Dataset - functionality to be implemented')">Upload Dataset</button>
+                <form action="/upload_dataset" method="post" enctype="multipart/form-data" style="display: inline;">
+                    <input type="file" name="dataset">
+                    <button onclick="alert('Upload Dataset - functionality to be implemented')">Upload Dataset</button>
+                </form>
             </div>
             {% if datasets %}
             <ul>
