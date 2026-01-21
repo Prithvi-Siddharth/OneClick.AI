@@ -26,6 +26,7 @@ class Dataset(Base):
     file_size = Column(Integer, nullable=False)
     row_count = Column(Integer, nullable=True)
     upload_date = Column(DateTime, default=datetime.utcnow)
+    description = Column(String(255), nullable=True)
     feature_schema = Column(String(4096), nullable=True) # Storing JSON as string
 
 class Experiment(Base):

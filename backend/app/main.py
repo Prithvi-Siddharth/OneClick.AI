@@ -1,15 +1,19 @@
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
+from fastapi import File, UploadFile
+from app.services.s3_operations import process_and_save_dataset
+
 
 from app.db import engine, get_db
-from app.models import Base, User, Dataset, Experiment
+from app.models import Base, User
 from app.schemas import RegisterRequest, RegisterResponse
 from app.security import hash_password, verify_password, create_access_token, get_current_user_id
-from app.services.s3_operations import get_user_datasets, get_user_models
-
-
+# Load environment variables from .env file
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 #creates an app
 app = FastAPI(title="ML SaaS Platform")
@@ -178,30 +182,7 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    datasets = get_user_datasets(db, user.user_id)
-    models = get_user_models(db, user.user_id)
-    
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request, 
-        "username": user.username,
-        "datasets": datasets,
-        "models": models
-    })
-
-@app.get("/preprocessing")
-def preprocessing_page(request: Request, db: Session = Depends(get_db)):
-    user_id = get_current_user_id(request)
-    if not user_id:
-        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-    
-    return templates.TemplateResponse("preprocessing.html", {"request": request})
-
-
-@app.post("/upload_dataset")
-def upload_dataset(request: Request, db: Session = Depends(get_db)):
-    user_id = get_current_user_id(request)
-    if not user_id:
-        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    return templates.TemplateResponse("dashboard.html", {"request": request, "username": user.username})
 
 
 # when the logout button is clicked, the access token cookie is deleted and redirected to login page
@@ -210,3 +191,38 @@ def logout(request: Request):
     response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     response.delete_cookie(key="access_token")
     return response
+
+
+@app.post("/upload_dataset")
+def upload_dataset(
+    request: Request,
+    db: Session = Depends(get_db),
+    datasetFilename: str = Form(...),
+    datasetDescription: str = Form(...),
+    dataset_file: UploadFile = File(...),
+):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    try:
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+        
+        dataset = process_and_save_dataset(
+            db=db,
+            user_id=user_id,
+            filename=datasetFilename,
+            file_obj=dataset_file,
+            bucket_name=bucket_name,
+            description=datasetDescription,
+        )
+
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    

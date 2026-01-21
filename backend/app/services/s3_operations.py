@@ -101,8 +101,9 @@ def upload_file_to_s3(file_obj, bucket_name: str, s3_key: str) -> bool:
     """
     s3 = get_s3_client()
     try:
-        # upload_fileobj is efficient for large files as it streams data
-        s3.upload_fileobj(file_obj, bucket_name, s3_key)
+        # Use the underlying file object if this is a FastAPI UploadFile
+        actual_file = getattr(file_obj, "file", file_obj)
+        s3.upload_fileobj(actual_file, bucket_name, s3_key)
         return True
     except NoCredentialsError:
         print("Credentials not available")
@@ -119,45 +120,48 @@ def inspect_dataset_metadata(file_obj, filename):
     ext = filename.lower().split('.')[-1]
     
     try:
+        # Use the underlying file object if this is a FastAPI UploadFile
+        actual_file = getattr(file_obj, "file", file_obj)
+        
         # 1. Reset buffer
-        file_obj.seek(0)
+        actual_file.seek(0)
         
         row_count = 0
         schema = {}
 
         if ext == 'csv':
             # Schema
-            df_preview = pd.read_csv(file_obj, nrows=5)
+            df_preview = pd.read_csv(actual_file, nrows=5)
             schema = {col: str(dtype) for col, dtype in df_preview.dtypes.items()}
             
             # Row Count
-            file_obj.seek(0)
-            for chunk in pd.read_csv(file_obj, usecols=[0], chunksize=10000):
+            actual_file.seek(0)
+            for chunk in pd.read_csv(actual_file, usecols=[0], chunksize=10000):
                 row_count += len(chunk)
 
         elif ext == 'json':
             # Try line-delimited first, then standard JSON
             try:
                 # Schema
-                df_preview = pd.read_json(file_obj, orient='records', lines=True, nrows=5)
+                df_preview = pd.read_json(actual_file, orient='records', lines=True, nrows=5)
                 schema = {col: str(dtype) for col, dtype in df_preview.dtypes.items()}
                 
                 # Row count
-                file_obj.seek(0)
+                actual_file.seek(0)
                 # For JSON lines, we can chunk
-                for chunk in pd.read_json(file_obj, orient='records', lines=True, chunksize=10000):
+                for chunk in pd.read_json(actual_file, orient='records', lines=True, chunksize=10000):
                     row_count += len(chunk)
             except ValueError:
                 # Fallback to standard JSON (loads entire file, acceptable for JSON limits usually)
-                file_obj.seek(0)
-                df = pd.read_json(file_obj)
+                actual_file.seek(0)
+                df = pd.read_json(actual_file)
                 row_count = len(df)
                 schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
 
         elif ext in ['xls', 'xlsx']:
             # Excel does not support chunking well, load into memory
             # Engine 'openpyxl' for xlsx, 'xlrd' for xls (if installed), default auto-detect
-            df = pd.read_excel(file_obj)
+            df = pd.read_excel(actual_file)
             row_count = len(df)
             schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
 
@@ -177,7 +181,8 @@ def process_and_save_dataset(
     user_id: int,
     file_obj,
     filename: str,
-    bucket_name: str
+    bucket_name: str,
+    description: str
 ) -> Dataset:
     """
     Orchestrator function to:
@@ -193,16 +198,19 @@ def process_and_save_dataset(
     s3_key = f"{user_id}/datasets/{timestamp}_{filename}"
     
     # 2. Calculate Metadata & Size (BEFORE upload to avoid closed file issues)
+    # Use the underlying file object if this is a FastAPI UploadFile
+    actual_file = getattr(file_obj, "file", file_obj)
+
     # Get Size
-    file_obj.seek(0, os.SEEK_END)
-    file_size = file_obj.tell()
-    file_obj.seek(0)
+    actual_file.seek(0, os.SEEK_END)
+    file_size = actual_file.tell()
+    actual_file.seek(0)
     
     # Get Schema and Rows
     row_count, schema_dict = inspect_dataset_metadata(file_obj, filename)
 
     # Reset stream for upload
-    file_obj.seek(0)
+    actual_file.seek(0)
     
     # 3. Upload to S3
     success = upload_file_to_s3(file_obj, bucket_name, s3_key)
@@ -219,6 +227,7 @@ def process_and_save_dataset(
         row_count=row_count,
         feature_schema=str(schema_dict) 
     )
+
     db.add(new_dataset)
     db.commit()
     db.refresh(new_dataset)
