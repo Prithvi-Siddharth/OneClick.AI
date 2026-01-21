@@ -188,6 +188,15 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
         "models": models
     })
 
+@app.get("/preprocessing")
+def preprocessing_page(request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    return templates.TemplateResponse("preprocessing.html", {"request": request})
+
+
 @app.post("/upload_dataset")
 def upload_dataset(request: Request, db: Session = Depends(get_db)):
     user_id = get_current_user_id(request)
