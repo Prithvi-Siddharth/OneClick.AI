@@ -2,10 +2,10 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from fastapi import File, UploadFile
-from app.services.s3_operations import process_and_save_dataset
+from app.services.s3_operations import process_and_save_dataset, get_user_datasets, get_user_models
 
 
 from app.db import engine, get_db
@@ -182,7 +182,15 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    return templates.TemplateResponse("dashboard.html", {"request": request, "username": user.username})
+    datasets = get_user_datasets(db, int(user_id), limit=5)
+    models = get_user_models(db, int(user_id), limit=5)
+
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request, 
+        "username": user.username,
+        "datasets": datasets,
+        "models": models
+    })
 
 
 # when the logout button is clicked, the access token cookie is deleted and redirected to login page
@@ -228,7 +236,10 @@ def upload_dataset(
             description=datasetDescription,
         )
 
-        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+        return JSONResponse(
+            content={"message": "Upload successful", "dataset_id": dataset.id},
+            status_code=status.HTTP_200_OK
+        )
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

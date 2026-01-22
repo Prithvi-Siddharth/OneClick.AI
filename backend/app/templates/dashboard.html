@@ -221,11 +221,8 @@
                 statusText.innerText = "Uploaded successfully!";
 
                 // Optional: close modal after 1 sec
-                setTimeout(() => {
-                    closeModal();
-                    // later: refresh dataset list from backend
-                    // location.reload();
-                }, 1000);
+                // Reload to refresh dataset list
+                window.location.reload();
 
             } catch (error) {
                 statusText.innerText = "Error uploading file.";

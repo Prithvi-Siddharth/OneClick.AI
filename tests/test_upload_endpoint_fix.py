@@ -43,9 +43,9 @@ def test_upload_dataset_appends_extension(mock_getenv, mock_process, mock_get_db
     # Perform request
     response = client.post("/upload_dataset", data=data, files=files, follow_redirects=False)
 
-    # Check that it redirects (success)
-    assert response.status_code == 302
-    assert response.headers["location"] == "/dashboard"
+    # Match 200 OK for JSON
+    assert response.status_code == 200
+    assert response.json()["message"] == "Upload successful"
 
     # Verify that process_and_save_dataset was called with the filename having extension
     mock_process.assert_called_once()
@@ -85,8 +85,8 @@ def test_upload_dataset_keeps_existing_extension(mock_getenv, mock_process, mock
     # Perform request
     response = client.post("/upload_dataset", data=data, files=files, follow_redirects=False)
 
-    # Check that it redirects (success)
-    assert response.status_code == 302
+    # Match 200 OK for JSON
+    assert response.status_code == 200
 
     # Verify that extension is NOT duplicated
     mock_process.assert_called_once()

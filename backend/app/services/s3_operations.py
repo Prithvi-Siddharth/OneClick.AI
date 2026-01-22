@@ -17,21 +17,31 @@ from app.models import Dataset, Experiment
 # Ensure that you have AWS credentials in your environment variables:
 # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
 
-def get_user_datasets(db: Session, user_id: int):
+def get_user_datasets(db: Session, user_id: int, limit: int = None):
     """
-    Retrieves the list of datasets uploaded by the user.
+    Retrieves the list of datasets uploaded by the user, ordered by most recent first.
     """
-    datasets = db.query(Dataset).filter(Dataset.user_id == user_id).all()
+    query = db.query(Dataset).filter(Dataset.user_id == user_id).order_by(Dataset.id.desc())
+    
+    if limit:
+        query = query.limit(limit)
+        
+    datasets = query.all()
     # Return a list of dictionaries or objects
     return datasets
 
-def get_user_models(db: Session, user_id: int):
+def get_user_models(db: Session, user_id: int, limit: int = None):
     """
-    Retrieves the list of models trained by the user.
+    Retrieves the list of models trained by the user, ordered by most recent first.
     """
-    models = db.query(Experiment).filter(Experiment.dataset_id.in_(
+    query = db.query(Experiment).filter(Experiment.dataset_id.in_(
         db.query(Dataset.id).filter(Dataset.user_id == user_id)
-    )).all()
+    )).order_by(Experiment.id.desc())
+    
+    if limit:
+        query = query.limit(limit)
+        
+    models = query.all()
     return models
 
 def get_s3_client():
