@@ -19,7 +19,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 app = FastAPI(title="ML SaaS Platform")
 
 # directory of the templates
-templates = Jinja2Templates(directory="app/templates")
+templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
 #this command connects to the tidb and creates a table from the structure defined earlier
 Base.metadata.create_all(bind=engine)
@@ -211,6 +211,13 @@ def upload_dataset(
     
     try:
         bucket_name = os.getenv("S3_BUCKET_NAME")
+
+        # Ensure the filename has the correct extension from the uploaded file
+        original_filename = dataset_file.filename
+        if original_filename:
+            ext = os.path.splitext(original_filename)[1]
+            if ext and not datasetFilename.endswith(ext):
+                datasetFilename += ext
         
         dataset = process_and_save_dataset(
             db=db,
