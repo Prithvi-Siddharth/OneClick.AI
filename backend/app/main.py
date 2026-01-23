@@ -219,6 +219,9 @@ def upload_dataset(
     
     try:
         bucket_name = os.getenv("S3_BUCKET_NAME")
+        
+        if not bucket_name:
+            raise ValueError("S3_BUCKET_NAME not configured in environment variables")
 
         # Ensure the filename has the correct extension from the uploaded file
         original_filename = dataset_file.filename
@@ -227,20 +230,49 @@ def upload_dataset(
             if ext and not datasetFilename.endswith(ext):
                 datasetFilename += ext
         
-        dataset = process_and_save_dataset(
+        # Call the function
+        result = process_and_save_dataset(
             db=db,
-            user_id=user_id,
+            user_id=int(user_id),
             filename=datasetFilename,
             file_obj=dataset_file,
             bucket_name=bucket_name,
             description=datasetDescription,
         )
 
+        # Handle both dict and Dataset object responses
+        if isinstance(result, dict):
+            # New format: returns dict with success/data/message
+            if not result["success"]:
+                return JSONResponse(
+                    content={"error": result["message"]},
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+            dataset = result["data"]
+        else:
+            # Old format: returns Dataset object directly
+            dataset = result
+        
+        # Return success response
         return JSONResponse(
-            content={"message": "Upload successful", "dataset_id": dataset.id},
+            content={
+                "message": "File uploaded successfully",
+                "dataset_id": dataset.id,
+                "filename": dataset.filename,
+                "row_count": dataset.row_count,
+                "file_size": dataset.file_size
+            },
             status_code=status.HTTP_200_OK
         )
         
+    except HTTPException as e:
+        return JSONResponse(
+            content={"error": e.detail},
+            status_code=e.status_code
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
