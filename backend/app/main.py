@@ -276,3 +276,63 @@ def upload_dataset(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+
+@app.post("/upload_model")
+def upload_model(
+    request: Request,
+    db: Session = Depends(get_db),
+    modelName: str = Form(...),
+    modelAlgorithm: str = Form(...),
+    datasetId: int = Form(...),
+    model_file: UploadFile = File(...),
+):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    try:
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+        if not bucket_name:
+            raise ValueError("S3_BUCKET_NAME not configured in environment variables")
+
+        # Validate file extension
+        filename = model_file.filename
+        if not (filename.endswith('.pkl') or filename.endswith('.joblib')):
+             return JSONResponse(
+                content={"error": "Invalid file format. Only .pkl and .joblib are supported."},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        from app.services.s3_operations import upload_model_to_s3
+        
+        # Call the S3 service function
+        model = upload_model_to_s3(
+            db=db,
+            file_obj=model_file,
+            bucket_name=bucket_name,
+            user_id=int(user_id),
+            model_name=modelName,
+            dataset_id=datasetId,
+            algorithm=modelAlgorithm
+        )
+
+        return JSONResponse(
+            content={
+                "message": "Model uploaded successfully",
+                "model_id": model.id,
+                "name": model.name,
+                "algorithm": model.algorithm,
+                "status": "COMPLETED"
+            },
+            status_code=status.HTTP_200_OK
+        )
+
+    except Exception as e:
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
