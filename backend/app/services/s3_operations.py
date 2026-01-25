@@ -55,7 +55,7 @@ def get_s3_client():
         region_name=os.getenv("AWS_REGION", "us-east-1")
     )
 
-def read_dataset_from_s3(bucket_name: str, s3_key: str, filename: str, preview_limit: int = 100):
+def read_dataset_from_s3(bucket_name: str, s3_key: str, filename: str, preview_limit: int = 5):
     """
     Reads a file from S3 and returns a preview of the data (as a list of dictionaries).
     """
@@ -235,6 +235,7 @@ def process_and_save_dataset(
         s3_bucket=bucket_name,
         file_size=file_size,
         row_count=row_count,
+        description=description,
         feature_schema=str(schema_dict) 
     )
 

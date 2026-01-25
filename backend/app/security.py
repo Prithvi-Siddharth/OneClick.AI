@@ -40,10 +40,7 @@ def get_current_user_id(request: Request) -> str:
 
     #if there is no token, no authentication
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-        )
+        return None
 
     try:
         #jwt decoding gives the user_id from the token
@@ -55,12 +52,9 @@ def get_current_user_id(request: Request) -> str:
         user_id = payload.get("sub")
 
         if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            return None
 
         return user_id
 
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token",
-        )
+        return None

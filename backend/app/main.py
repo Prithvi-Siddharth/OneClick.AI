@@ -5,13 +5,17 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from fastapi import File, UploadFile
-from app.services.s3_operations import process_and_save_dataset, get_user_datasets, get_user_models
-
-
 from app.db import engine, get_db
-from app.models import Base, User
+from app.models import Base, User, Dataset, Experiment
 from app.schemas import RegisterRequest, RegisterResponse
 from app.security import hash_password, verify_password, create_access_token, get_current_user_id
+from app.services.s3_operations import (
+    process_and_save_dataset, 
+    get_user_datasets, 
+    get_user_models,
+    upload_model_to_s3,
+    read_dataset_from_s3
+)
 # Load environment variables from .env file
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
@@ -307,7 +311,6 @@ def upload_model(
                 status_code=status.HTTP_400_BAD_REQUEST
             )
 
-        from app.services.s3_operations import upload_model_to_s3
         
         # Call the S3 service function
         model = upload_model_to_s3(
@@ -336,3 +339,40 @@ def upload_model(
             content={"error": str(e)},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# rendering of the view_datasets.html
+@app.get("/view_datasets")
+def view_dataset(request: Request, db: Session = Depends(get_db), response_class=HTMLResponse):
+
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    datasets = get_user_datasets(db, int(user_id))
+    
+    return templates.TemplateResponse("view_datasets.html", {"request": request, "username": user.username, "datasets": datasets})
+
+
+@app.get("/preview_dataset/{dataset_id}")
+def preview_dataset(dataset_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    # Read from S3
+    data = read_dataset_from_s3(
+        bucket_name=dataset.s3_bucket,
+        s3_key=dataset.s3_key,
+        filename=dataset.filename,
+        preview_limit=5
+    )
+    if isinstance(data, dict) and "error" in data:
+        raise HTTPException(status_code=500, detail=data["error"])
+    return JSONResponse(content=data)

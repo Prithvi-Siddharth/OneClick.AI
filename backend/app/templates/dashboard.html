@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+
 </head>
 
 <body>
@@ -17,7 +18,7 @@
         <fieldset>
             <legend>Data Catalog</legend>
             <div style="margin-bottom: 10px;">
-                <button onclick="alert('View Datasets - functionality to be implemented')">View Datasets</button>
+                <button id="view_datasets_btn">View Datasets</button>
 
                 <!-- Hidden file input -->
                 <input class="hidden-file-input" id="fileInput" type="file" style="display: none;" />
@@ -86,57 +87,7 @@
             <legend>Model Catalog</legend>
             <div style="margin-bottom: 10px;">
                 <button onclick="alert('View Models - functionality to be implemented')">View Models</button>
-
-                <!-- Hidden model file input -->
-                <input class="hidden-file-input" id="modelFileInput" type="file" style="display: none;" />
-
-                <!-- Upload Model button -->
-                <button class="upload-btn" id="openModelPickerBtn">Upload Model</button>
-
-                <!-- Model Picker Modal -->
-                <div class="modal-overlay" id="modelModalOverlay">
-                    <div class="modal-box">
-                        <button class="modal-close" id="closeModelModalBtn">&times;</button>
-                        <div class="modal-title">Upload Model</div>
-                        <form id="uploadModelForm" method="post" enctype="multipart/form-data">
-
-                            <div class="form-group">
-                                <span class="label">Selected Model File</span>
-                                <div class="file-info" id="selectedModelFileText">No file selected</div>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="label" for="modelName">Model Name</label>
-                                <input class="input-text" type="text" id="modelName" name="modelName" required />
-                            </div>
-
-                            <div class="form-group">
-                                <label class="label" for="modelAlgorithm">Algorithm</label>
-                                <input class="input-text" type="text" id="modelAlgorithm" name="modelAlgorithm"
-                                    placeholder="e.g. Random Forest" required />
-                            </div>
-
-                            <div class="form-group">
-                                <label class="label" for="datasetId">Associated Dataset</label>
-                                <select class="input-text" id="datasetId" name="datasetId" required>
-                                    <option value="" disabled selected>Select a dataset</option>
-                                    {% for dataset in datasets %}
-                                    <option value="{{ dataset.id }}">{{ dataset.filename }} (ID: {{ dataset.id }})
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="modal-actions">
-                                <button class="btn-cancel" type="button" id="cancelModelBtn">Cancel</button>
-                                <button class="btn-upload" type="submit">Upload</button>
-                            </div>
-
-                            <div class="status-text" id="modelStatusText"></div>
-
-                        </form>
-                    </div>
-                </div>
+                <button onclick="alert('Upload Model - functionality to be implemented')">Upload Model</button>
             </div>
             {% if models %}
             <ul>
@@ -172,58 +123,90 @@
     </div>
 
     <script>
-        // --- DATASET UPLOAD LOGIC ---
         const openFilePickerBtn = document.getElementById("openFilePickerBtn");
         const fileInput = document.getElementById("fileInput");
+
         const modalOverlay = document.getElementById("modalOverlay");
         const closeModalBtn = document.getElementById("closeModalBtn");
         const cancelBtn = document.getElementById("cancelBtn");
+
         const selectedFileText = document.getElementById("selectedFileText");
         const datasetFilename = document.getElementById("datasetFilename");
         const datasetDescription = document.getElementById("datasetDescription");
+
         const uploadForm = document.getElementById("uploadForm");
         const statusText = document.getElementById("statusText");
+
         let selectedFile = null;
 
-        openFilePickerBtn.addEventListener("click", () => fileInput.click());
+        const view_datasets_btn = document.getElementById("view_datasets_btn");
 
+        view_datasets_btn.addEventListener("click", () => {
+            window.location.href = '/view_datasets';
+        });
+
+        // Step 1: Click "Upload Dataset" -> open file picker
+        openFilePickerBtn.addEventListener("click", () => {
+            fileInput.click();
+        });
+
+        // Step 2: After file chosen -> show popup
         fileInput.addEventListener("change", () => {
-            if (!fileInput.files || fileInput.files.length === 0) return;
+            if (!fileInput.files || fileInput.files.length === 0) {
+                return;
+            }
+
             selectedFile = fileInput.files[0];
+
             selectedFileText.innerText = `File: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(2)} KB)`;
 
+            // Auto-fill filename (without extension)
             const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, "");
             datasetFilename.value = nameWithoutExt;
+
             datasetDescription.value = "";
             statusText.innerText = "";
+
+            // Open modal
             modalOverlay.style.display = "flex";
         });
 
-        function closeDatasetModal() {
+        // Close modal functions
+        function closeModal() {
             modalOverlay.style.display = "none";
             statusText.innerText = "";
         }
-        closeModalBtn.addEventListener("click", closeDatasetModal);
-        cancelBtn.addEventListener("click", closeDatasetModal);
 
+        closeModalBtn.addEventListener("click", closeModal);
+        cancelBtn.addEventListener("click", closeModal);
+
+        // Click outside popup closes modal
         modalOverlay.addEventListener("click", (e) => {
-            if (e.target === modalOverlay) closeDatasetModal();
+            if (e.target === modalOverlay) {
+                closeModal();
+            }
         });
 
+        // Step 3: Upload form submit -> send to backend
         uploadForm.addEventListener("submit", async (e) => {
             e.preventDefault();
+
             if (!selectedFile) {
                 statusText.innerText = "No file selected.";
                 return;
             }
+
             const finalName = datasetFilename.value.trim();
             const desc = datasetDescription.value.trim();
+
             if (!finalName) {
                 statusText.innerText = "Filename is required.";
                 return;
             }
 
             statusText.innerText = "Uploading...";
+
+            // FormData = multipart/form-data
             const formData = new FormData();
             formData.append("dataset_file", selectedFile);
             formData.append("datasetFilename", finalName);
@@ -234,110 +217,27 @@
                     method: "POST",
                     body: formData
                 });
+
                 if (!response.ok) {
                     const err = await response.text();
                     statusText.innerText = "Upload failed: " + err;
                     return;
                 }
+
+                const data = await response.json();
                 statusText.innerText = "Uploaded successfully!";
-                window.location.reload();
+
+                // Optional: close modal after 1 sec
+                setTimeout(() => {
+                    closeModal();
+                    // later: refresh dataset list from backend
+                    // location.reload();
+                }, 1000);
+
             } catch (error) {
                 statusText.innerText = "Error uploading file.";
             }
         });
-
-        // --- MODEL UPLOAD LOGIC ---
-        const openModelPickerBtn = document.getElementById("openModelPickerBtn");
-        const modelFileInput = document.getElementById("modelFileInput");
-        const modelModalOverlay = document.getElementById("modelModalOverlay");
-        const closeModelModalBtn = document.getElementById("closeModelModalBtn");
-        const cancelModelBtn = document.getElementById("cancelModelBtn");
-        const selectedModelFileText = document.getElementById("selectedModelFileText");
-        const modelNameInput = document.getElementById("modelName");
-        const modelAlgorithmInput = document.getElementById("modelAlgorithm");
-        const datasetIdSelect = document.getElementById("datasetId");
-        const uploadModelForm = document.getElementById("uploadModelForm");
-        const modelStatusText = document.getElementById("modelStatusText");
-        let selectedModelFile = null;
-
-        openModelPickerBtn.addEventListener("click", () => modelFileInput.click());
-
-        modelFileInput.addEventListener("change", () => {
-            if (!modelFileInput.files || modelFileInput.files.length === 0) return;
-            selectedModelFile = modelFileInput.files[0];
-
-            // Validate extension
-            const fileName = selectedModelFile.name.toLowerCase();
-            if (!fileName.endsWith('.pkl') && !fileName.endsWith('.joblib')) {
-                alert("Invalid file type. Please select a .pkl or .joblib file.");
-                modelFileInput.value = ""; // clear selection
-                return;
-            }
-
-            selectedModelFileText.innerText = `File: ${selectedModelFile.name} (${(selectedModelFile.size / 1024).toFixed(2)} KB)`;
-
-            // Auto-fill model name
-            const nameWithoutExt = selectedModelFile.name.replace(/\.[^/.]+$/, "");
-            modelNameInput.value = nameWithoutExt;
-
-            modelAlgorithmInput.value = "";
-            datasetIdSelect.value = ""; // Reset selection
-            modelStatusText.innerText = "";
-            modelModalOverlay.style.display = "flex";
-        });
-
-        function closeModelModal() {
-            modelModalOverlay.style.display = "none";
-            modelStatusText.innerText = "";
-        }
-
-        closeModelModalBtn.addEventListener("click", closeModelModal);
-        cancelModelBtn.addEventListener("click", closeModelModal);
-        modelModalOverlay.addEventListener("click", (e) => {
-            if (e.target === modelModalOverlay) closeModelModal();
-        });
-
-        uploadModelForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            if (!selectedModelFile) {
-                modelStatusText.innerText = "No file selected.";
-                return;
-            }
-            const mName = modelNameInput.value.trim();
-            const mAlgo = modelAlgorithmInput.value.trim();
-            const dId = datasetIdSelect.value;
-
-            if (!mName || !mAlgo || !dId) {
-                modelStatusText.innerText = "All fields are required.";
-                return;
-            }
-
-            modelStatusText.innerText = "Uploading...";
-            const formData = new FormData();
-            formData.append("model_file", selectedModelFile);
-            formData.append("modelName", mName);
-            formData.append("modelAlgorithm", mAlgo);
-            formData.append("datasetId", dId);
-
-            try {
-                const response = await fetch("/upload_model", {
-                    method: "POST",
-                    body: formData
-                });
-                if (!response.ok) {
-                    const resJson = await response.json();
-                    const err = resJson.error || "Unknown error";
-                    modelStatusText.innerText = "Upload failed: " + err;
-                    return;
-                }
-                const data = await response.json();
-                modelStatusText.innerText = "Uploaded successfully!";
-                window.location.reload();
-            } catch (error) {
-                modelStatusText.innerText = "Error uploading model: " + error;
-            }
-        });
-
     </script>
 </body>
 

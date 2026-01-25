@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Datasets</title>
+</head>
+
+<body>
+    <h1>Welcome {{ username }}</h1>
+    <h2>View Datasets</h2>
+    <ul>
+        {% for dataset in datasets %}
+        <li>
+            {{ dataset.filename }} Uploaded: {{ dataset.upload_date.strftime('%Y-%m-%d') }}
+            <!-- Using dynamic IDs for reference if needed, but class based selection is better -->
+            <button id="viewButton{{ dataset.id }}">View</button>
+            <button id="deleteButton{{ dataset.id }}">Delete</button>
+            <button id="downloadButton{{ dataset.id }}">Download</button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <button class="modal-close" id="closeModal">&times;</button>
+            <h2>Dataset Preview</h2>
+            <div id="datasetPreview" style="overflow-x: auto;">
+                <!-- Table will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const modalOverlay = document.getElementById('modalOverlay');
+        const closeModal = document.getElementById('closeModal');
+        const datasetPreview = document.getElementById('datasetPreview');
+        // Close modal logic
+        closeModal.addEventListener('click', () => {
+            modalOverlay.style.display = 'none';
+        });
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.style.display = 'none';
+            }
+        });
+        // View Button Logic: Attaches event to ALL view buttons
+        document.querySelectorAll('button[id^="viewButton"]').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const datasetId = this.id.replace('viewButton', '');
+                // Show loading state
+                datasetPreview.innerHTML = "<p>Loading preview...</p>";
+                modalOverlay.style.display = 'flex';
+                try {
+                    // Fetch data from the new endpoint
+                    const response = await fetch(`/preview_dataset/${datasetId}`);
+                    if (!response.ok) {
+                        throw new Error("Failed to load data");
+                    }
+                    const data = await response.json();
+                    if (data.length === 0) {
+                        datasetPreview.innerHTML = "<p>No data found.</p>";
+                        return;
+                    }
+                    // Build the table dynamically
+                    let tableHtml = '<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">';
+                    // Headers
+                    const headers = Object.keys(data[0]);
+                    tableHtml += '<thead><tr>';
+                    headers.forEach(h => {
+                        tableHtml += `<th style="background:#f4f4f4;">${h}</th>`;
+                    });
+                    tableHtml += '</tr></thead>';
+                    // Body
+                    tableHtml += '<tbody>';
+                    data.forEach(row => {
+                        tableHtml += '<tr>';
+                        headers.forEach(h => {
+                            tableHtml += `<td>${row[h]}</td>`;
+                        });
+                        tableHtml += '</tr>';
+                    });
+                    tableHtml += '</tbody></table>';
+                    datasetPreview.innerHTML = tableHtml;
+                } catch (error) {
+                    datasetPreview.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+                }
+            });
+        });
+    </script>
+
+</body>
+
+
+</html>
