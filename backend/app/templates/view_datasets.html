@@ -8,6 +8,9 @@
 </head>
 
 <body>
+    <nav>
+        <a href="/dashboard">Dashboard</a>
+    </nav>
     <h1>Welcome {{ username }}</h1>
     <h2>View Datasets</h2>
     <ul>
@@ -85,6 +88,52 @@
                     datasetPreview.innerHTML = tableHtml;
                 } catch (error) {
                     datasetPreview.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+                }
+            });
+        });
+
+        document.querySelectorAll('button[id^="deleteButton"]').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const datasetId = this.id.replace('deleteButton', '');
+                try {
+                    const response = await fetch(`/delete_dataset/${datasetId}`, {
+                        method: 'DELETE'
+                    });
+                    if (!response.ok) {
+                        throw new Error("Failed to delete dataset");
+                    }
+                    location.reload();
+                } catch (error) {
+                    alert(`Error deleting dataset: ${error.message}`);
+                }
+            });
+        });
+
+        document.querySelectorAll('button[id^="downloadButton"]').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const datasetId = this.id.replace('downloadButton', '');
+                try {
+                    const response = await fetch(`/download_dataset/${datasetId}`, {
+                        method: 'GET'
+                    });
+                    if (!response.ok) {
+                        throw new Error("Failed to get download URL");
+                    }
+                    const data = await response.json();
+
+                    if (data.download_url) {
+                        const a = document.createElement('a');
+                        a.href = data.download_url;
+                        // a.download attribute might be ignored for cross-origin URLs, 
+                        // but content-disposition header handles the filename.
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        throw new Error("Download URL not found in response");
+                    }
+                } catch (error) {
+                    alert(`Error downloading dataset: ${error.message}`);
                 }
             });
         });

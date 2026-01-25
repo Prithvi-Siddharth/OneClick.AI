@@ -286,3 +286,39 @@ def upload_model_to_s3(
     db.refresh(new_experiment)
     
     return new_experiment
+
+
+def s3_delete_object(bucket_name: str, s3_key: str) -> bool:
+    """
+    Deletes an object from S3.
+    """
+    s3 = get_s3_client()
+    try:
+        s3.delete_object(Bucket=bucket_name, Key=s3_key)
+        return True
+    except NoCredentialsError:
+        print("Credentials not available")
+        return False
+    except Exception as e:
+        print(f"Failed to delete object from S3: {e}")
+        return False
+
+# Generate a presigned URL to share an S3 object
+def create_presigned_download_url(bucket_name: str, s3_key: str, filename: str, expiration=3600):
+    """
+    Generate a presigned URL to share an S3 object
+    """
+    s3 = get_s3_client()
+    try:
+        response = s3.generate_presigned_url('get_object',
+                                             Params={'Bucket': bucket_name,
+                                                     'Key': s3_key,
+                                                     'ResponseContentDisposition': f'attachment; filename="{filename}"'},
+                                             ExpiresIn=expiration)
+    except Exception as e:
+        print(f"Error generating presigned URL: {e}")
+        return None
+
+    return response
+
+

@@ -14,7 +14,9 @@ from app.services.s3_operations import (
     get_user_datasets, 
     get_user_models,
     upload_model_to_s3,
-    read_dataset_from_s3
+    read_dataset_from_s3,
+    s3_delete_object,
+    create_presigned_download_url
 )
 # Load environment variables from .env file
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
@@ -376,3 +378,41 @@ def preview_dataset(dataset_id: int, request: Request, db: Session = Depends(get
     if isinstance(data, dict) and "error" in data:
         raise HTTPException(status_code=500, detail=data["error"])
     return JSONResponse(content=data)
+
+@app.delete("/delete_dataset/{dataset_id}")
+def delete_dataset(dataset_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    # Delete from S3
+    s3_key = dataset.s3_key
+    s3_bucket = dataset.s3_bucket
+    s3_delete_object(s3_bucket, s3_key)
+    # Delete from database
+    db.delete(dataset)
+    db.commit()
+    return JSONResponse(content={"message": "Dataset deleted successfully"})
+
+@app.get("/download_dataset/{dataset_id}")
+def download_dataset(dataset_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+        
+    url = create_presigned_download_url(
+        bucket_name=dataset.s3_bucket,
+        s3_key=dataset.s3_key,
+        filename=dataset.filename
+    )
+    
+    if not url:
+        raise HTTPException(status_code=500, detail="Failed to generate download URL")
+        
+    return JSONResponse(content={"download_url": url})
