@@ -87,7 +87,39 @@
             <legend>Model Catalog</legend>
             <div style="margin-bottom: 10px;">
                 <button onclick="alert('View Models - functionality to be implemented')">View Models</button>
-                <button onclick="alert('Upload Model - functionality to be implemented')">Upload Model</button>
+                <!-- Hidden file input for model -->
+                <input class="hidden-file-input" id="modelFileInput" type="file" style="display: none;"
+                    accept=".pkl,.joblib" />
+                <button onclick="document.getElementById('modelFileInput').click()">Upload Model</button>
+
+                <!-- Model Upload Modal -->
+                <div class="modal-overlay" id="modelModalOverlay">
+                    <div class="modal-box">
+                        <button class="modal-close" id="closeModelModalBtn">&times;</button>
+                        <div class="modal-title">Upload Model</div>
+                        <form id="uploadModelForm" method="post" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <span class="label">Selected File</span>
+                                <div class="file-info" id="selectedModelFileText">No file selected</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="label" for="modelName">Model Name</label>
+                                <input class="input-text" type="text" id="modelName" name="modelName" required />
+                            </div>
+                            <div class="form-group">
+                                <label class="label" for="modelAlgorithm">Algorithm</label>
+                                <input class="input-text" type="text" id="modelAlgorithm" name="modelAlgorithm"
+                                    required />
+                            </div>
+                            <div class="modal-actions">
+                                <button class="btn-cancel" type="button" id="cancelModelBtn">Cancel</button>
+                                <button class="btn-upload" type="submit">Upload</button>
+                            </div>
+                            <div class="status-text" id="modelStatusText"></div>
+                        </form>
+                    </div>
+                </div>
+
             </div>
             {% if models %}
             <ul>
@@ -141,9 +173,11 @@
 
         const view_datasets_btn = document.getElementById("view_datasets_btn");
 
-        view_datasets_btn.addEventListener("click", () => {
-            window.location.href = '/view_datasets';
-        });
+        if (view_datasets_btn) {
+            view_datasets_btn.addEventListener("click", () => {
+                window.location.href = '/view_datasets';
+            });
+        }
 
         // Step 1: Click "Upload Dataset" -> open file picker
         openFilePickerBtn.addEventListener("click", () => {
@@ -231,13 +265,96 @@
                 setTimeout(() => {
                     closeModal();
                     // later: refresh dataset list from backend
-                    // location.reload();
+                    location.reload();
                 }, 1000);
 
             } catch (error) {
                 statusText.innerText = "Error uploading file.";
             }
         });
+
+        // Unrelated: Model Upload Logic
+        const modelFileInput = document.getElementById("modelFileInput");
+        const modelModalOverlay = document.getElementById("modelModalOverlay");
+        const closeModelModalBtn = document.getElementById("closeModelModalBtn");
+        const cancelModelBtn = document.getElementById("cancelModelBtn");
+        const uploadModelForm = document.getElementById("uploadModelForm");
+        const modelStatusText = document.getElementById("modelStatusText");
+        const selectedModelFileText = document.getElementById("selectedModelFileText");
+        const modelNameInput = document.getElementById("modelName");
+        const modelAlgorithmInput = document.getElementById("modelAlgorithm");
+
+        let selectedModelFile = null;
+
+        modelFileInput.addEventListener("change", () => {
+            if (!modelFileInput.files || modelFileInput.files.length === 0) return;
+            selectedModelFile = modelFileInput.files[0];
+            selectedModelFileText.innerText = `File: ${selectedModelFile.name} (${(selectedModelFile.size / 1024).toFixed(2)} KB)`;
+
+            // Auto fill name
+            const nameWithoutExt = selectedModelFile.name.replace(/\.[^/.]+$/, "");
+            modelNameInput.value = nameWithoutExt;
+            modelAlgorithmInput.value = "Unknown"; // Default or leave empty
+
+            modelStatusText.innerText = "";
+            modelModalOverlay.style.display = "flex";
+        });
+
+        function closeModelModal() {
+            modelModalOverlay.style.display = "none";
+            modelStatusText.innerText = "";
+            modelFileInput.value = ""; // Reset input
+        }
+
+        closeModelModalBtn.addEventListener('click', closeModelModal);
+        cancelModelBtn.addEventListener('click', closeModelModal);
+        modelModalOverlay.addEventListener('click', (e) => {
+            if (e.target === modelModalOverlay) closeModelModal();
+        });
+
+        uploadModelForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!selectedModelFile) {
+                modelStatusText.innerText = "No file selected";
+                return;
+            }
+            const mName = modelNameInput.value.trim();
+            const mAlgo = modelAlgorithmInput.value.trim();
+
+            if (!mName || !mAlgo) {
+                modelStatusText.innerText = "Name and Algorithm are required";
+                return;
+            }
+
+            modelStatusText.innerText = "Uploading Model...";
+            const formData = new FormData();
+            formData.append("model_file", selectedModelFile);
+            formData.append("modelName", mName);
+            formData.append("modelAlgorithm", mAlgo);
+            // datasetId is optional now
+
+            try {
+                const response = await fetch("/upload_model", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || "Upload failed");
+                }
+
+                modelStatusText.innerText = "Model Uploaded Successfully!";
+                setTimeout(() => {
+                    closeModelModal();
+                    location.reload();
+                }, 1000);
+
+            } catch (err) {
+                modelStatusText.innerText = "Error: " + err.message;
+            }
+        });
+
     </script>
 </body>
 

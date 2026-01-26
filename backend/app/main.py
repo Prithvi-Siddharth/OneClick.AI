@@ -289,7 +289,6 @@ def upload_model(
     db: Session = Depends(get_db),
     modelName: str = Form(...),
     modelAlgorithm: str = Form(...),
-    datasetId: int = Form(...),
     model_file: UploadFile = File(...),
 ):
     user_id = get_current_user_id(request)
@@ -321,7 +320,6 @@ def upload_model(
             bucket_name=bucket_name,
             user_id=int(user_id),
             model_name=modelName,
-            dataset_id=datasetId,
             algorithm=modelAlgorithm
         )
 

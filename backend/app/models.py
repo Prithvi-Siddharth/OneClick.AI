@@ -33,7 +33,7 @@ class Experiment(Base):
     __tablename__ = "experiments"
 
     id = Column(Integer, primary_key=True, index=True)
-    dataset_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, nullable=False)
     name = Column(String(255), nullable=True) # Added name
     target_column = Column(String(255), nullable=True)
     algorithm = Column(String(100), nullable=True)

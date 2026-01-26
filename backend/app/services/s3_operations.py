@@ -34,9 +34,7 @@ def get_user_models(db: Session, user_id: int, limit: int = None):
     """
     Retrieves the list of models trained by the user, ordered by most recent first.
     """
-    query = db.query(Experiment).filter(Experiment.dataset_id.in_(
-        db.query(Dataset.id).filter(Dataset.user_id == user_id)
-    )).order_by(Experiment.id.desc())
+    query = db.query(Experiment).filter(Experiment.user_id == user_id).order_by(Experiment.id.desc())
     
     if limit:
         query = query.limit(limit)
@@ -251,7 +249,6 @@ def upload_model_to_s3(
     bucket_name: str, 
     user_id: int, 
     model_name: str,
-    dataset_id: int,
     algorithm: str
 ) -> Experiment:
     """
@@ -275,7 +272,7 @@ def upload_model_to_s3(
 
     # Save Metadata to TiDB
     new_experiment = Experiment(
-        dataset_id=dataset_id, # Assuming we know which dataset this model is based on
+        user_id=user_id,
         name=model_name,
         algorithm=algorithm,
         model_artifact_path=s3_key,
