@@ -12,7 +12,8 @@ import pandas as pd
 from datetime import datetime
 from sqlalchemy.orm import Session
 from botocore.exceptions import NoCredentialsError
-from app.models import Dataset, Experiment
+from app.models import Dataset, Experiment, TemporaryDataset
+
 
 # Ensure that you have AWS credentials in your environment variables:
 # AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION
@@ -242,6 +243,131 @@ def process_and_save_dataset(
     db.refresh(new_dataset)
     
     return new_dataset
+
+def process_and_save_dataset_temporary(
+    db: Session,
+    user_id: int,
+    file_obj,
+    bucket_name: str
+) -> TemporaryDataset:
+    """
+    Orchestrator function to:
+    1. Generate a unique S3 key.
+    2. Extract metadata.
+    3. Upload file to S3.
+    4. Save record to TiDB.
+    """
+    
+    # 1. Generate Unique Key
+    # Organization: {user_id}/datasets/{timestamp}
+    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    s3_key = f"{user_id}/temporary_datasets/{timestamp}"
+    
+    # 2. Calculate Metadata & Size (BEFORE upload to avoid closed file issues)
+    # Use the underlying file object if this is a FastAPI UploadFile
+    actual_file = getattr(file_obj, "file", file_obj)
+
+    # Get Size
+    actual_file.seek(0, os.SEEK_END)
+    file_size = actual_file.tell()
+    actual_file.seek(0)
+    
+    # Get Schema and Rows
+    row_count, schema_dict = inspect_temporary_dataset_metadata(file_obj)
+
+    # Reset stream for upload
+    actual_file.seek(0)
+    
+    # 3. Upload to S3
+    success = upload_file_to_s3(file_obj, bucket_name, s3_key)
+    if not success:
+        raise Exception("Failed to upload file to S3")
+    
+    # 4. Save to DB
+    new_dataset = TemporaryDataset(
+        user_id=user_id,
+        s3_key=s3_key,
+        s3_bucket=bucket_name,
+        file_size=file_size,
+        row_count=row_count,
+        feature_schema=str(schema_dict) 
+    )
+
+    db.add(new_dataset)
+    db.commit()
+    db.refresh(new_dataset)
+    
+    return new_dataset
+
+
+def inspect_temporary_dataset_metadata(file_obj):
+    """
+    Reads the file to extract metadata (rows, schema).
+    Supports CSV, JSON, and Excel.
+    """
+
+    try:
+        # Use the underlying file object if this is a FastAPI UploadFile
+        print(f"DEBUG: file_obj type: {type(file_obj)}")
+        print(f"DEBUG: file_obj dir: {dir(file_obj)}")
+        actual_file = getattr(file_obj, "file", file_obj)
+        # Use a placeholder since we don't rely on the original name
+        upload_name = getattr(file_obj, "filename", "temp_dataset.csv") 
+        ext = upload_name.lower().split('.')[-1]
+        
+        # 1. Reset buffer
+        actual_file.seek(0)
+        
+        row_count = 0
+        schema = {}
+
+        if ext == 'csv':
+            # Schema
+            df_preview = pd.read_csv(actual_file, nrows=5)
+            schema = {col: str(dtype) for col, dtype in df_preview.dtypes.items()}
+            
+            # Row Count
+            actual_file.seek(0)
+            for chunk in pd.read_csv(actual_file, usecols=[0], chunksize=10000):
+                row_count += len(chunk)
+
+        elif ext == 'json':
+            # Try line-delimited first, then standard JSON
+            try:
+                # Schema
+                df_preview = pd.read_json(actual_file, orient='records', lines=True, nrows=5)
+                schema = {col: str(dtype) for col, dtype in df_preview.dtypes.items()}
+                
+                # Row count
+                actual_file.seek(0)
+                # For JSON lines, we can chunk
+                for chunk in pd.read_json(actual_file, orient='records', lines=True, chunksize=10000):
+                    row_count += len(chunk)
+            except ValueError:
+                # Fallback to standard JSON (loads entire file, acceptable for JSON limits usually)
+                actual_file.seek(0)
+                df = pd.read_json(actual_file)
+                row_count = len(df)
+                schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
+
+        elif ext in ['xls', 'xlsx']:
+            # Excel does not support chunking well, load into memory
+            # Engine 'openpyxl' for xlsx, 'xlrd' for xls (if installed), default auto-detect
+            df = pd.read_excel(actual_file)
+            row_count = len(df)
+            schema = {col: str(dtype) for col, dtype in df.dtypes.items()}
+
+        else:
+            # Fallback or unknown
+            print(f"Unsupported file extension: {ext}")
+            return 0, {}
+
+        return row_count, schema
+
+    except Exception as e:
+        print(f"Error inspecting temporary dataset: {e}")
+        return 0, {}
+
 
 def upload_model_to_s3(
     db: Session,

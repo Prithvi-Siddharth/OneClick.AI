@@ -16,14 +16,26 @@ from app.services.s3_operations import (
     upload_model_to_s3,
     read_dataset_from_s3,
     s3_delete_object,
-    create_presigned_download_url
+    create_presigned_download_url,
+    process_and_save_dataset_temporary
 )
+
+from fastapi.middleware.cors import CORSMiddleware
+
+
 # Load environment variables from .env file
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
 #creates an app
 app = FastAPI(title="ML SaaS Platform")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:5500"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # directory of the templates
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
@@ -414,3 +426,81 @@ def download_dataset(dataset_id: int, request: Request, db: Session = Depends(ge
         raise HTTPException(status_code=500, detail="Failed to generate download URL")
         
     return JSONResponse(content={"download_url": url})
+
+
+@app.get("/preprocessing")
+def preprocessing_page(request: Request, response_class=HTMLResponse):
+    return templates.TemplateResponse("preprocessing.html", {"request": request})
+
+
+
+@app.post("/temporary_upload_dataset")
+def temporary_upload_dataset(
+    request: Request,
+    db: Session = Depends(get_db),
+    dataset_file: UploadFile = File(...),
+):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid user")
+    
+    try:
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+        
+        if not bucket_name:
+            raise ValueError("S3_BUCKET_NAME not configured in environment variables")
+
+        # Call the function
+        result = process_and_save_dataset_temporary(
+            db=db,
+            user_id=int(user_id),
+            file_obj=dataset_file,
+            bucket_name=bucket_name
+        )
+
+        # Handle both dict and Dataset object responses
+        if isinstance(result, dict):
+            # New format: returns dict with success/data/message
+            if not result["success"]:
+                return JSONResponse(
+                    content={"error": result["message"]},
+                    status_code=status.HTTP_400_BAD_REQUEST
+                )
+            dataset = result["data"]
+        else:
+            # Old format: returns Dataset object directly
+            dataset = result
+        
+        # Return success response
+        return JSONResponse(
+            content={
+                "message": "File uploaded successfully",
+                "dataset_id": dataset.id,
+                "row_count": dataset.row_count,
+                "file_size": dataset.file_size
+            },
+            status_code=status.HTTP_200_OK
+        )
+        
+    except HTTPException as e:
+        return JSONResponse(
+            content={"error": e.detail},
+            status_code=e.status_code
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@app.get("/train_model")
+def train_model_page(request: Request, response_class=HTMLResponse):
+    return templates.TemplateResponse("train_model.html", {"request": request})
+
+
+

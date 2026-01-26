@@ -42,3 +42,15 @@ class Experiment(Base):
     status = Column(String(50), default="PENDING")
     model_artifact_path = Column(String(1024), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class TemporaryDataset(Base):
+    __tablename__ = "temporary_datasets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False)
+    s3_key = Column(String(1024), nullable=False)
+    s3_bucket = Column(String(255), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    row_count = Column(Integer, nullable=True)
+    upload_date = Column(DateTime, default=datetime.utcnow)
+    feature_schema = Column(String(4096), nullable=True)
