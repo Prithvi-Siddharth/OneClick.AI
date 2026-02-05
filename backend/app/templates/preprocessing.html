@@ -43,9 +43,24 @@
 
     </div>
 
-    <button onclick="alert('Connect functionality to be implemented')">Connect Data from Catalog</button>
-    <br><br>
-    <button onclick="alert('Process functionality to be implemented')">Process</button>
+    <button id="openCatalogBtn" type="button">Connect Data from Catalog</button>
+
+    <!-- Catalog Selection Modal -->
+    <div class="modal-overlay" id="catalogModal" style="display:none;">
+        <div class="modal-box">
+            <button class="modal-close" id="closeCatalogBtn">&times;</button>
+            <h3>Select from Catalog</h3>
+            <form id="catalogForm">
+                <select name="dataset_id" style="width: 100%; padding: 10px; margin: 15px 0;">
+                    <!-- Correct Jinja syntax -->
+                    {% for dataset in datasets %}
+                    <option value="{{ dataset.id }}">{{ dataset.filename }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Confirm Connection</button>
+            </form>
+        </div>
+    </div>
 
     <script>
         const openFilePickerBtn = document.getElementById("openFilePickerBtn");
@@ -140,6 +155,43 @@
 
             } catch (error) {
                 statusText.innerText = "Error uploading file.";
+            }
+        });
+
+        const openCatalogBtn = document.getElementById("openCatalogBtn");
+        const catalogModal = document.getElementById("catalogModal");
+        const closeCatalogBtn = document.getElementById("closeCatalogBtn");
+        const catalogForm = document.getElementById("catalogForm");
+
+        // Open Catalog Modal
+        openCatalogBtn.addEventListener("click", () => {
+            catalogModal.style.display = "flex";
+        });
+
+        // Close Catalog Modal
+        closeCatalogBtn.addEventListener("click", () => {
+            catalogModal.style.display = "none";
+        });
+
+        // Submit Catalog Connection
+        catalogForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = new FormData(catalogForm);
+
+            try {
+                const response = await fetch("/connect_dataset", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert("Data connected from catalog!");
+                    location.reload(); // Refresh to show loaded data
+                } else {
+                    alert("Failed to connect data.");
+                }
+            } catch (error) {
+                console.error("Error:", error);
             }
         });
     </script>

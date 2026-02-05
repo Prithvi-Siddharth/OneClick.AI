@@ -1,12 +1,13 @@
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from fastapi import File, UploadFile
 from app.db import engine, get_db
-from app.models import Base, User, Dataset, Experiment
+from app.models import Base, User, Dataset, Experiment, TemporaryDataset
 from app.schemas import RegisterRequest, RegisterResponse
 from app.security import hash_password, verify_password, create_access_token, get_current_user_id
 from app.services.s3_operations import (
@@ -17,7 +18,8 @@ from app.services.s3_operations import (
     read_dataset_from_s3,
     s3_delete_object,
     create_presigned_download_url,
-    process_and_save_dataset_temporary
+    process_and_save_dataset_temporary,
+    duplicate_dataset_in_s3
 )
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -428,11 +430,24 @@ def download_dataset(dataset_id: int, request: Request, db: Session = Depends(ge
     return JSONResponse(content={"download_url": url})
 
 
+# Change this route in main.py (around line 431)
 @app.get("/preprocessing")
-def preprocessing_page(request: Request, response_class=HTMLResponse):
-    return templates.TemplateResponse("preprocessing.html", {"request": request})
+def preprocessing_page(request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login")
+    
+    # Fetch user's uploaded datasets to show in the catalog dropdown
+    datasets = db.query(Dataset).filter(Dataset.user_id == int(user_id)).all()
+    
+    return templates.TemplateResponse("preprocessing.html", {
+        "request": request, 
+        "datasets": datasets
+    })
 
-
+@app.get("/train_model")
+def train_model_page(request: Request, response_class=HTMLResponse):
+    return templates.TemplateResponse("train_model.html", {"request": request})
 
 @app.post("/temporary_upload_dataset")
 def temporary_upload_dataset(
@@ -497,10 +512,64 @@ def temporary_upload_dataset(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+# Update your connect_dataset route (around line 503)
+@app.post('/connect_dataset')
+def connect_dataset(
+    request: Request,
+    db: Session = Depends(get_db),
+    dataset_id: int = Form(...),
+):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    
+    # 1. Find the dataset in the Catalog (Dataset table)
+    dataset = db.query(Dataset).filter(
+        Dataset.id == dataset_id, 
+        Dataset.user_id == int(user_id)
+    ).first()
 
-@app.get("/train_model")
-def train_model_page(request: Request, response_class=HTMLResponse):
-    return templates.TemplateResponse("train_model.html", {"request": request})
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
 
+    try:
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+        
+        if not bucket_name:
+            raise ValueError("S3_BUCKET_NAME not configured in environment variables")
 
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
+        # Call the function with required metadata from the catalog record
+        temp_dataset = duplicate_dataset_in_s3(
+            db=db,
+            user_id=int(user_id),
+            bucket_name=bucket_name,
+            source_key=dataset.s3_key,
+            destination_key=f"{dataset.user_id}/temporary_datasets/{timestamp}",
+            row_count=dataset.row_count,
+            feature_schema=dataset.feature_schema,
+            file_size=dataset.file_size
+        )
+        
+        # Return success response
+        return JSONResponse(
+            content={
+                "message": "Dataset connected successfully",
+                "dataset_id": temp_dataset.id,
+                "row_count": temp_dataset.row_count,
+                "file_size": temp_dataset.file_size
+            },
+            status_code=status.HTTP_200_OK
+        )
+        
+    except HTTPException as e:
+        return JSONResponse(
+            content={"error": e.detail},
+            status_code=e.status_code
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

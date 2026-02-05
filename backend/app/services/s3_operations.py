@@ -300,6 +300,35 @@ def process_and_save_dataset_temporary(
     return new_dataset
 
 
+def duplicate_dataset_in_s3(
+    db: Session,
+    user_id: int,
+    bucket_name: str,
+    source_key: str,
+    destination_key: str,
+    row_count: int,
+    feature_schema: str,
+    file_size: int
+) -> TemporaryDataset:
+    # 1. Trigger the S3 Copy (Server-to-Server)
+    s3_client = get_s3_client()
+    copy_source = {'Bucket': bucket_name, 'Key': source_key}
+    s3_client.copy_object(Bucket=bucket_name, CopySource=copy_source, Key=destination_key)
+
+    # 2. Create the TemporaryDataset record using existing metadata
+    new_dataset = TemporaryDataset(
+        user_id=user_id,
+        s3_key=destination_key,
+        s3_bucket=bucket_name,
+        file_size=file_size,
+        row_count=row_count,
+        feature_schema=feature_schema
+    )
+    db.add(new_dataset)
+    db.commit()
+    db.refresh(new_dataset)
+    return new_dataset
+
 def inspect_temporary_dataset_metadata(file_obj):
     """
     Reads the file to extract metadata (rows, schema).
