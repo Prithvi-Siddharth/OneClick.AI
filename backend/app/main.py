@@ -440,9 +440,13 @@ def preprocessing_page(request: Request, db: Session = Depends(get_db)):
     # Fetch user's uploaded datasets to show in the catalog dropdown
     datasets = db.query(Dataset).filter(Dataset.user_id == int(user_id)).all()
     
+    # Fetch the latest loaded dataset for preprocessing
+    active_dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+    
     return templates.TemplateResponse("preprocessing.html", {
         "request": request, 
-        "datasets": datasets
+        "datasets": datasets,
+        "active_dataset": active_dataset
     })
 
 @app.get("/train_model")
@@ -573,3 +577,27 @@ def connect_dataset(
             content={"error": str(e)},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@app.get("/preview_temporary_dataset/{temp_id}")
+def preview_temporary_dataset(temp_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    temp_dataset = db.query(TemporaryDataset).filter(TemporaryDataset.id == temp_id, TemporaryDataset.user_id == int(user_id)).first()
+    if not temp_dataset:
+        raise HTTPException(status_code=404, detail="Temporary dataset not found")
+    
+    # Read from S3 using existing service function
+    data = read_dataset_from_s3(
+        bucket_name=temp_dataset.s3_bucket,
+        s3_key=temp_dataset.s3_key,
+        filename=f"temp_{temp_id}.csv", # Placeholder name
+        preview_limit=5
+    )
+    
+    if isinstance(data, dict) and "error" in data:
+        raise HTTPException(status_code=500, detail=data["error"])
+    
+    return JSONResponse(content=data)
