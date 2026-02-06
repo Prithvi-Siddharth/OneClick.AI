@@ -539,10 +539,6 @@ def preprocessing_page(request: Request, db: Session = Depends(get_db)):
         "active_dataset": active_dataset
     })
 
-@app.get("/train_model")
-def train_model_page(request: Request, response_class=HTMLResponse):
-    return templates.TemplateResponse("train_model.html", {"request": request})
-
 #temporary upload dataset into s3, when user is preprocessing
 @app.post("/temporary_upload_dataset")
 def temporary_upload_dataset(
@@ -706,4 +702,136 @@ def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("preprocess-dataset.html", {
         "request": request,
         "username": user.username
+    })
+
+
+# Train model
+@app.get("/train_model")
+def train_model_page(request: Request, db: Session = Depends(get_db), response_class=HTMLResponse):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login")
+    
+    #fetch the users uploaded datasats in catalog, so that the user can select the dataset to preprocess
+    datasets = db.query(Dataset).filter(Dataset.user_id == int(user_id)).all()
+    
+    #fetch the latest loaded dataset for preprocessing and display it in the preprocessing page
+    active_dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+    
+    return templates.TemplateResponse("train_model.html", {
+        "request": request, 
+        "datasets": datasets,
+        "active_dataset": active_dataset
+    })
+
+# connecting dataset from catalog for train model
+@app.post('/connect_dataset_train')
+def connect_dataset_train(
+    request: Request,
+    db: Session = Depends(get_db),
+    dataset_id: int = Form(...),
+):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not logged in")
+    
+    # 1. Find the dataset in the Catalog (Dataset table)
+    dataset = db.query(Dataset).filter(
+        Dataset.id == dataset_id, 
+        Dataset.user_id == int(user_id)
+    ).first()
+
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    try:
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+        
+        if not bucket_name:
+            raise ValueError("S3_BUCKET_NAME not configured in environment variables")
+
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+        # Call the function with required metadata from the catalog record
+        temp_dataset = duplicate_dataset_in_s3(
+            db=db,
+            user_id=int(user_id),
+            bucket_name=bucket_name,
+            source_key=dataset.s3_key,
+            destination_key=f"{dataset.user_id}/temporary_datasets/{timestamp}",
+            row_count=dataset.row_count,
+            feature_schema=dataset.feature_schema,
+            file_size=dataset.file_size
+        )
+        
+        # Return success response
+        return JSONResponse(
+            content={
+                "message": "Dataset connected successfully",
+                "dataset_id": temp_dataset.id,
+                "row_count": temp_dataset.row_count,
+                "file_size": temp_dataset.file_size
+            },
+            status_code=status.HTTP_200_OK
+        )
+        
+    except HTTPException as e:
+        return JSONResponse(
+            content={"error": e.detail},
+            status_code=e.status_code
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={"error": str(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@app.get("/training")
+def training_page(request: Request, db: Session = Depends(get_db), dataset_id: int = None):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login")
+    
+    dataset = None
+    if dataset_id:
+        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.id == dataset_id, TemporaryDataset.user_id == int(user_id)).first()
+    
+    if not dataset:
+        # Fallback to the latest temporary dataset if no ID provided or not found
+        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+    
+    return templates.TemplateResponse("training.html", {
+        "request": request,
+        "dataset": dataset
+    })
+
+# @app.get("/models")
+# def models_page(request: Request, db: Session = Depends(get_db), response_class=HTMLResponse):
+#     user_id = get_current_user_id(request)
+#     if not user_id:
+#         return RedirectResponse(url="/login")
+    
+#     return templates.TemplateResponse("models.html", {
+#         "request": request,
+#         "user_id": user_id
+#     })
+
+@app.get("/models")
+def models_page(request: Request, db: Session = Depends(get_db), dataset_id: int = None, model: str = None):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login")
+    
+    dataset = None
+    if dataset_id:
+        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.id == dataset_id, TemporaryDataset.user_id == int(user_id)).first()
+    
+    if not dataset:
+        # Fallback to the latest temporary dataset if no ID provided or not found
+        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+    
+    return templates.TemplateResponse("models.html", {
+        "request": request,
+        "dataset": dataset,
+        "model": {"name": model} if model else None
     })

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OneClick.AI Models</title>
+</head>
+<body>
+    <h1>OneClick.AI Models</h1>
+    {% if dataset %}
+    <p>Currently training with dataset: <strong>{{ dataset.s3_key.split('/')[-1] }}</strong></p>
+    <p>Size: {{ (dataset.file_size / 1024)|round(2) }} KB | Rows: {{ dataset.row_count }}</p>
+    <p>Model: <strong>{{ model.name }}</strong></p>
+
+    <p>Model description goes here</p>
+    <p>Logistic Regression</p> <br>
+    <p>Linear Regression</p> <br>
+    <p>Random Forest</p> <br>
+    <p>DecisionTree</p> <br>
+    {% else %}
+    <p style="color: red;">No active dataset found for training. Please go back and select a dataset.</p>
+    <button onclick="window.location.href='/train_model'">Back to Train Model</button>
+    {% endif %}
+</body>
+</html>

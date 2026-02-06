@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Model</title>
+</head>
+
+<body>
+    <h1>Training Model</h1>
+    {% if dataset %}
+    <p>Currently training with dataset: <strong>{{ dataset.s3_key.split('/')[-1] }}</strong></p>
+    <p>Size: {{ (dataset.file_size / 1024)|round(2) }} KB | Rows: {{ dataset.row_count }}</p>
+
+    <div>
+        <button id="LinearRegression">Linear Regression</button>
+    </div>
+    <br> <br>
+    <div>
+        <button id="LogisticRegression">Logistic Regression</button>
+    </div>
+    <br> <br>
+    <div>
+        <button id="DecisionTree">Decision Tree</button>
+    </div>
+    <br> <br>
+    <div>
+        <button id="RandomForest">Random Forest</button>
+    </div>
+
+
+    {% else %}
+    <p style="color: red;">No active dataset found for training. Please go back and select a dataset.</p>
+    <button onclick="window.location.href='/train_model'">Back to Train Model</button>
+    {% endif %}
+
+    <script>
+        document.getElementById("LinearRegression").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=LinearRegression";
+        });
+
+        document.getElementById("LogisticRegression").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=LogisticRegression";
+        });
+
+        document.getElementById("DecisionTree").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=DecisionTree";
+        });
+
+        document.getElementById("RandomForest").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=RandomForest";
+        });
+    </script>
+</body>
+
+</html>
