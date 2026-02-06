@@ -86,7 +86,7 @@
         <fieldset>
             <legend>Model Catalog</legend>
             <div style="margin-bottom: 10px;">
-                <button onclick="alert('View Models - functionality to be implemented')">View Models</button>
+                <button id="view_models_btn">View Models</button>
                 <!-- Hidden file input for model -->
                 <input class="hidden-file-input" id="modelFileInput" type="file" style="display: none;"
                     accept=".pkl,.joblib" />
@@ -172,10 +172,18 @@
         let selectedFile = null;
 
         const view_datasets_btn = document.getElementById("view_datasets_btn");
+        const view_models_btn = document.getElementById("view_models_btn");
+
 
         if (view_datasets_btn) {
             view_datasets_btn.addEventListener("click", () => {
                 window.location.href = '/view_datasets';
+            });
+        }
+
+        if (view_models_btn) {
+            view_models_btn.addEventListener("click", () => {
+                window.location.href = '/view_models';
             });
         }
 

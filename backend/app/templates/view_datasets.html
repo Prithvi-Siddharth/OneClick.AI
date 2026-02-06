@@ -36,39 +36,51 @@
     </div>
 
     <script>
+        // takes the elements from the HTML
         const modalOverlay = document.getElementById('modalOverlay');
         const closeModal = document.getElementById('closeModal');
         const datasetPreview = document.getElementById('datasetPreview');
+
         // Close modal logic
         closeModal.addEventListener('click', () => {
             modalOverlay.style.display = 'none';
         });
+
+        //if clicked anywhere other than the popup, the popup closes 
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) {
                 modalOverlay.style.display = 'none';
             }
         });
-        // View Button Logic: Attaches event to ALL view buttons
-        document.querySelectorAll('button[id^="viewButton"]').forEach(btn => {
-            btn.addEventListener('click', async function () {
-                const datasetId = this.id.replace('viewButton', '');
-                // Show loading state
+
+        //view button logic
+        document.querySelectorAll('button[id^="viewButton"]').forEach(btn => { // this selects all buttons that start with id viewButton
+            btn.addEventListener('click', async function () { //this attaches an event listener to each button
+                const datasetId = this.id.replace('viewButton', ''); //this get the dataset id from the button id
+
                 datasetPreview.innerHTML = "<p>Loading preview...</p>";
                 modalOverlay.style.display = 'flex';
                 try {
-                    // Fetch data from the new endpoint
+                    //fetches the data from the new endpoint
                     const response = await fetch(`/preview_dataset/${datasetId}`);
                     if (!response.ok) {
                         throw new Error("Failed to load data");
                     }
-                    const data = await response.json();
-                    if (data.length === 0) {
+
+                    const result = await response.json();
+                    const data = result.data_preview; //this is the data preview
+                    const stats = result.stats;
+
+                    if (!data || data.length === 0) {
                         datasetPreview.innerHTML = "<p>No data found.</p>";
                         return;
                     }
-                    // Build the table dynamically
-                    let tableHtml = '<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">';
-                    // Headers
+
+                    //the table is print dynamically
+                    let tableHtml = `<p><strong>Total Rows in Dataset:</strong> ${stats.total_rows}</p>`;
+                    tableHtml += '<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">';
+
+                    //headers of the table
                     const headers = Object.keys(data[0]);
                     tableHtml += '<thead><tr>';
                     headers.forEach(h => {
@@ -92,9 +104,10 @@
             });
         });
 
-        document.querySelectorAll('button[id^="deleteButton"]').forEach(btn => {
+        //delete button logic
+        document.querySelectorAll('button[id^="deleteButton"]').forEach(btn => { //this selects all buttons that start with id deleteButton
             btn.addEventListener('click', async function () {
-                const datasetId = this.id.replace('deleteButton', '');
+                const datasetId = this.id.replace('deleteButton', ''); //this gets the dataset id from the button id
                 try {
                     const response = await fetch(`/delete_dataset/${datasetId}`, {
                         method: 'DELETE'
@@ -109,9 +122,10 @@
             });
         });
 
-        document.querySelectorAll('button[id^="downloadButton"]').forEach(btn => {
+        //download button logic
+        document.querySelectorAll('button[id^="downloadButton"]').forEach(btn => { //this selects all buttons that start with id downloadButton
             btn.addEventListener('click', async function () {
-                const datasetId = this.id.replace('downloadButton', '');
+                const datasetId = this.id.replace('downloadButton', ''); //this gets the dataset id from the button id
                 try {
                     const response = await fetch(`/download_dataset/${datasetId}`, {
                         method: 'GET'
@@ -123,9 +137,7 @@
 
                     if (data.download_url) {
                         const a = document.createElement('a');
-                        a.href = data.download_url;
-                        // a.download attribute might be ignored for cross-origin URLs, 
-                        // but content-disposition header handles the filename.
+                        a.href = data.download_url; //taken the download_url from the backend
                         document.body.appendChild(a);
                         a.click();
                         a.remove();

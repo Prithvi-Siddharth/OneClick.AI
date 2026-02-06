@@ -13,6 +13,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from botocore.exceptions import NoCredentialsError
 from app.models import Dataset, Experiment, TemporaryDataset
+from app.services.data_preprocessing import get_dataset_preview_and_stats
 
 
 # Ensure that you have AWS credentials in your environment variables:
@@ -55,49 +56,20 @@ def get_s3_client():
     )
 
 def read_dataset_from_s3(bucket_name: str, s3_key: str, filename: str, preview_limit: int = 5):
-    """
-    Reads a file from S3 and returns a preview of the data (as a list of dictionaries).
-    """
     s3 = get_s3_client()
     try:
-        # Get object from S3
+        # 1. Fetch from S3
         response = s3.get_object(Bucket=bucket_name, Key=s3_key)
         file_stream = response['Body']
         
+        from io import BytesIO
+        content = file_stream.read()
+        file_buffer = BytesIO(content)
+        
         ext = filename.lower().split('.')[-1]
-        df = None
-
-        if ext == 'csv':
-            df = pd.read_csv(file_stream, nrows=preview_limit)
-        elif ext == 'json':
-            # Identify if it is newline-delimited JSON or standard list-of-dicts
-            # Check first char or just try both
-            # Since S3 stream is not seekable easily once read, we might need to read into buffer
-            # BUT for preview, let's treat it simple:
-            try:
-                # Try lines=True first (common for large datasets)
-                df = pd.read_json(file_stream, orient='records', lines=True, nrows=preview_limit)
-            except ValueError:
-                # Fallback necessitates seeking or re-reading, but stream is consumed.
-                # Only way is to download to memory first if we are unsure.
-                # For robustness, let's read content to BytesIO first
-                from io import BytesIO
-                file_content = response['Body'].read() # Re-read full body if needed or just handle valid JSON
-                df = pd.read_json(BytesIO(file_content))
-                if len(df) > preview_limit:
-                    df = df.head(preview_limit)
-        elif ext in ['xls', 'xlsx']:
-            # Excel requires seekable stream or file
-            from io import BytesIO
-            content = file_stream.read()
-            df = pd.read_excel(BytesIO(content), nrows=preview_limit)
-        else:
-            return {"error": f"Unsupported file extension: {ext}"}
-
-        if df is not None:
-            # Replace NaNs with None for valid JSON serialization
-            df = df.where(pd.notnull(df), None)
-            return df.to_dict(orient='records')
+        
+        # 2. Delegate to the Preprocessing Service
+        return get_dataset_preview_and_stats(file_buffer, ext, preview_limit)
             
     except Exception as e:
         print(f"Error reading from S3: {e}")

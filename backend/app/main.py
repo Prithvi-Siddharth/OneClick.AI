@@ -205,6 +205,8 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
     datasets = get_user_datasets(db, int(user_id), limit=5)
     models = get_user_models(db, int(user_id), limit=5)
 
+    print(f"DEBUG Dashboard: ID={user_id}, User={user.username}, Datasets={len(datasets)}, Models={len(models)}")
+
     return templates.TemplateResponse("dashboard.html", {
         "request": request, 
         "username": user.username,
@@ -371,7 +373,95 @@ def view_dataset(request: Request, db: Session = Depends(get_db), response_class
     
     return templates.TemplateResponse("view_datasets.html", {"request": request, "username": user.username, "datasets": datasets})
 
+@app.get("/view_models")
+def view_models(request: Request, db: Session = Depends(get_db), response_class=HTMLResponse):
 
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    models = get_user_models(db, int(user_id))
+    
+    return templates.TemplateResponse("view_models.html", {"request": request, "username": user.username, "models": models})
+
+@app.get("/preview_model/{model_id}")
+def preview_model(model_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    model = db.query(Experiment).filter(Experiment.id == model_id, Experiment.user_id == int(user_id)).first()
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    # Return basic metadata and metrics
+    import json
+    try:
+        metrics = json.loads(model.metrics) if model.metrics else {}
+        params = json.loads(model.hyperparameters) if model.hyperparameters else {}
+    except:
+        metrics = {}
+        params = {}
+
+    return JSONResponse(content={
+        "name": model.name,
+        "algorithm": model.algorithm,
+        "status": model.status,
+        "target_column": model.target_column,
+        "metrics": metrics,
+        "params": params,
+        "created_at": model.created_at.strftime("%Y-%m-%d %H:%M:%S")
+    })
+
+@app.delete("/delete_model/{model_id}")
+def delete_model(model_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    model = db.query(Experiment).filter(Experiment.id == model_id, Experiment.user_id == int(user_id)).first()
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    # Delete from S3
+    bucket_name = os.getenv("S3_BUCKET_NAME")
+    if model.model_artifact_path and bucket_name:
+        s3_delete_object(bucket_name, model.model_artifact_path)
+    
+    # Delete from DB
+    db.delete(model)
+    db.commit()
+    
+    return JSONResponse(content={"message": "Model deleted successfully"})
+
+@app.get("/download_model/{model_id}")
+def download_model(model_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    model = db.query(Experiment).filter(Experiment.id == model_id, Experiment.user_id == int(user_id)).first()
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    
+    bucket_name = os.getenv("S3_BUCKET_NAME")
+    if not bucket_name:
+        raise HTTPException(status_code=500, detail="S3_BUCKET_NAME not configured")
+    
+    # Generate presigned URL
+    url = create_presigned_download_url(
+        bucket_name=bucket_name,
+        s3_key=model.model_artifact_path,
+        filename=model.name if model.name.endswith(('.pkl', '.joblib')) else f"{model.name}.joblib"
+    )
+    
+    return JSONResponse(content={"download_url": url})
+
+#this route is used to preview the dataset
 @app.get("/preview_dataset/{dataset_id}")
 def preview_dataset(dataset_id: int, request: Request, db: Session = Depends(get_db)):
     user_id = get_current_user_id(request)
@@ -380,7 +470,7 @@ def preview_dataset(dataset_id: int, request: Request, db: Session = Depends(get
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    # Read from S3
+    #read from s3, the preview and stats of the dataset
     data = read_dataset_from_s3(
         bucket_name=dataset.s3_bucket,
         s3_key=dataset.s3_key,
@@ -389,7 +479,7 @@ def preview_dataset(dataset_id: int, request: Request, db: Session = Depends(get
     )
     if isinstance(data, dict) and "error" in data:
         raise HTTPException(status_code=500, detail=data["error"])
-    return JSONResponse(content=data)
+    return JSONResponse(content=data) #return the data
 
 @app.delete("/delete_dataset/{dataset_id}")
 def delete_dataset(dataset_id: int, request: Request, db: Session = Depends(get_db)):
@@ -430,17 +520,17 @@ def download_dataset(dataset_id: int, request: Request, db: Session = Depends(ge
     return JSONResponse(content={"download_url": url})
 
 
-# Change this route in main.py (around line 431)
+#preprocessing page
 @app.get("/preprocessing")
 def preprocessing_page(request: Request, db: Session = Depends(get_db)):
     user_id = get_current_user_id(request)
     if not user_id:
         return RedirectResponse(url="/login")
     
-    # Fetch user's uploaded datasets to show in the catalog dropdown
+    #fetch the users uploaded datasats in catalog, so that the user can select the dataset to preprocess
     datasets = db.query(Dataset).filter(Dataset.user_id == int(user_id)).all()
     
-    # Fetch the latest loaded dataset for preprocessing
+    #fetch the latest loaded dataset for preprocessing and display it in the preprocessing page
     active_dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
     
     return templates.TemplateResponse("preprocessing.html", {
@@ -453,6 +543,7 @@ def preprocessing_page(request: Request, db: Session = Depends(get_db)):
 def train_model_page(request: Request, response_class=HTMLResponse):
     return templates.TemplateResponse("train_model.html", {"request": request})
 
+#temporary upload dataset into s3, when user is preprocessing
 @app.post("/temporary_upload_dataset")
 def temporary_upload_dataset(
     request: Request,
@@ -483,7 +574,7 @@ def temporary_upload_dataset(
 
         # Handle both dict and Dataset object responses
         if isinstance(result, dict):
-            # New format: returns dict with success/data/message
+            #returns dict with success/data/message
             if not result["success"]:
                 return JSONResponse(
                     content={"error": result["message"]},
@@ -491,7 +582,7 @@ def temporary_upload_dataset(
                 )
             dataset = result["data"]
         else:
-            # Old format: returns Dataset object directly
+            #returns dataset object directly
             dataset = result
         
         # Return success response
@@ -601,3 +692,18 @@ def preview_temporary_dataset(temp_id: int, request: Request, db: Session = Depe
         raise HTTPException(status_code=500, detail=data["error"])
     
     return JSONResponse(content=data)
+
+@app.get("/preprocess-dataset")
+def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return templates.TemplateResponse("preprocess-dataset.html", {
+        "request": request,
+        "username": user.username
+    })

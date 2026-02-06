@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Models</title>
+</head>
+
+<body>
+    <nav>
+        <a href="/dashboard">Dashboard</a>
+    </nav>
+    <h1>Welcome {{ username }}</h1>
+    <h2>View Models</h2>
+    <ul>
+        {% for model in models %}
+        <li>
+            <strong>{{ model.name or "Unnamed Model" }}</strong> ({{ model.algorithm }})
+            - Status: <em>{{ model.status }}</em>
+            - Created: {{ model.created_at.strftime('%Y-%m-%d') }}
+            <button id="viewButton{{ model.id }}">View</button>
+            <button id="deleteButton{{ model.id }}">Delete</button>
+            <button id="downloadButton{{ model.id }}">Download</button>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <button class="modal-close" id="closeModal">&times;</button>
+            <h2>Model Details</h2>
+            <div id="modelPreview" style="padding: 10px;">
+                <!-- Model info will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const modalOverlay = document.getElementById('modalOverlay');
+        const closeModal = document.getElementById('closeModal');
+        const modelPreview = document.getElementById('modelPreview');
+
+        closeModal.addEventListener('click', () => {
+            modalOverlay.style.display = 'none';
+        });
+
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                modalOverlay.style.display = 'none';
+            }
+        });
+
+        document.querySelectorAll('button[id^="viewButton"]').forEach(btn => {
+            btn.addEventListener('click', async function () {
+                const modelId = this.id.replace('viewButton', '');
+
+                modelPreview.innerHTML = "<p>Loading details...</p>";
+                modalOverlay.style.display = 'flex';
+                try {
+                    const response = await fetch(`/preview_model/${modelId}`);
+                    if (!response.ok) throw new Error("Failed to load model details");
+
+                    const model = await response.json();
+
+                    let html = `
+                        <div style="text-align: left;">
+                            <p><strong>Name:</strong> ${model.name}</p>
+                            <p><strong>Algorithm:</strong> ${model.algorithm}</p>
+                            <p><strong>Target Column:</strong> ${model.target_column || "N/A"}</p>
+                            <p><strong>Status:</strong> ${model.status}</p>
+                            <p><strong>Created At:</strong> ${model.created_at}</p>
+                            
+                            <h4 style="margin-top:20px;">Metrics</h4>
+                            <pre style="background: #f4f4f4; padding: 10px; border-radius: 4px;">${JSON.stringify(model.metrics, null, 2)}</pre>
+                            
+                            <h4 style="margin-top:20px;">Hyperparameters</h4>
+                            <pre style="background: #f4f4f4; padding: 10px; border-radius: 4px;">${JSON.stringify(model.params, null, 2)}</pre>
+                        </div>
+                    `;
+                    modelPreview.innerHTML = html;
+                } catch (error) {
+                    modelPreview.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+                }
+            });
+        });
+
+        //delete button logic
+        document.querySelectorAll('button[id^="deleteButton"]').forEach(btn => { //this selects all buttons that start with id deleteButton
+            btn.addEventListener('click', async function () {
+                const modelId = this.id.replace('deleteButton', ''); //this gets the model id from the button id
+                try {
+                    const response = await fetch(`/delete_model/${modelId}`, {
+                        method: 'DELETE'
+                    });
+                    if (!response.ok) {
+                        throw new Error("Failed to delete model");
+                    }
+                    location.reload();
+                } catch (error) {
+                    alert(`Error deleting model: ${error.message}`);
+                }
+            });
+        });
+
+        //download button logic
+        document.querySelectorAll('button[id^="downloadButton"]').forEach(btn => { //this selects all buttons that start with id downloadButton
+            btn.addEventListener('click', async function () {
+                const modelId = this.id.replace('downloadButton', ''); //this gets the model id from the button id
+                try {
+                    const response = await fetch(`/download_model/${modelId}`, {
+                        method: 'GET'
+                    });
+                    if (!response.ok) {
+                        throw new Error("Failed to get download URL");
+                    }
+                    const data = await response.json();
+
+                    if (data.download_url) {
+                        const a = document.createElement('a');
+                        a.href = data.download_url; //taken the download_url from the backend
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } else {
+                        throw new Error("Download URL not found in response");
+                    }
+                } catch (error) {
+                    alert(`Error downloading model: ${error.message}`);
+                }
+            });
+        });
+    </script>
+
+</body>
+
+
+</html>

@@ -17,22 +17,6 @@
         <input id="fileInput" type="file" hidden />
     </div>
 
-    <!-- Active Dataset Section -->
-    <div id="activeDatasetSection"
-        style="background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 30px;">
-        <h2>Loaded Dataset</h2>
-        {% if active_dataset %}
-        <div id="activeDatasetInfo">
-            <p><strong>Filename:</strong> {{ active_dataset.s3_key.split('/')[-1] }}</p>
-            <p><strong>Rows:</strong> {{ active_dataset.row_count }} | <strong>Size:</strong> {{
-                (active_dataset.file_size / 1024)|round(2) }} KB</p>
-            <button type="button" id="viewPreviewBtn" data-id="{{ active_dataset.id }}">View Preview</button>
-        </div>
-        {% else %}
-        <p id="noDatasetText">No dataset loaded. Upload one or connect from catalog above.</p>
-        {% endif %}
-    </div>
-
     <!-- Upload Modal -->
     <div class="modal-overlay" id="uploadModal" style="display:none;">
         <div class="modal-box">
@@ -68,6 +52,27 @@
         </div>
     </div>
 
+
+    <!-- Active Dataset Section -->
+    <div id="activeDatasetSection"
+        style="background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 30px;">
+        <h2>Loaded Dataset</h2>
+        {% if active_dataset %}
+        <div id="activeDatasetInfo">
+            <p><strong>Filename:</strong> {{ active_dataset.s3_key.split('/')[-1] }}</p>
+            <p><strong>Rows:</strong> {{ active_dataset.row_count }} | <strong>Size:</strong> {{
+                (active_dataset.file_size / 1024)|round(2) }} KB</p>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button type="button" id="viewPreviewBtn" data-id="{{ active_dataset.id }}">View Preview</button>
+                <button type="button" class="btn-primary"
+                    onclick="window.location.href='/preprocess-dataset'">Preprocess</button>
+            </div>
+        </div>
+        {% else %}
+        <p id="noDatasetText">No dataset loaded. Upload one or connect from catalog above.</p>
+        {% endif %}
+    </div>
+
     <!-- Dataset Preview Modal -->
     <div class="modal-overlay" id="previewModal" style="display:none;">
         <div class="modal-box" style="max-width: 80%; width: 80%; max-height: 80vh;">
@@ -80,21 +85,24 @@
     </div>
 
     <script>
-        // Common UI helper
+        //UI helpers
         function showModal(id) { document.getElementById(id).style.display = 'flex'; }
         function hideModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        // --- UPLOAD LOGIC ---
+        //upload logic
         const openFilePickerBtn = document.getElementById("openFilePickerBtn");
         const fileInput = document.getElementById("fileInput");
         const uploadForm = document.getElementById("uploadForm");
         const statusText = document.getElementById("statusText");
         const selectedFileText = document.getElementById("selectedFileText");
 
+        //initially no selected file
         let selectedFile = null;
 
+        //open file picker when upload button is clicked
         openFilePickerBtn.addEventListener("click", () => fileInput.click());
 
+        //when file is selected, show upload modal
         fileInput.addEventListener("change", () => {
             if (fileInput.files.length > 0) {
                 selectedFile = fileInput.files[0];
@@ -106,15 +114,19 @@
         document.getElementById("closeUploadModalBtn").addEventListener("click", () => hideModal("uploadModal"));
         document.getElementById("cancelUploadBtn").addEventListener("click", () => hideModal("uploadModal"));
 
+        //upload form submission
         uploadForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             if (!selectedFile) return;
 
+            //show status text
             statusText.innerText = "Uploading...";
             const formData = new FormData();
+            //append the dataset file to the form data
             formData.append("dataset_file", selectedFile);
 
             try {
+                //send the form data to the server by the backend route
                 const response = await fetch("/temporary_upload_dataset", { method: "POST", body: formData });
                 if (response.ok) {
                     statusText.innerText = "Uploaded successfully!";
@@ -128,18 +140,21 @@
             }
         });
 
-        // --- CATALOG LOGIC ---
+        //catalog logic
         const openCatalogBtn = document.getElementById("openCatalogBtn");
         const catalogForm = document.getElementById("catalogForm");
 
+        //open catalog modal
         openCatalogBtn.addEventListener("click", () => showModal("catalogModal"));
         document.getElementById("closeCatalogBtn").addEventListener("click", () => hideModal("catalogModal"));
 
+        //catalog form submission
         catalogForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const formData = new FormData(catalogForm);
 
             try {
+                //send the form data to the server by the backend route, where the dataset is duplicated into another s3 folder
                 const response = await fetch("/connect_dataset", { method: "POST", body: formData });
                 if (response.ok) {
                     alert("Data connected successfully!");
@@ -152,7 +167,7 @@
             }
         });
 
-        // --- PREVIEW LOGIC ---
+        //preview dataset logic
         const viewPreviewBtn = document.getElementById("viewPreviewBtn");
         const datasetPreview = document.getElementById("datasetPreview");
 
@@ -166,17 +181,127 @@
                     const response = await fetch(`/preview_temporary_dataset/${tempId}`);
                     if (!response.ok) throw new Error("Failed to load data");
 
-                    const data = await response.json();
+                    const result = await response.json();
+                    const data = result.data_preview;
+                    const stats = result.stats;
+
                     if (!data || data.length === 0) {
                         datasetPreview.innerHTML = "<p>No data found or file format not supported for preview.</p>";
                         return;
                     }
 
-                    let tableHtml = '<table border="1" cellpadding="8" style="width:100%; border-collapse: collapse; text-align: left;">';
+
+                    // DATASET PREVIEW AND FULL STATS ARE PREVIEWED HERE
+                    let tableHtml = `<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">`;
+
+                    //table headers
                     const headers = Object.keys(data[0]);
-                    tableHtml += '<thead style="background: #f4f4f4;"><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
-                    tableHtml += '<tbody>' + data.map(row => '<tr>' + headers.map(h => `<td>${row[h]}</td>`).join('') + '</tr>').join('') + '</tbody></table>';
-                    datasetPreview.innerHTML = tableHtml;
+                    tableHtml += '<thead><tr>';
+                    headers.forEach(h => tableHtml += `<th>${h}</th>`);
+                    tableHtml += '</tr></thead>';
+
+                    //table body, the first 5 rows are previewed
+                    tableHtml += '<tbody>';
+                    data.forEach(row => {
+                        tableHtml += '<tr>';
+                        headers.forEach(h => tableHtml += `<td>${row[h] ?? ''}</td>`);
+                        tableHtml += '</tr>';
+                    });
+                    tableHtml += '</tbody></table>';
+
+                    //Basic stats are displayed this way 
+                    let statsHtml = `
+<div style="margin-top: 30px; padding: 20px; background: #f0f4f8; border-radius: 8px;">
+    <h3>Dataset Health Overview</h3>
+    <p><strong>Total Rows:</strong> ${stats.total_rows}</p>
+    <p><strong>Duplicate Rows:</strong> ${stats.duplicate_rows}</p>
+
+    <h4>Missing Values per Column</h4>
+    <div style="display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:10px;">
+`;
+
+                    for (const [col, count] of Object.entries(stats.missing_values)) {
+                        const color = count > 0 ? '#d9534f' : '#5cb85c';
+                        statsHtml += `
+        <div style="background:white; padding:10px; border-left:4px solid ${color};">
+            <strong>${col}</strong>: <span style="color:${color};">${count}</span>
+        </div>
+    `;
+                    }
+                    statsHtml += '</div></div>';
+
+                    let extraStatsHtml = `<div style="margin-top:30px; padding:20px; background:#fafafa; border-radius:8px;">`;
+
+                    function renderList(title, items) {
+                        if (!items || items.length === 0) return '';
+                        return `<h4>${title}</h4><div>${items.join(', ')}</div>`;
+                    }
+
+                    // Column names
+                    extraStatsHtml += renderList("Columns", stats.column_names);
+
+                    // Variable types
+                    extraStatsHtml += renderList("Numeric Variables", stats.numeric_variables);
+                    extraStatsHtml += renderList("Categorical Variables", stats.categorical_variables);
+                    extraStatsHtml += renderList("Date Variables", stats.date_variables);
+                    extraStatsHtml += renderList("Boolean Variables", stats.boolean_variables);
+
+                    // Data types
+                    extraStatsHtml += `<h4>Column Data Types</h4><ul>`;
+                    for (const [col, dtype] of Object.entries(stats.data_types)) {
+                        extraStatsHtml += `<li>${col}: ${dtype}</li>`;
+                    }
+                    extraStatsHtml += `</ul>`;
+
+                    // Unique counts
+                    extraStatsHtml += `<h4>Unique Values</h4><ul>`;
+                    for (const [col, count] of Object.entries(stats.unique_counts)) {
+                        extraStatsHtml += `<li>${col}: ${count}</li>`;
+                    }
+                    extraStatsHtml += `</ul>`;
+
+                    // Outliers
+                    extraStatsHtml += `<h4>Outliers (Numeric)</h4><ul>`;
+                    for (const [col, count] of Object.entries(stats.outliers)) {
+                        extraStatsHtml += `<li>${col}: ${count}</li>`;
+                    }
+                    extraStatsHtml += `</ul>`;
+
+                    // Skewness
+                    extraStatsHtml += `<h4>Skewness</h4><ul>`;
+                    for (const [col, skew] of Object.entries(stats.skewness)) {
+                        extraStatsHtml += `<li>${col}: ${skew.toFixed(3)}</li>`;
+                    }
+                    extraStatsHtml += `</ul>`;
+
+                    // Correlation Matrix
+                    if (Object.keys(stats.correlation_matrix).length > 0) {
+                        extraStatsHtml += `<h4>Correlation Matrix</h4><table border="1"><tr><th></th>`;
+                        const corrCols = Object.keys(stats.correlation_matrix);
+                        corrCols.forEach(c => extraStatsHtml += `<th>${c}</th>`);
+                        extraStatsHtml += '</tr>';
+
+                        corrCols.forEach(r => {
+                            extraStatsHtml += `<tr><td><strong>${r}</strong></td>`;
+                            corrCols.forEach(c => {
+                                const v = stats.correlation_matrix[r]?.[c];
+                                extraStatsHtml += `<td>${v !== undefined ? v.toFixed(2) : '-'}</td>`;
+                            });
+                            extraStatsHtml += '</tr>';
+                        });
+                        extraStatsHtml += '</table>';
+                    }
+
+                    // Summary stats (collapsed view)
+                    extraStatsHtml += `
+<h4>Summary Statistics</h4>
+<pre style="max-height:300px; overflow:auto;">
+${JSON.stringify(stats.summary_stats, null, 2)}
+</pre>
+</div>`;
+
+                    datasetPreview.innerHTML = tableHtml + statsHtml + extraStatsHtml;
+
                 } catch (error) {
                     datasetPreview.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
                 }
