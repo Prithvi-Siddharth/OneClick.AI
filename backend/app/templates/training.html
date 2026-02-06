@@ -28,6 +28,34 @@
     <div>
         <button id="RandomForest">Random Forest</button>
     </div>
+    <br> <br>
+    <div>
+        <button id="KNeighborsClassifier">KNeighbors Classifier</button>
+    </div>
+    <br> <br>
+    <div>
+        <button id="KNeighborsRegressor">KNeighbors Regressor</button>
+    </div>
+    <br> <br>
+    <div>
+        <button id="KMeans">KMeans Clustering</button>
+    </div>
+    <br> <br>
+    <div>
+        <button id="SVC">Support Vector Classifier (SVC)</button>
+    </div>
+    <br> <br>
+    <div>
+        <button id="SVR">Support Vector Regressor (SVR)</button>
+    </div>
+    <br> <br>
+    <div>
+        <button id="Lasso">Lasso Regression (L1)</button>
+    </div>
+    <br> <br>
+    <div>
+        <button id="Ridge">Ridge Regression (L2)</button>
+    </div>
 
 
     {% else %}
@@ -50,6 +78,34 @@
 
         document.getElementById("RandomForest").addEventListener("click", () => {
             window.location.href = "/models?dataset_id={{ dataset.id }}&model=RandomForest";
+        });
+
+        document.getElementById("KNeighborsClassifier").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=KNeighborsClassifier";
+        });
+
+        document.getElementById("KNeighborsRegressor").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=KNeighborsRegressor";
+        });
+
+        document.getElementById("KMeans").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=KMeans";
+        });
+
+        document.getElementById("SVC").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=SVC";
+        });
+
+        document.getElementById("SVR").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=SVR";
+        });
+
+        document.getElementById("Lasso").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=Lasso";
+        });
+
+        document.getElementById("Ridge").addEventListener("click", () => {
+            window.location.href = "/models?dataset_id={{ dataset.id }}&model=Ridge";
         });
     </script>
 </body>

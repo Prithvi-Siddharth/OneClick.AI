@@ -38,8 +38,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+from fastapi.staticfiles import StaticFiles
+
 # directory of the templates
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
+
+# Mount static files
+app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 
 #this command connects to the tidb and creates a table from the structure defined earlier
 Base.metadata.create_all(bind=engine)
