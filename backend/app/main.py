@@ -1,7 +1,9 @@
 import os
+import pandas as pd
+import json
 from dotenv import load_dotenv
 from datetime import datetime
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Form
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, WebSocket, WebSocketDisconnect
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
@@ -19,8 +21,10 @@ from app.services.s3_operations import (
     s3_delete_object,
     create_presigned_download_url,
     process_and_save_dataset_temporary,
-    duplicate_dataset_in_s3
+    duplicate_dataset_in_s3,
+    get_s3_client
 )
+from app.services.data_preprocessing import apply_preprocessing
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -725,7 +729,6 @@ def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
         "username": user.username
     })
 
-
 # Train model
 @app.get("/train_model")
 def train_model_page(request: Request, db: Session = Depends(get_db), response_class=HTMLResponse):
@@ -825,17 +828,7 @@ def training_page(request: Request, db: Session = Depends(get_db), dataset_id: i
         "request": request,
         "dataset": dataset
     })
-
-# @app.get("/models")
-# def models_page(request: Request, db: Session = Depends(get_db), response_class=HTMLResponse):
-#     user_id = get_current_user_id(request)
-#     if not user_id:
-#         return RedirectResponse(url="/login")
     
-#     return templates.TemplateResponse("models.html", {
-#         "request": request,
-#         "user_id": user_id
-#     })
 
 @app.get("/models")
 def models_page(request: Request, db: Session = Depends(get_db), dataset_id: int = None, model: str = None):
@@ -856,3 +849,110 @@ def models_page(request: Request, db: Session = Depends(get_db), dataset_id: int
         "dataset": dataset,
         "model": {"name": model} if model else None
     })
+
+#websocket route for testing
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    #accept the websocket connection
+    await websocket.accept()
+    print("Client connected")
+    while True:
+        #receive the message from the client
+        data = await websocket.receive_text()
+        #send the message to the client
+        await websocket.send_text(f"Message text was: {data}")
+
+
+#websocket route for preprocessing the dataset
+@app.websocket("/preprocess-dataset/ws")
+async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_db)):
+    #accept the websocket connection
+    await websocket.accept()
+    
+    async def send_status(msg):
+        await websocket.send_text(json.dumps({"type": "status", "message": msg}))
+
+    async def send_preview(df):
+        # head(5) and convert to records
+        preview = df.head(5).where(pd.notnull(df), None).to_dict(orient="records")
+        await websocket.send_text(json.dumps({"type": "preview", "data_preview": preview}))
+
+    # helper to get user id from websocket
+    token = websocket.cookies.get("access_token")
+    user_id = None
+    if token:
+        try:
+            from app.security import JWT_SECRET_KEY, JWT_ALGORITHM
+            from jose import jwt
+            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+            user_id = payload.get("sub")
+        except:
+            pass
+
+    if not user_id:
+        await websocket.send_text(json.dumps({"type": "status", "message": "❌ Authentication failed. Please log in."}))
+        await websocket.close()
+        return
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            action = message.get("action")
+            
+            # Fetch latest active dataset for this user
+            active_dataset = db.query(TemporaryDataset).filter(
+                TemporaryDataset.user_id == int(user_id)
+            ).order_by(TemporaryDataset.id.desc()).first()
+
+            if not active_dataset:
+                await send_status("❌ No active dataset found. Please upload one first.")
+                continue
+
+            if action == "get_preview":
+                await send_status("📋 Fetching initial preview...")
+                s3 = get_s3_client()
+                response = s3.get_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key)
+                from io import BytesIO
+                df = pd.read_csv(BytesIO(response['Body'].read()))
+                await send_preview(df)
+                await send_status("✅ Preview loaded.")
+            
+            elif action == "apply_preprocessing":
+                await send_status("📡 Backend received preprocessing request...")
+                await send_status(f"📝 Processing dataset: {active_dataset.s3_key}")
+                
+                # 2. Load from S3
+                s3 = get_s3_client()
+                response = s3.get_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key)
+                from io import BytesIO
+                df = pd.read_csv(BytesIO(response['Body'].read()))
+
+                # 3. Apply preprocessing
+                ops = message.get("operations", {})
+                await send_status(f"⚙️ Applying operations: {ops}")
+                processed_df = apply_preprocessing(df, ops)
+
+                if isinstance(processed_df, dict) and "error" in processed_df:
+                    await send_status(f"❌ Error: {processed_df['error']}")
+                    continue
+
+                # 4. Save result back to S3
+                csv_buffer = BytesIO()
+                processed_df.to_csv(csv_buffer, index=False)
+                csv_buffer.seek(0)
+                
+                await send_status("💾 Saving changes to S3...")
+                s3.put_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key, Body=csv_buffer.getvalue())
+                
+                # 5. Send updated preview
+                await send_preview(processed_df)
+                await send_status("🚀 Preprocessing complete! The dataset has been updated.")
+                
+    except WebSocketDisconnect:
+        print(f"WebSocket disconnected for user {user_id}")
+    except Exception as e:
+        try:
+            await websocket.send_text(json.dumps({"type": "status", "message": f"❌ Critical Error: {str(e)}"}))
+        except:
+            pass

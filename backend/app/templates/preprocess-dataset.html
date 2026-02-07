@@ -5,22 +5,68 @@
 {% block content %}
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1 style="margin: 0;">Preprocessing Studio</h1>
-        <a href="/preprocessing" class="btn btn-secondary">Back to Overview</a>
+        <h1>Preprocessing Studio</h1>
+        <a href="/preprocessing" class="btn btn-secondary">Back</a>
     </div>
 
-    <div class="card" style="text-align: center; padding: 4rem;">
-        <div style="font-size: 4rem; color: #cbd5e0; margin-bottom: 1.5rem;">
-            <i class="fas fa-tools"></i>
+    <!-- Preprocessing Options -->
+    <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
+        <h2>Select Preprocessing Steps</h2>
+
+        <div class="preprocess-grid">
+
+            <!-- One Hot Encoding -->
+            <div class="preprocess-card">
+                <input type="checkbox" id="onehot" onchange="applyPreprocessing()" />
+                <label for="onehot">
+                    <h3>One-Hot Encoding</h3>
+                    <p>Convert categorical features into binary vectors.</p>
+                </label>
+            </div>
+
+            <!-- Label Encoding -->
+            <div class="preprocess-card">
+                <input type="checkbox" id="label" onchange="applyPreprocessing()" />
+                <label for="label">
+                    <h3>Label Encoding</h3>
+                    <p>Convert categorical labels into numeric form.</p>
+                </label>
+            </div>
+
+            <!-- MinMax Scaling -->
+            <div class="preprocess-card">
+                <input type="checkbox" id="minmax" onchange="applyPreprocessing()" />
+                <label for="minmax">
+                    <h3>Min-Max Scaling</h3>
+                    <p>Scale numerical values between 0 and 1.</p>
+                </label>
+            </div>
+
         </div>
-        <h2 style="color: #1a202c;">Interactive Preprocessing Coming Soon</h2>
-        <p style="color: var(--text-secondary); max-width: 600px; margin: 1rem auto 2rem;">
-            We are building a powerful interactive tool to let you transform your data visually.
-            For now, please use the automatic preprocessing features in the dashboard.
-        </p>
-        <button class="btn btn-primary" onclick="alert('This feature is currently under development.')">
-            Launch Demo
-        </button>
+
+    </div>
+
+    <!-- Live Status -->
+    <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
+        <h2>Live Status</h2>
+        <pre id="status-box">Waiting for actions...</pre>
+    </div>
+
+    <!-- Data Preview -->
+    <div class="card" style="padding: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2>Data Preview</h2>
+            <div id="preview-loading" style="display: none; color: var(--primary-color);">
+                <i class="fas fa-spinner fa-spin"></i> Updating...
+            </div>
+        </div>
+        <div id="preview-container" style="overflow-x: auto;">
+            <p style="color: var(--text-secondary);">Waiting for data to load...</p>
+        </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% include "_websocket_script.html" %}
 {% endblock %}

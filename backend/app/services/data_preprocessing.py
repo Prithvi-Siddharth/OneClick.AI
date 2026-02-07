@@ -1,5 +1,6 @@
 import pandas as pd
 from io import BytesIO
+import sklearn.preprocessing as preprocessing
 
 def get_dataset_preview_and_stats(file_buffer, extension, preview_limit=5):
 
@@ -75,5 +76,32 @@ def get_dataset_preview_and_stats(file_buffer, extension, preview_limit=5):
             "stats": json_safe(stats)
         }
 
+    except Exception as e:
+        return {"error": f"Pandas processing error: {str(e)}"}
+
+
+def apply_preprocessing(df_full, operations):
+    try:
+        if operations.get("onehot"):
+            # Select categorical columns
+            cat_cols = df_full.select_dtypes(include=['object', 'category']).columns.tolist()
+            if cat_cols:
+                encoder = preprocessing.OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+                encoded_data = encoder.fit_transform(df_full[cat_cols])
+                encoded_df = pd.DataFrame(encoded_data, columns=encoder.get_feature_names_out(cat_cols), index=df_full.index)
+                # Drop original categorical columns and join encoded ones
+                df_full = df_full.drop(columns=cat_cols).join(encoded_df)
+
+        if operations.get("label"):
+            for col in df_full.select_dtypes(include=['object', 'category']).columns:
+                df_full[col] = df_full[col].astype('category').cat.codes
+
+        if operations.get("minmax"):
+            numeric_cols = df_full.select_dtypes(include=['number']).columns.tolist()
+            if numeric_cols:
+                scaler = preprocessing.MinMaxScaler()
+                df_full[numeric_cols] = scaler.fit_transform(df_full[numeric_cols])
+        
+        return df_full
     except Exception as e:
         return {"error": f"Pandas processing error: {str(e)}"}

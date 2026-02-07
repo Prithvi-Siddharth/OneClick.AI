@@ -1,0 +1,80 @@
+<script>
+    // Detect the current protocol (ws or wss) and host automatically
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socket = new WebSocket(`${protocol}//${window.location.host}/preprocess-dataset/ws`);
+
+    socket.onopen = () => {
+        console.log("✅ WebSocket connected");
+        // Request initial preview immediately upon connection
+        socket.send(JSON.stringify({ action: "get_preview" }));
+    };
+
+    socket.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+
+            if (data.type === "status") {
+                const statusBox = document.getElementById("status-box");
+                statusBox.textContent += "\n" + data.message;
+                statusBox.scrollTop = statusBox.scrollHeight;
+            } else if (data.type === "preview") {
+                renderPreview(data.data_preview);
+                document.getElementById("preview-loading").style.display = "none";
+            }
+        } catch (e) {
+            // Fallback for plain text messages
+            const statusBox = document.getElementById("status-box");
+            statusBox.textContent += "\n" + event.data;
+            statusBox.scrollTop = statusBox.scrollHeight;
+        }
+    };
+
+    socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+    };
+
+    socket.onclose = () => {
+        console.log("❌ WebSocket closed");
+    };
+
+    function applyPreprocessing() {
+        document.getElementById("preview-loading").style.display = "block";
+        const selectedOps = {
+            onehot: document.getElementById("onehot").checked,
+            label: document.getElementById("label").checked,
+            minmax: document.getElementById("minmax").checked
+        };
+
+        socket.send(JSON.stringify({
+            action: "apply_preprocessing",
+            operations: selectedOps
+        }));
+
+        document.getElementById("status-box").textContent = "📡 Sent preprocessing request...";
+    }
+
+    function renderPreview(data) {
+        const container = document.getElementById("preview-container");
+        if (!data || data.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-secondary);">No data to display.</p>';
+            return;
+        }
+
+        let html = '<table class="table table-striped" style="width:100%; border-collapse: collapse; font-size: 0.9em;">';
+        const headers = Object.keys(data[0]);
+
+        html += '<thead><tr>';
+        headers.forEach(h => html += `<th style="text-align: left; padding: 8px; border-bottom: 2px solid #e2e8f0;">${h}</th>`);
+        html += '</tr></thead>';
+
+        html += '<tbody>';
+        data.forEach(row => {
+            html += '<tr>';
+            headers.forEach(h => html += `<td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${row[h] ?? ''}</td>`);
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+
+        container.innerHTML = html;
+    }
+</script>
