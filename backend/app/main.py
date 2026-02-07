@@ -68,6 +68,14 @@ def about_developers(request: Request):
 def about_mission(request: Request):
     return templates.TemplateResponse("about_mission.html", {"request": request})
 
+@app.get("/about_techstack")
+def about_techstack(request: Request):
+    return templates.TemplateResponse("about_techstack.html", {"request": request})
+
+@app.get("/about_guide")
+def about_guide(request: Request):
+    return templates.TemplateResponse("about_guide.html", {"request": request})
+
 
 # User registration endpoint
 @app.post("/register")

@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Tech Stack - OneClick.AI{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 1000px;">
+    <h1 style="text-align: center; margin-bottom: 3rem; color: #1a202c;">Our Technology Stack</h1>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+
+        <!-- Frontend -->
+        <div class="card" style="text-align: center; padding: 2rem;">
+            <div style="font-size: 3rem; color: #e34c26; margin-bottom: 1rem;">
+                <i class="fab fa-html5"></i> <i class="fab fa-css3-alt" style="color: #264de4;"></i> <i
+                    class="fab fa-js" style="color: #f0db4f;"></i>
+            </div>
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Frontend</h3>
+            <p style="color: var(--text-secondary);">
+                Built with <strong>HTML5</strong>, <strong>CSS3</strong>, and <strong>JavaScript</strong> for a
+                responsive and interactive user experience. We use <strong>Jinja2</strong> for dynamic templating and
+                <strong>FontAwesome</strong> for iconography.
+            </p>
+        </div>
+
+        <!-- Backend -->
+        <div class="card" style="text-align: center; padding: 2rem;">
+            <div style="font-size: 3rem; color: #3776ab; margin-bottom: 1rem;">
+                <i class="fab fa-python"></i> <i class="fas fa-bolt" style="color: #009688;"></i>
+            </div>
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Backend</h3>
+            <p style="color: var(--text-secondary);">
+                Powered by <strong>Python</strong> and the high-performance <strong>FastAPI</strong> framework. It
+                handles asynchronous requests, data processing, and API endpoints with speed and reliability.
+            </p>
+        </div>
+
+        <!-- Database -->
+        <div class="card" style="text-align: center; padding: 2rem;">
+            <div style="font-size: 3rem; color: #4479a1; margin-bottom: 1rem;">
+                <i class="fas fa-database"></i> <i class="fas fa-server"></i>
+            </div>
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Database</h3>
+            <p style="color: var(--text-secondary);">
+                We use <strong>TiDB</strong> (MySQL compatible) for scalable and consistent data storage, managed via
+                <strong>SQLAlchemy</strong> ORM for efficient database interactions.
+            </p>
+        </div>
+
+        <!-- Cloud & Storage -->
+        <div class="card" style="text-align: center; padding: 2rem;">
+            <div style="font-size: 3rem; color: #FF9900; margin-bottom: 1rem;">
+                <i class="fab fa-aws"></i>
+            </div>
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Cloud & Infrastructure</h3>
+            <p style="color: var(--text-secondary);">
+                <strong>AWS S3</strong> is utilized for secure and scalable storage of user datasets and trained machine
+                learning models, ensuring high availability and durability.
+            </p>
+        </div>
+
+        <!-- Machine Learning -->
+        <div class="card" style="text-align: center; padding: 2rem;">
+            <div style="font-size: 3rem; color: #F7931E; margin-bottom: 1rem;">
+                <i class="fas fa-brain"></i> <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Machine Learning</h3>
+            <p style="color: var(--text-secondary);">
+                Leveraging <strong>Scikit-Learn</strong> and <strong>Pandas</strong> for data manipulation,
+                preprocessing, and training robust machine learning models ranging from regression to classification.
+            </p>
+        </div>
+
+    </div>
+
+    <div style="text-align: center; margin-top: 50px;">
+        <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
