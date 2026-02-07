@@ -1,138 +1,179 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Models</title>
-</head>
+{% block title %}View Models - OneClick.AI{% endblock %}
 
-<body>
-    <nav>
-        <a href="/dashboard">Dashboard</a>
-    </nav>
-    <h1>Welcome {{ username }}</h1>
-    <h2>View Models</h2>
-    <ul>
-        {% for model in models %}
-        <li>
-            <strong>{{ model.name or "Unnamed Model" }}</strong> ({{ model.algorithm }})
-            - Status: <em>{{ model.status }}</em>
-            - Created: {{ model.created_at.strftime('%Y-%m-%d') }}
-            <button id="viewButton{{ model.id }}">View</button>
-            <button id="deleteButton{{ model.id }}">Delete</button>
-            <button id="downloadButton{{ model.id }}">Download</button>
-        </li>
-        {% endfor %}
-    </ul>
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="color: #1a202c; margin: 0;">Models</h1>
+        <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
 
+    <div class="card" style="padding: 0; overflow: hidden;">
+        {% if models %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Model Name</th>
+                    <th>Algorithm</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for model in models %}
+                <tr>
+                    <td>
+                        <i class="fas fa-cube" style="color: #6c757d; margin-right: 8px;"></i>
+                        <strong>{{ model.name or "Unnamed Model" }}</strong>
+                    </td>
+                    <td>{{ model.algorithm }}</td>
+                    <td>
+                        <span
+                            style="padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; background-color: #e6f4ea; color: #1e8e3e;">
+                            {{ model.status }}
+                        </span>
+                    </td>
+                    <td>{{ model.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="viewButton{{ model.id }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button id="downloadButton{{ model.id }}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button id="deleteButton{{ model.id }}" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+            <p>No models found. <a href="/train_model">Train a model</a> to get started.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Model Details Modal -->
     <div class="modal-overlay" id="modalOverlay">
-        <div class="modal-box">
+        <div class="modal-box" style="max-width: 800px; width: 90%;">
             <button class="modal-close" id="closeModal">&times;</button>
-            <h2>Model Details</h2>
-            <div id="modelPreview" style="padding: 10px;">
+            <div class="modal-title">Model Details</div>
+            <div id="modelPreview" style="padding: 10px; max-height: 70vh; overflow-y: auto;">
                 <!-- Model info will be injected here -->
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        const modalOverlay = document.getElementById('modalOverlay');
-        const closeModal = document.getElementById('closeModal');
-        const modelPreview = document.getElementById('modelPreview');
+{% block scripts %}
+<script>
+    const modalOverlay = document.getElementById('modalOverlay');
+    const closeModal = document.getElementById('closeModal');
+    const modelPreview = document.getElementById('modelPreview');
 
-        closeModal.addEventListener('click', () => {
-            modalOverlay.style.display = 'none';
-        });
+    function hideModal() {
+        modalOverlay.style.display = 'none';
+        modelPreview.innerHTML = "";
+    }
 
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
-                modalOverlay.style.display = 'none';
+    closeModal.addEventListener('click', hideModal);
+
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            hideModal();
+        }
+    });
+
+    document.querySelectorAll('button[id^="viewButton"]').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const modelId = this.id.replace('viewButton', '');
+
+            modelPreview.innerHTML = "<div style='text-align:center; padding: 2rem;'><i class='fas fa-spinner fa-spin fa-2x'></i><p>Loading details...</p></div>";
+            modalOverlay.style.display = 'flex';
+            try {
+                const response = await fetch(`/preview_model/${modelId}`);
+                if (!response.ok) throw new Error("Failed to load model details");
+
+                const model = await response.json();
+
+                let html = `
+                    <div style="text-align: left;">
+                        <table class="table" style="margin-bottom: 20px;">
+                            <tr><td style="width: 150px; font-weight: bold;">Name:</td><td>${model.name}</td></tr>
+                            <tr><td style="font-weight: bold;">Algorithm:</td><td>${model.algorithm}</td></tr>
+                            <tr><td style="font-weight: bold;">Target Column:</td><td>${model.target_column || "N/A"}</td></tr>
+                            <tr><td style="font-weight: bold;">Status:</td><td>${model.status}</td></tr>
+                            <tr><td style="font-weight: bold;">Created At:</td><td>${model.created_at}</td></tr>
+                        </table>
+                        
+                        <h4 style="margin-top:20px; color: var(--text-color);">Metrics</h4>
+                        <pre style="background: #f8f9fa; padding: 15px; border-radius: 4px; font-size: 0.9em; overflow-x: auto;">${JSON.stringify(model.metrics, null, 2)}</pre>
+                        
+                        <h4 style="margin-top:20px; color: var(--text-color);">Hyperparameters</h4>
+                        <pre style="background: #f8f9fa; padding: 15px; border-radius: 4px; font-size: 0.9em; overflow-x: auto;">${JSON.stringify(model.params, null, 2)}</pre>
+                    </div>
+                `;
+                modelPreview.innerHTML = html;
+            } catch (error) {
+                modelPreview.innerHTML = `<p style="color:red; text-align:center;">Error: ${error.message}</p>`;
             }
         });
+    });
 
-        document.querySelectorAll('button[id^="viewButton"]').forEach(btn => {
-            btn.addEventListener('click', async function () {
-                const modelId = this.id.replace('viewButton', '');
+    //delete button logic
+    document.querySelectorAll('button[id^="deleteButton"]').forEach(btn => { //this selects all buttons that start with id deleteButton
+        btn.addEventListener('click', async function () {
+            if (!confirm("Are you sure you want to delete this model?")) return;
 
-                modelPreview.innerHTML = "<p>Loading details...</p>";
-                modalOverlay.style.display = 'flex';
-                try {
-                    const response = await fetch(`/preview_model/${modelId}`);
-                    if (!response.ok) throw new Error("Failed to load model details");
-
-                    const model = await response.json();
-
-                    let html = `
-                        <div style="text-align: left;">
-                            <p><strong>Name:</strong> ${model.name}</p>
-                            <p><strong>Algorithm:</strong> ${model.algorithm}</p>
-                            <p><strong>Target Column:</strong> ${model.target_column || "N/A"}</p>
-                            <p><strong>Status:</strong> ${model.status}</p>
-                            <p><strong>Created At:</strong> ${model.created_at}</p>
-                            
-                            <h4 style="margin-top:20px;">Metrics</h4>
-                            <pre style="background: #f4f4f4; padding: 10px; border-radius: 4px;">${JSON.stringify(model.metrics, null, 2)}</pre>
-                            
-                            <h4 style="margin-top:20px;">Hyperparameters</h4>
-                            <pre style="background: #f4f4f4; padding: 10px; border-radius: 4px;">${JSON.stringify(model.params, null, 2)}</pre>
-                        </div>
-                    `;
-                    modelPreview.innerHTML = html;
-                } catch (error) {
-                    modelPreview.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+            const modelId = this.id.replace('deleteButton', ''); //this gets the model id from the button id
+            try {
+                const response = await fetch(`/delete_model/${modelId}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) {
+                    throw new Error("Failed to delete model");
                 }
-            });
+                location.reload();
+            } catch (error) {
+                alert(`Error deleting model: ${error.message}`);
+            }
         });
+    });
 
-        //delete button logic
-        document.querySelectorAll('button[id^="deleteButton"]').forEach(btn => { //this selects all buttons that start with id deleteButton
-            btn.addEventListener('click', async function () {
-                const modelId = this.id.replace('deleteButton', ''); //this gets the model id from the button id
-                try {
-                    const response = await fetch(`/delete_model/${modelId}`, {
-                        method: 'DELETE'
-                    });
-                    if (!response.ok) {
-                        throw new Error("Failed to delete model");
-                    }
-                    location.reload();
-                } catch (error) {
-                    alert(`Error deleting model: ${error.message}`);
+    //download button logic
+    document.querySelectorAll('button[id^="downloadButton"]').forEach(btn => { //this selects all buttons that start with id downloadButton
+        btn.addEventListener('click', async function () {
+            const modelId = this.id.replace('downloadButton', ''); //this gets the model id from the button id
+            try {
+                const response = await fetch(`/download_model/${modelId}`, {
+                    method: 'GET'
+                });
+                if (!response.ok) {
+                    throw new Error("Failed to get download URL");
                 }
-            });
-        });
+                const data = await response.json();
 
-        //download button logic
-        document.querySelectorAll('button[id^="downloadButton"]').forEach(btn => { //this selects all buttons that start with id downloadButton
-            btn.addEventListener('click', async function () {
-                const modelId = this.id.replace('downloadButton', ''); //this gets the model id from the button id
-                try {
-                    const response = await fetch(`/download_model/${modelId}`, {
-                        method: 'GET'
-                    });
-                    if (!response.ok) {
-                        throw new Error("Failed to get download URL");
-                    }
-                    const data = await response.json();
-
-                    if (data.download_url) {
-                        const a = document.createElement('a');
-                        a.href = data.download_url; //taken the download_url from the backend
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                    } else {
-                        throw new Error("Download URL not found in response");
-                    }
-                } catch (error) {
-                    alert(`Error downloading model: ${error.message}`);
+                if (data.download_url) {
+                    const a = document.createElement('a');
+                    a.href = data.download_url; //taken the download_url from the backend
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    throw new Error("Download URL not found in response");
                 }
-            });
+            } catch (error) {
+                alert(`Error downloading model: ${error.message}`);
+            }
         });
-    </script>
-
-</body>
-
-
-</html>
+    });
+</script>
+{% endblock %}

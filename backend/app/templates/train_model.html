@@ -1,168 +1,194 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Train your Model</title>
-</head>
+{% block title %}Train Model - OneClick.AI{% endblock %}
 
-<body>
-    <h1>Train your Model</h1>
-    <p>Train your model with ease</p>
-
-    <!-- ✅ MISSING ELEMENTS ADDED -->
-    <button id="openFilePickerBtn" type="button">Upload Dataset</button>
-    <input id="fileInput" type="file" hidden />
-
-    <div class="modal-overlay" id="modalOverlay">
-
-        <div class="modal-box">
-
-            <button class="modal-close" id="closeModalBtn">&times;</button>
-
-            <div class="modal-title">Upload Dataset</div>
-
-            <form id="uploadForm" method="post" enctype="multipart/form-data" action="/temporary_upload_dataset">
-
-                <div class="form-group">
-                    <span class="label">Selected File</span>
-                    <div class="file-info" id="selectedFileText">No file selected</div>
-                </div>
-
-                <div class="modal-actions">
-                    <button class="btn-cancel" type="button" id="cancelBtn">Cancel</button>
-                    <button class="btn-upload" type="submit">Upload</button>
-                </div>
-
-                <div class="status-text" id="statusText"></div>
-
-            </form>
-
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h1 style="color: #1a202c; margin: 0;">Train your Model</h1>
+            <p style="color: var(--text-secondary);">Train your model with ease</p>
         </div>
-
     </div>
 
-    <button id="openCatalogBtn" type="button">Connect Dataset from Catalog</button>
-    <br><br>
-
-    <!-- Active Dataset Section -->
-    <div id="activeDatasetSection"
-        style="background: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 30px;">
-        <h2>Loaded Dataset</h2>
-        {% if active_dataset %}
-        <div id="activeDatasetInfo">
-            <p><strong>Filename:</strong> {{ active_dataset.s3_key.split('/')[-1] }}</p>
-            <p><strong>Rows:</strong> {{ active_dataset.row_count }} | <strong>Size:</strong> {{
-                (active_dataset.file_size / 1024)|round(2) }} KB</p>
-            <div style="margin-top: 15px; display: flex; gap: 10px;">
-                <button type="button" id="viewPreviewBtn" data-id="{{ active_dataset.id }}">View Preview</button>
-                <button type="button" class="btn-primary"
-                    onclick="alert('Training process functionality to be implemented')">Train Model</button>
-            </div>
+    <div class="card" style="margin-bottom: 2rem;">
+        <h2 class="card-title">Data Selection</h2>
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <button id="openFilePickerBtn" class="btn btn-primary" type="button">
+                <i class="fas fa-upload"></i> Upload Dataset
+            </button>
+            <button id="openCatalogBtn" class="btn btn-secondary" type="button">
+                <i class="fas fa-database"></i> Connect from Catalog
+            </button>
+            <input id="fileInput" type="file" hidden />
         </div>
-        {% else %}
-        <p id="noDatasetText">No dataset loaded. Upload one or connect from catalog above.</p>
-        {% endif %}
+
+        <!-- Active Dataset Section -->
+        <div id="activeDatasetSection"
+            style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #2d3748;">Loaded Dataset</h3>
+            {% if active_dataset %}
+            <div id="activeDatasetInfo">
+                <div
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.9em;">Filename</span>
+                        <div style="font-weight: 600;">{{ active_dataset.s3_key.split('/')[-1] }}</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.9em;">Rows</span>
+                        <div style="font-weight: 600;">{{ active_dataset.row_count }}</div>
+                    </div>
+                    <div>
+                        <span style="color: var(--text-secondary); font-size: 0.9em;">Size</span>
+                        <div style="font-weight: 600;">{{ (active_dataset.file_size / 1024)|round(2) }} KB</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" id="viewPreviewBtn" class="btn btn-sm btn-secondary"
+                        data-id="{{ active_dataset.id }}">
+                        <i class="fas fa-eye"></i> View Preview
+                    </button>
+                </div>
+            </div>
+            {% else %}
+            <p id="noDatasetText" style="color: var(--text-secondary); font-style: italic;">
+                No dataset loaded. Upload one or connect from catalog above.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card" style="text-align: center;">
+        <button id="trainBtn" class="btn btn-primary" style="font-size: 1.1rem; padding: 0.8rem 2rem;">
+            <i class="fas fa-cogs"></i> Start Training Configuration
+        </button>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <button class="modal-close" id="closeModalBtn">&times;</button>
+            <div class="modal-title">Upload Dataset</div>
+            <form id="uploadForm" method="post" enctype="multipart/form-data" action="/temporary_upload_dataset">
+                <div class="form-group">
+                    <span class="form-label">Selected File</span>
+                    <div class="file-info" id="selectedFileText"
+                        style="padding: 10px; background: #f1f5f9; border-radius: 4px;">No file selected</div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" type="button" id="cancelBtn">Cancel</button>
+                    <button class="btn btn-primary" type="submit">Upload</button>
+                </div>
+                <div class="status-text" id="statusText" style="margin-top: 1rem; font-size: 0.9em;"></div>
+            </form>
+        </div>
     </div>
 
     <!-- Catalog Selection Modal -->
-    <div class="modal-overlay" id="catalogModal" style="display:none;">
+    <div class="modal-overlay" id="catalogModal">
         <div class="modal-box">
             <button class="modal-close" id="closeCatalogBtn">&times;</button>
-            <h3>Select from Catalog</h3>
+            <div class="modal-title">Select from Catalog</div>
             <form id="catalogForm">
-                <select name="dataset_id" style="width: 100%; padding: 10px; margin: 15px 0;">
-                    {% for dataset in datasets %}
-                    <option value="{{ dataset.id }}">{{ dataset.filename }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit" class="btn-confirm">Confirm Connection</button>
+                <div class="form-group">
+                    <label class="form-label">Choose a dataset</label>
+                    <select name="dataset_id" class="form-control">
+                        {% for dataset in datasets %}
+                        <option value="{{ dataset.id }}">{{ dataset.filename }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">Confirm Connection</button>
+                </div>
             </form>
         </div>
     </div>
 
     <!-- Dataset Preview Modal -->
-    <div class="modal-overlay" id="previewModal" style="display:none;">
-        <div class="modal-box" style="max-width: 80%; width: 80%; max-height: 80vh;">
+    <div class="modal-overlay" id="previewModal">
+        <div class="modal-box"
+            style="max-width: 90%; width: 90%; max-height: 90vh; display: flex; flex-direction: column;">
             <button class="modal-close" id="closePreviewBtn">&times;</button>
-            <h2>Dataset Preview</h2>
-            <div id="datasetPreview" style="overflow-x: auto; margin-top: 20px;">
+            <div class="modal-title">Dataset Preview</div>
+            <div id="datasetPreview" style="overflow: auto; flex: 1;">
                 <!-- Table will be injected here -->
             </div>
         </div>
     </div>
-    <br> <br>
-    <button id="trainBtn">Start Training</button>
-    <script>
-        //UI helpers
-        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function hideModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        const openFilePickerBtn = document.getElementById("openFilePickerBtn");
-        const fileInput = document.getElementById("fileInput");
+</div>
+{% endblock %}
 
-        const modalOverlay = document.getElementById("modalOverlay");
-        const closeModalBtn = document.getElementById("closeModalBtn");
-        const cancelBtn = document.getElementById("cancelBtn");
+{% block scripts %}
+<script>
+    //UI helpers
+    function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+    // Ensure we hide by setting display to none
+    function hideModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        const selectedFileText = document.getElementById("selectedFileText");
+    const openFilePickerBtn = document.getElementById("openFilePickerBtn");
+    const fileInput = document.getElementById("fileInput");
 
-        const uploadForm = document.getElementById("uploadForm");
-        const statusText = document.getElementById("statusText");
+    const modalOverlay = document.getElementById("modalOverlay");
+    const closeModalBtn = document.getElementById("closeModalBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
 
-        let selectedFile = null;
+    const selectedFileText = document.getElementById("selectedFileText");
 
-        // Step 1: Click "Upload Dataset" -> open file picker
+    const uploadForm = document.getElementById("uploadForm");
+    const statusText = document.getElementById("statusText");
+
+    let selectedFile = null;
+
+    // Step 1: Click "Upload Dataset" -> open file picker
+    if (openFilePickerBtn) {
         openFilePickerBtn.addEventListener("click", () => {
             fileInput.click();
         });
+    }
 
-        // Step 2: After file chosen -> show popup
+    // Step 2: After file chosen -> show popup
+    if (fileInput) {
         fileInput.addEventListener("change", () => {
             if (!fileInput.files || fileInput.files.length === 0) {
                 return;
             }
-
             selectedFile = fileInput.files[0];
-
             selectedFileText.innerText = `File: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(2)} KB)`;
-
             statusText.innerText = "";
-
             // Open modal
-            modalOverlay.style.display = "flex";
+            showModal("modalOverlay");
         });
+    }
 
-        // Close modal functions
-        function closeModal() {
-            modalOverlay.style.display = "none";
-            statusText.innerText = "";
-            fileInput.value = ""; // reset file input
-            selectedFile = null;
-            selectedFileText.innerText = "No file selected";
-        }
+    // Close modal functions
+    function closeUploadModal() {
+        hideModal("modalOverlay");
+        statusText.innerText = "";
+        if (fileInput) fileInput.value = ""; // reset file input
+        selectedFile = null;
+        selectedFileText.innerText = "No file selected";
+    }
 
-        closeModalBtn.addEventListener("click", closeModal);
-        cancelBtn.addEventListener("click", closeModal);
+    if (closeModalBtn) closeModalBtn.addEventListener("click", closeUploadModal);
+    if (cancelBtn) cancelBtn.addEventListener("click", closeUploadModal);
 
-        // Click outside popup closes modal
-        modalOverlay.addEventListener("click", (e) => {
-            if (e.target === modalOverlay) {
-                closeModal();
-            }
-        });
-
-        // Step 3: Upload form submit -> send to backend
+    // Step 3: Upload form submit -> send to backend
+    if (uploadForm) {
         uploadForm.addEventListener("submit", async (e) => {
             e.preventDefault();
 
             if (!selectedFile) {
                 statusText.innerText = "No file selected.";
+                statusText.style.color = "red";
                 return;
             }
 
             statusText.innerText = "Uploading...";
+            statusText.style.color = "blue";
 
             // FormData = multipart/form-data
             const formData = new FormData();
@@ -177,32 +203,37 @@
                 if (!response.ok) {
                     const err = await response.text();
                     statusText.innerText = "Upload failed: " + err;
+                    statusText.style.color = "red";
                     return;
                 }
 
                 await response.json();
                 statusText.innerText = "Uploaded successfully!";
+                statusText.style.color = "green";
 
                 // Optional: close modal after 1 sec
                 setTimeout(() => {
-                    closeModal();
+                    closeUploadModal();
                     location.reload();
                 }, 1000);
 
             } catch (error) {
                 statusText.innerText = "Error uploading file.";
+                statusText.style.color = "red";
             }
         });
+    }
 
-        //catalog logic
-        const openCatalogBtn = document.getElementById("openCatalogBtn");
-        const catalogForm = document.getElementById("catalogForm");
+    //catalog logic
+    const openCatalogBtn = document.getElementById("openCatalogBtn");
+    const catalogForm = document.getElementById("catalogForm");
 
-        //open catalog modal
-        openCatalogBtn.addEventListener("click", () => showModal("catalogModal"));
-        document.getElementById("closeCatalogBtn").addEventListener("click", () => hideModal("catalogModal"));
+    //open catalog modal
+    if (openCatalogBtn) openCatalogBtn.addEventListener("click", () => showModal("catalogModal"));
+    if (document.getElementById("closeCatalogBtn")) document.getElementById("closeCatalogBtn").addEventListener("click", () => hideModal("catalogModal"));
 
-        //catalog form submission
+    //catalog form submission
+    if (catalogForm) {
         catalogForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const formData = new FormData(catalogForm);
@@ -220,162 +251,118 @@
                 console.error("Error:", error);
             }
         });
+    }
 
-        //preview dataset logic
-        const viewPreviewBtn = document.getElementById("viewPreviewBtn");
-        const datasetPreview = document.getElementById("datasetPreview");
+    //preview dataset logic
+    const viewPreviewBtn = document.getElementById("viewPreviewBtn");
+    const datasetPreview = document.getElementById("datasetPreview");
 
-        if (viewPreviewBtn) {
-            viewPreviewBtn.addEventListener("click", async () => {
-                const tempId = viewPreviewBtn.getAttribute("data-id");
-                datasetPreview.innerHTML = "<p>Loading preview...</p>";
-                showModal("previewModal");
+    if (viewPreviewBtn) {
+        viewPreviewBtn.addEventListener("click", async () => {
+            const tempId = viewPreviewBtn.getAttribute("data-id");
+            datasetPreview.innerHTML = "<div style='text-align:center; padding: 2rem;'><i class='fas fa-spinner fa-spin fa-2x'></i><p>Loading preview...</p></div>";
+            showModal("previewModal");
 
-                try {
-                    const response = await fetch(`/preview_temporary_dataset/${tempId}`);
-                    if (!response.ok) throw new Error("Failed to load data");
-
-                    const result = await response.json();
-                    const data = result.data_preview;
-                    const stats = result.stats;
-
-                    if (!data || data.length === 0) {
-                        datasetPreview.innerHTML = "<p>No data found or file format not supported for preview.</p>";
-                        return;
-                    }
-
-
-                    // DATASET PREVIEW AND FULL STATS ARE PREVIEWED HERE
-                    let tableHtml = `<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">`;
-
-                    //table headers
-                    const headers = Object.keys(data[0]);
-                    tableHtml += '<thead><tr>';
-                    headers.forEach(h => tableHtml += `<th>${h}</th>`);
-                    tableHtml += '</tr></thead>';
-
-                    //table body, the first 5 rows are previewed
-                    tableHtml += '<tbody>';
-                    data.forEach(row => {
-                        tableHtml += '<tr>';
-                        headers.forEach(h => tableHtml += `<td>${row[h] ?? ''}</td>`);
-                        tableHtml += '</tr>';
-                    });
-                    tableHtml += '</tbody></table>';
-
-                    //Basic stats are displayed this way 
-                    let statsHtml = `
-<div style="margin-top: 30px; padding: 20px; background: #f0f4f8; border-radius: 8px;">
-    <h3>Dataset Health Overview</h3>
-    <p><strong>Total Rows:</strong> ${stats.total_rows}</p>
-    <p><strong>Duplicate Rows:</strong> ${stats.duplicate_rows}</p>
-
-    <h4>Missing Values per Column</h4>
-    <div style="display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:10px;">
-`;
-
-                    for (const [col, count] of Object.entries(stats.missing_values)) {
-                        const color = count > 0 ? '#d9534f' : '#5cb85c';
-                        statsHtml += `
-        <div style="background:white; padding:10px; border-left:4px solid ${color};">
-            <strong>${col}</strong>: <span style="color:${color};">${count}</span>
-        </div>
-    `;
-                    }
-                    statsHtml += '</div></div>';
-
-                    let extraStatsHtml = `<div style="margin-top:30px; padding:20px; background:#fafafa; border-radius:8px;">`;
-
-                    function renderList(title, items) {
-                        if (!items || items.length === 0) return '';
-                        return `<h4>${title}</h4><div>${items.join(', ')}</div>`;
-                    }
-
-                    // Column names
-                    extraStatsHtml += renderList("Columns", stats.column_names);
-
-                    // Variable types
-                    extraStatsHtml += renderList("Numeric Variables", stats.numeric_variables);
-                    extraStatsHtml += renderList("Categorical Variables", stats.categorical_variables);
-                    extraStatsHtml += renderList("Date Variables", stats.date_variables);
-                    extraStatsHtml += renderList("Boolean Variables", stats.boolean_variables);
-
-                    // Data types
-                    extraStatsHtml += `<h4>Column Data Types</h4><ul>`;
-                    for (const [col, dtype] of Object.entries(stats.data_types)) {
-                        extraStatsHtml += `<li>${col}: ${dtype}</li>`;
-                    }
-                    extraStatsHtml += `</ul>`;
-
-                    // Unique counts
-                    extraStatsHtml += `<h4>Unique Values</h4><ul>`;
-                    for (const [col, count] of Object.entries(stats.unique_counts)) {
-                        extraStatsHtml += `<li>${col}: ${count}</li>`;
-                    }
-                    extraStatsHtml += `</ul>`;
-
-                    // Outliers
-                    extraStatsHtml += `<h4>Outliers (Numeric)</h4><ul>`;
-                    for (const [col, count] of Object.entries(stats.outliers)) {
-                        extraStatsHtml += `<li>${col}: ${count}</li>`;
-                    }
-                    extraStatsHtml += `</ul>`;
-
-                    // Skewness
-                    extraStatsHtml += `<h4>Skewness</h4><ul>`;
-                    for (const [col, skew] of Object.entries(stats.skewness)) {
-                        extraStatsHtml += `<li>${col}: ${skew.toFixed(3)}</li>`;
-                    }
-                    extraStatsHtml += `</ul>`;
-
-                    // Correlation Matrix
-                    if (Object.keys(stats.correlation_matrix).length > 0) {
-                        extraStatsHtml += `<h4>Correlation Matrix</h4><table border="1"><tr><th></th>`;
-                        const corrCols = Object.keys(stats.correlation_matrix);
-                        corrCols.forEach(c => extraStatsHtml += `<th>${c}</th>`);
-                        extraStatsHtml += '</tr>';
-
-                        corrCols.forEach(r => {
-                            extraStatsHtml += `<tr><td><strong>${r}</strong></td>`;
-                            corrCols.forEach(c => {
-                                const v = stats.correlation_matrix[r]?.[c];
-                                extraStatsHtml += `<td>${v !== undefined ? v.toFixed(2) : '-'}</td>`;
-                            });
-                            extraStatsHtml += '</tr>';
-                        });
-                        extraStatsHtml += '</table>';
-                    }
-
-                    // Summary stats (collapsed view)
-                    extraStatsHtml += `
-<h4>Summary Statistics</h4>
-<pre style="max-height:300px; overflow:auto;">
-${JSON.stringify(stats.summary_stats, null, 2)}
-</pre>
-</div>`;
-
-                    datasetPreview.innerHTML = tableHtml + statsHtml + extraStatsHtml;
-
-                } catch (error) {
-                    datasetPreview.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+            try {
+                const response = await fetch(`/preview_temporary_dataset/${tempId}`);
+                if (!response.ok) {
+                    // Try to parse error message
+                    let errorMsg = "Failed to load data";
+                    try {
+                        const errData = await response.json();
+                        if (errData.detail) errorMsg = errData.detail;
+                    } catch (e) { }
+                    throw new Error(errorMsg);
                 }
-            });
-        }
 
-        document.getElementById("closePreviewBtn").addEventListener("click", () => hideModal("previewModal"));
+                const result = await response.json();
+                const data = result.data_preview;
+                const stats = result.stats;
 
-        // Universal modal backdrop closer
-        window.onclick = function (event) {
-            if (event.target.classList.contains('modal-overlay')) {
-                event.target.style.display = 'none';
+                if (!data || data.length === 0) {
+                    datasetPreview.innerHTML = "<p>No data found or file format not supported for preview.</p>";
+                    return;
+                }
+
+                // DATASET PREVIEW
+                let tableHtml = `<div style="margin-bottom:1rem;"><strong>Total Rows:</strong> ${stats.total_rows}</div>`;
+                tableHtml += `<table class="table table-striped" style="width:100%; border-collapse: collapse;">`;
+
+                //table headers
+                const headers = Object.keys(data[0]);
+                tableHtml += '<thead><tr>';
+                headers.forEach(h => tableHtml += `<th>${h}</th>`);
+                tableHtml += '</tr></thead>';
+
+                //table body
+                tableHtml += '<tbody>';
+                data.forEach(row => {
+                    tableHtml += '<tr>';
+                    headers.forEach(h => tableHtml += `<td>${row[h] ?? ''}</td>`);
+                    tableHtml += '</tr>';
+                });
+                tableHtml += '</tbody></table>';
+
+                // Basic stats
+                let statsHtml = `
+                    <div style="margin-top: 2rem;">
+                        <h3 style="margin-bottom:1rem;">Dataset Statistics</h3>
+                        <div class="grid-3">
+                            <div class="card" style="padding:1rem;">
+                                <strong>Duplicate Rows</strong>
+                                <div style="font-size:1.5rem;">${stats.duplicate_rows}</div>
+                            </div>
+                `;
+
+                // Missing values
+                let missingHtml = `<div class="card" style="padding:1rem;"><strong>Missing Values</strong><ul style="margin-top:0.5rem; padding-left:1.2rem;">`;
+                let hasMissing = false;
+                for (const [col, count] of Object.entries(stats.missing_values)) {
+                    if (count > 0) {
+                        hasMissing = true;
+                        missingHtml += `<li>${col}: ${count}</li>`;
+                    }
+                }
+                if (!hasMissing) missingHtml += `<li>None</li>`;
+                missingHtml += `</ul></div>`;
+
+                statsHtml += missingHtml;
+                statsHtml += `</div></div>`; // Close grid
+
+                // Helper for lists
+                function renderList(title, items) {
+                    if (!items || items.length === 0) return '';
+                    return `<div style="margin-top:1rem;"><strong>${title}:</strong> ${items.join(', ')}</div>`;
+                }
+
+                let extraStatsHtml = `<div class="card" style="margin-top: 1rem; background-color: #f8fafc;">`;
+                extraStatsHtml += renderList("Numeric Variables", stats.numeric_variables);
+                extraStatsHtml += renderList("Categorical Variables", stats.categorical_variables);
+                extraStatsHtml += `</div>`;
+
+                datasetPreview.innerHTML = tableHtml + statsHtml + extraStatsHtml;
+
+            } catch (error) {
+                datasetPreview.innerHTML = `<p style="color:red; text-align:center;">Error: ${error.message}</p>`;
             }
+        });
+    }
+
+    if (document.getElementById("closePreviewBtn")) document.getElementById("closePreviewBtn").addEventListener("click", () => hideModal("previewModal"));
+
+    // Universal modal backdrop closer
+    window.onclick = function (event) {
+        if (event.target.classList.contains('modal-overlay')) {
+            event.target.style.display = 'none';
         }
+    }
 
-        // Training redirection logic
-        const trainBtn = document.getElementById("trainBtn");
-        // Safe injection of dataset ID. If no dataset, this becomes an empty string.
-        const activeDatasetId = "{{ active_dataset.id if active_dataset else '' }}";
+    // Training redirection logic
+    const trainBtn = document.getElementById("trainBtn");
+    // Safe injection of dataset ID
+    const activeDatasetId = "{{ active_dataset.id if active_dataset else '' }}";
 
+    if (trainBtn) {
         trainBtn.addEventListener("click", () => {
             if (activeDatasetId) {
                 window.location.href = `/training?dataset_id=${activeDatasetId}`;
@@ -383,7 +370,6 @@ ${JSON.stringify(stats.summary_stats, null, 2)}
                 alert("Please upload or connect a dataset first before starting training.");
             }
         });
-    </script>
-</body>
-
-</html>
+    }
+</script>
+{% endblock %}

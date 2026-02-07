@@ -1,562 +1,507 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OneClick.AI Models</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f7fa;
-            color: #333;
-        }
+{% block title %}Models - OneClick.AI{% endblock %}
 
-        .container {
-            max-width: 1000px;
-            margin: 40px auto;
-            padding: 20px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
+{% block head %}
+<style>
+    .header-info {
+        background-color: #e8f4fd;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 30px;
+        border-left: 5px solid #3498db;
+    }
 
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 30px;
-        }
+    .header-info p {
+        margin: 5px 0;
+        font-size: 1.1em;
+    }
 
-        .header-info {
-            background-color: #e8f4fd;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 30px;
-            border-left: 5px solid #3498db;
-        }
+    .model-header {
+        background-color: #f8f9fa;
+        padding: 15px 25px;
+        border-bottom: 1px solid #e0e0e0;
+    }
 
-        .header-info p {
-            margin: 5px 0;
-            font-size: 1.1em;
-        }
+    .model-header h2 {
+        margin: 0;
+        color: #1e3a8a;
+        font-size: 1.5rem;
+    }
 
-        .model-card {
-            display: flex;
-            flex-direction: column;
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 30px;
-            overflow: hidden;
-            transition: box-shadow 0.3s ease;
-        }
+    .model-body {
+        display: flex;
+        padding: 25px;
+        gap: 30px;
+        flex-direction: column;
+    }
 
-        .model-card:hover {
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .model-header {
-            background-color: #f8f9fa;
-            padding: 15px 25px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .model-header h2 {
-            margin: 0;
-            color: #2980b9;
-        }
-
+    @media (min-width: 768px) {
         .model-body {
-            display: flex;
-            padding: 25px;
-            gap: 30px;
+            flex-direction: row;
         }
+    }
 
-        .model-info {
-            flex: 1;
-        }
+    .model-info {
+        flex: 1;
+    }
 
-        .model-image {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: #fafafa;
-            border-radius: 8px;
-            min-height: 250px;
-        }
+    .model-image {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #fafafa;
+        border-radius: 8px;
+        min-height: 250px;
+    }
 
-        .model-image img {
-            max-width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
+    .model-image img {
+        max-width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
 
-        h3 {
-            color: #34495e;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 5px;
-            margin-top: 0;
-        }
+    h3 {
+        color: #34495e;
+        border-bottom: 2px solid #ecf0f1;
+        padding-bottom: 5px;
+        margin-top: 0;
+    }
 
-        .equation {
-            background-color: #f1f8ff;
-            padding: 10px;
-            border-radius: 4px;
-            font-family: 'Courier New', Courier, monospace;
-            text-align: center;
-            margin: 15px 0;
-            font-weight: bold;
-        }
+    .equation {
+        background-color: #f1f8ff;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: 'Courier New', Courier, monospace;
+        text-align: center;
+        margin: 15px 0;
+        font-weight: bold;
+        border: 1px solid #d1e3f8;
+    }
 
-        ul {
-            list-style-type: disc;
-            padding-left: 20px;
-        }
+    ul {
+        list-style-type: disc;
+        padding-left: 20px;
+    }
 
-        li {
-            margin-bottom: 5px;
-        }
+    li {
+        margin-bottom: 5px;
+    }
 
-        .btn-back {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #7f8c8d;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-top: 20px;
-            transition: background-color 0.2s;
-        }
+    .section-title {
+        font-weight: 600;
+        color: #555;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        display: block;
+    }
+</style>
+{% endblock %}
 
-        .btn-back:hover {
-            background-color: #6c7a7d;
-        }
+{% block content %}
+<div class="container">
+    <h1 style="text-align: center; margin-bottom: 30px; color: #1a202c;">Supported Machine Learning Algorithms</h1>
 
-        .error-msg {
-            color: #bc3e34;
-            text-align: center;
-            padding: 20px;
-            font-size: 1.2em;
-        }
-
-        .section-title {
-            font-weight: 600;
-            color: #555;
-            margin-top: 15px;
-            margin-bottom: 5px;
-            display: block;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="container">
-        <h1>Supported Machine Learning Algorithms</h1>
-
-        {% if dataset %}
-        <div class="header-info">
-            <p><strong>Current Context:</strong></p>
-            <p>Training with dataset: <strong>{{ dataset.s3_key.split('/')[-1] }}</strong></p>
-            <p>Dataset Properties: {{ (dataset.file_size / 1024)|round(2) }} KB | {{ dataset.row_count }} Rows</p>
-        </div>
-
-        {% if model and model.name == 'LogisticRegression' %}
-        <!-- Logistic Regression -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>Logistic Regression</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>Logistic Regression is a statistical analysis method used to predict a data value based on prior
-                        observations of a dataset. Unlike Linear Regression which predicts a continuous number, Logistic
-                        Regression predicts a binary outcome (e.g., Yes/No, True/False, 0/1).</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>Imagine you want to predict if an email is "Spam" or "Not Spam". Logistic regression draws a
-                        curve that separates these two groups. If the probability is greater than 50%, it's classified
-                        as Spam; otherwise, it's Not Spam.</p>
-
-                    <span class="section-title">Core Equation:</span>
-                    <div class="equation">
-                        P(y=1|x) = 1 / (1 + e<sup>-(wx + b)</sup>)
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>C (Regularization):</strong> Controls the penalty strength. Smaller values specify
-                            stronger regularization to prevent overfitting.</li>
-                        <li><strong>Solver:</strong> The algorithm to use in the optimization problem (e.g., liblinear,
-                            saga).</li>
-                        <li><strong>Penalty:</strong> Specifies the norm used in the penalization (l1 or l2).</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if model and model.name == 'LinearRegression' %}
-        <!-- Linear Regression -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>Linear Regression</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>Linear Regression is a linear approach for modeling the relationship between a scalar response
-                        and one or more explanatory variables (dependent and independent variables).</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>Think of trying to predict the price of a house based on its size. You might notice that as size
-                        increases, price tends to increase. Linear regression finds the best-fitting straight line
-                        through the data points to predict the price for any given size.</p>
-
-                    <span class="section-title">Core Equation:</span>
-                    <div class="equation">
-                        y = wx + b
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>Fit Intercept:</strong> Whether to calculate the intercept for this model.</li>
-                        <li><strong>Normalize:</strong> If True, the regressors X will be normalized before regression.
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if model and model.name == 'RandomForest' %}
-        <!-- Random Forest -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>Random Forest</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>Random Forest is an ensemble learning method that operates by constructing a multitude of
-                        decision trees at training time and outputting the class that is the mode of the classes
-                        (classification) or mean prediction (regression) of the individual trees.</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>Imagine asking a question to a group of 100 experts. Each expert (Decision Tree) gives their
-                        answer. Random Forest combines everyone's answer to give a final, more accurate prediction. It
-                        avoids the errors that a single expert might make.</p>
-
-                    <span class="section-title">Core Concept:</span>
-                    <div class="equation">
-                        Prediction = Mode (Classification) or Mean (Regression) of Trees
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>n_estimators:</strong> The number of trees in the forest. More trees usually means
-                            better performance but slower code.</li>
-                        <li><strong>max_depth:</strong> The maximum depth of the tree. Controls complexity and
-                            overfitting.</li>
-                        <li><strong>min_samples_split:</strong> The minimum number of samples required to split an
-                            internal node.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if model and model.name == 'DecisionTree' %}
-        <!-- Decision Tree -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>Decision Tree</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>A Decision Tree is a flowchart-like structure in which each internal node represents a "test" on
-                        an attribute (e.g. at coin flip comes up heads or tails), each branch represents the outcome of
-                        the test, and each leaf node represents a class label.</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>It works like a game of "20 Questions". Does it have wings? Yes. Is it a bird? Yes. Is it an
-                        eagle? No. The algorithm asks a series of questions to narrow down the possibilities until it
-                        reaches a conclusion.</p>
-
-                    <span class="section-title">Core Concept:</span>
-                    <div class="equation">
-                        Splitting based on Gini Impurity or Entropy
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>Criterion:</strong> The function to measure the quality of a split (Gini or
-                            Entropy).</li>
-                        <li><strong>max_depth:</strong> The maximum depth of the tree.</li>
-                        <li><strong>min_samples_leaf:</strong> The minimum number of samples required to be at a leaf
-                            node.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if model and model.name == 'KNeighborsClassifier' %}
-        <!-- KNeighborsClassifier -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>KNeighbors Classifier</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>K-Nearest Neighbors (KNN) Classifier is a simple, easy-to-understand, versatile, and powerful
-                        machine learning algorithm. It checks the class of its 'k' nearest neighbors and votes to decide
-                        its own class.</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>Tell me who your neighbors are, and I'll tell you who you are. If you move into a neighborhood
-                        where most people love spicy food, it's likely you'll start enjoying it too. KNN checks who is
-                        closest to you to guess what you are.</p>
-
-                    <span class="section-title">Core Concept:</span>
-                    <div class="equation">
-                        Distance (Euclidean) = √[ Σ(x_i - y_i)^2 ]
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>n_neighbors:</strong> Number of neighbors to use by default.</li>
-                        <li><strong>weights:</strong> Weight function used in prediction (uniform or distance).</li>
-                        <li><strong>metric:</strong> The distance metric to use for the tree (e.g., minkowski,
-                            euclidean).</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if model and model.name == 'KNeighborsRegressor' %}
-        <!-- KNeighborsRegressor -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>KNeighbors Regressor</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>Regression based on k-nearest neighbors. The target is predicted by local interpolation of the
-                        targets associated of the nearest neighbors in the training set.</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>If you want to guess the price of a house, look at the 5 closest houses. The average price of
-                        those 5 houses is a good guess for yours.</p>
-
-                    <span class="section-title">Core Concept:</span>
-                    <div class="equation">
-                        y = (1/k) * Σ y_i
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>n_neighbors:</strong> Number of neighbors to use.</li>
-                        <li><strong>weights:</strong> Weight function used in prediction.</li>
-                        <li><strong>metric:</strong> The distance metric to use.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if model and model.name == 'KMeans' %}
-        <!-- KMeans -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>KMeans Clustering</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>KMeans is an unsupervised learning algorithm that groups similar data points together and
-                        discovers underlying patterns. It looks for a fixed number (k) of clusters in a dataset.</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>Imagine you have a bag of mixed marbles (red, blue, green) but you're colorblind. KMeans helps
-                        you sort them into piles based on their size and weight, hoping that similar ones end up
-                        together.</p>
-
-                    <span class="section-title">Core Concept:</span>
-                    <div class="equation">
-                        Minimize Inertia: Σ ||x_i - μ_j||^2
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>n_clusters:</strong> The number of clusters to form as well as the number of
-                            centroids to generate.</li>
-                        <li><strong>init:</strong> Method for initialization (e.g., k-means++).</li>
-                        <li><strong>max_iter:</strong> Maximum number of iterations of the k-means algorithm for a
-                            single run.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if model and model.name == 'SVC' %}
-        <!-- SVC -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>Support Vector Classifier (SVC)</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>Support Vector Classification (SVC) fits the data you provide, returning a "best fit" hyperplane
-                        that divides, or categorizes, your data. From there, after getting the hyperplane, you can feed
-                        some features to your classifier to see what the "predicted" class is.</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>Imagine you have red and blue balls on the ground. You want to put a stick between them to seal
-                        them off. SVC tries to find the best place to put the stick so it's as far away from the closest
-                        balls of both colors as possible.</p>
-
-                    <span class="section-title">Core Concept:</span>
-                    <div class="equation">
-                        Maximize Margin = 2 / ||w||
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>C (Regularization):</strong> Controls the trade-off between smooth decision boundary
-                            and classifying training points correctly.</li>
-                        <li><strong>kernel:</strong> Specifies the kernel type to be used in the algorithm (linear,
-                            poly, rbf, sigmoid).</li>
-                        <li><strong>gamma:</strong> Kernel coefficient for 'rbf', 'poly' and 'sigmoid'.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if model and model.name == 'SVR' %}
-        <!-- SVR -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>Support Vector Regressor (SVR)</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>Support Vector Regression (SVR) uses the same principle as the SVM for classification, with a few
-                        minor differences. In the case of regression, a margin of tolerance (epsilon) is set in
-                        approximation to the SVM which would have already requested from the problem: there is no
-                        penalty for errors as long as they are smaller than this epsilon.</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>Instead of a strict line, imagine a tube. SVR tries to fit as many data points as possible inside
-                        this tube. Points inside the tube don't cost anything, but points outside do.</p>
-
-                    <span class="section-title">Core Concept:</span>
-                    <div class="equation">
-                        y = w'φ(x) + b (subject to ε-insensitive loss)
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>kernel:</strong> Specifies the kernel type.</li>
-                        <li><strong>C:</strong> Regularization parameter.</li>
-                        <li><strong>epsilon:</strong> Epsilon in the epsilon-SVR model. It specifies the epsilon-tube
-                            within which no penalty is associated.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if model and model.name == 'Lasso' %}
-        <!-- Lasso -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>Lasso Regression (L1)</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>Lasso (Least Absolute Shrinkage and Selection Operator) is a regression analysis method that
-                        performs both variable selection and regularization in order to enhance the prediction accuracy
-                        and interpretability of the statistical model it produces.</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>Imagine you have a backpack and you want to fill it with items that are most useful for a trip.
-                        Lasso forces you to choose only the absolute essentials and leave the rest behind (setting their
-                        weight to zero), making your backpack lighter and easier to manage.</p>
-
-                    <span class="section-title">Core Concept:</span>
-                    <div class="equation">
-                        Minimize: RSS + λ * Σ|β_j|
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>alpha:</strong> Constant that multiplies the L1 term. Defaults to 1.0.</li>
-                        <li><strong>fit_intercept:</strong> Whether to calculate the intercept for this model.</li>
-                        <li><strong>max_iter:</strong> The maximum number of iterations.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        {% if model and model.name == 'Ridge' %}
-        <!-- Ridge -->
-        <div class="model-card">
-            <div class="model-header">
-                <h2>Ridge Regression (L2)</h2>
-            </div>
-            <div class="model-body">
-                <div class="model-info">
-                    <h3>Overview</h3>
-                    <p>Ridge Regression is a technique for analyzing multiple regression data that suffer from
-                        multicollinearity. By adding a degree of bias to the regression estimates, ridge regression
-                        reduces the standard errors.</p>
-
-                    <span class="section-title">Layman Explanation:</span>
-                    <p>Unlike Lasso, which throws items out of the backpack, Ridge just makes everything a little bit
-                        smaller so you can fit more in. It doesn't eliminate variables completely but shrinks their
-                        influence to prevent any single one from dominating.</p>
-
-                    <span class="section-title">Core Concept:</span>
-                    <div class="equation">
-                        Minimize: RSS + λ * Σ(β_j)^2
-                    </div>
-
-                    <span class="section-title">Key Hyperparameters:</span>
-                    <ul>
-                        <li><strong>alpha:</strong> Regularization strength; must be a positive float.</li>
-                        <li><strong>fit_intercept:</strong> Whether to calculate the intercept for this model.</li>
-                        <li><strong>solver:</strong> Solver to use in the computational routines.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <div style="text-align: center;">
-            <a href="/train_model" class="btn-back">Back to Train Model</a>
-        </div>
-
-        {% else %}
-        <div class="error-msg">
-            <p>No active dataset found for training. Please go back and select a dataset.</p>
-            <a href="/train_model" class="btn-back">Back to Train Model</a>
-        </div>
-        {% endif %}
+    {% if dataset %}
+    <div class="header-info">
+        <p><strong>Current Context:</strong></p>
+        <p>Training with dataset: <strong>{{ dataset.s3_key.split('/')[-1] }}</strong></p>
+        <p>Dataset Properties: {{ (dataset.file_size / 1024)|round(2) }} KB | {{ dataset.row_count }} Rows</p>
     </div>
-</body>
 
-</html>
+    {% if model and model.name == 'LogisticRegression' %}
+    <!-- Logistic Regression -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>Logistic Regression</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>Logistic Regression is a statistical analysis method used to predict a data value based on prior
+                    observations of a dataset. Unlike Linear Regression which predicts a continuous number, Logistic
+                    Regression predicts a binary outcome (e.g., Yes/No, True/False, 0/1).</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>Imagine you want to predict if an email is "Spam" or "Not Spam". Logistic regression draws a
+                    curve that separates these two groups. If the probability is greater than 50%, it's classified
+                    as Spam; otherwise, it's Not Spam.</p>
+
+                <span class="section-title">Core Equation:</span>
+                <div class="equation">
+                    P(y=1|x) = 1 / (1 + e<sup>-(wx + b)</sup>)
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>C (Regularization):</strong> Controls the penalty strength. Smaller values specify
+                        stronger regularization to prevent overfitting.</li>
+                    <li><strong>Solver:</strong> The algorithm to use in the optimization problem (e.g., liblinear,
+                        saga).</li>
+                    <li><strong>Penalty:</strong> Specifies the norm used in the penalization (l1 or l2).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if model and model.name == 'LinearRegression' %}
+    <!-- Linear Regression -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>Linear Regression</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>Linear Regression is a linear approach for modeling the relationship between a scalar response
+                    and one or more explanatory variables (dependent and independent variables).</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>Think of trying to predict the price of a house based on its size. You might notice that as size
+                    increases, price tends to increase. Linear regression finds the best-fitting straight line
+                    through the data points to predict the price for any given size.</p>
+
+                <span class="section-title">Core Equation:</span>
+                <div class="equation">
+                    y = wx + b
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>Fit Intercept:</strong> Whether to calculate the intercept for this model.</li>
+                    <li><strong>Normalize:</strong> If True, the regressors X will be normalized before regression.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if model and model.name == 'RandomForest' %}
+    <!-- Random Forest -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>Random Forest</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>Random Forest is an ensemble learning method that operates by constructing a multitude of
+                    decision trees at training time and outputting the class that is the mode of the classes
+                    (classification) or mean prediction (regression) of the individual trees.</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>Imagine asking a question to a group of 100 experts. Each expert (Decision Tree) gives their
+                    answer. Random Forest combines everyone's answer to give a final, more accurate prediction. It
+                    avoids the errors that a single expert might make.</p>
+
+                <span class="section-title">Core Concept:</span>
+                <div class="equation">
+                    Prediction = Mode (Classification) or Mean (Regression) of Trees
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>n_estimators:</strong> The number of trees in the forest. More trees usually means
+                        better performance but slower code.</li>
+                    <li><strong>max_depth:</strong> The maximum depth of the tree. Controls complexity and
+                        overfitting.</li>
+                    <li><strong>min_samples_split:</strong> The minimum number of samples required to split an
+                        internal node.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if model and model.name == 'DecisionTree' %}
+    <!-- Decision Tree -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>Decision Tree</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>A Decision Tree is a flowchart-like structure in which each internal node represents a "test" on
+                    an attribute (e.g. at coin flip comes up heads or tails), each branch represents the outcome of
+                    the test, and each leaf node represents a class label.</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>It works like a game of "20 Questions". Does it have wings? Yes. Is it a bird? Yes. Is it an
+                    eagle? No. The algorithm asks a series of questions to narrow down the possibilities until it
+                    reaches a conclusion.</p>
+
+                <span class="section-title">Core Concept:</span>
+                <div class="equation">
+                    Splitting based on Gini Impurity or Entropy
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>Criterion:</strong> The function to measure the quality of a split (Gini or
+                        Entropy).</li>
+                    <li><strong>max_depth:</strong> The maximum depth of the tree.</li>
+                    <li><strong>min_samples_leaf:</strong> The minimum number of samples required to be at a leaf
+                        node.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if model and model.name == 'KNeighborsClassifier' %}
+    <!-- KNeighborsClassifier -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>KNeighbors Classifier</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>K-Nearest Neighbors (KNN) Classifier is a simple, easy-to-understand, versatile, and powerful
+                    machine learning algorithm. It checks the class of its 'k' nearest neighbors and votes to decide
+                    its own class.</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>Tell me who your neighbors are, and I'll tell you who you are. If you move into a neighborhood
+                    where most people love spicy food, it's likely you'll start enjoying it too. KNN checks who is
+                    closest to you to guess what you are.</p>
+
+                <span class="section-title">Core Concept:</span>
+                <div class="equation">
+                    Distance (Euclidean) = √[ Σ(x_i - y_i)^2 ]
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>n_neighbors:</strong> Number of neighbors to use by default.</li>
+                    <li><strong>weights:</strong> Weight function used in prediction (uniform or distance).</li>
+                    <li><strong>metric:</strong> The distance metric to use for the tree (e.g., minkowski,
+                        euclidean).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if model and model.name == 'KNeighborsRegressor' %}
+    <!-- KNeighborsRegressor -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>KNeighbors Regressor</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>Regression based on k-nearest neighbors. The target is predicted by local interpolation of the
+                    targets associated of the nearest neighbors in the training set.</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>If you want to guess the price of a house, look at the 5 closest houses. The average price of
+                    those 5 houses is a good guess for yours.</p>
+
+                <span class="section-title">Core Concept:</span>
+                <div class="equation">
+                    y = (1/k) * Σ y_i
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>n_neighbors:</strong> Number of neighbors to use.</li>
+                    <li><strong>weights:</strong> Weight function used in prediction.</li>
+                    <li><strong>metric:</strong> The distance metric to use.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if model and model.name == 'KMeans' %}
+    <!-- KMeans -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>KMeans Clustering</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>KMeans is an unsupervised learning algorithm that groups similar data points together and
+                    discovers underlying patterns. It looks for a fixed number (k) of clusters in a dataset.</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>Imagine you have a bag of mixed marbles (red, blue, green) but you're colorblind. KMeans helps
+                    you sort them into piles based on their size and weight, hoping that similar ones end up
+                    together.</p>
+
+                <span class="section-title">Core Concept:</span>
+                <div class="equation">
+                    Minimize Inertia: Σ ||x_i - μ_j||^2
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>n_clusters:</strong> The number of clusters to form as well as the number of
+                        centroids to generate.</li>
+                    <li><strong>init:</strong> Method for initialization (e.g., k-means++).</li>
+                    <li><strong>max_iter:</strong> Maximum number of iterations of the k-means algorithm for a
+                        single run.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if model and model.name == 'SVC' %}
+    <!-- SVC -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>Support Vector Classifier (SVC)</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>Support Vector Classification (SVC) fits the data you provide, returning a "best fit" hyperplane
+                    that divides, or categorizes, your data. From there, after getting the hyperplane, you can feed
+                    some features to your classifier to see what the "predicted" class is.</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>Imagine you have red and blue balls on the ground. You want to put a stick between them to seal
+                    them off. SVC tries to find the best place to put the stick so it's as far away from the closest
+                    balls of both colors as possible.</p>
+
+                <span class="section-title">Core Concept:</span>
+                <div class="equation">
+                    Maximize Margin = 2 / ||w||
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>C (Regularization):</strong> Controls the trade-off between smooth decision boundary
+                        and classifying training points correctly.</li>
+                    <li><strong>kernel:</strong> Specifies the kernel type to be used in the algorithm (linear,
+                        poly, rbf, sigmoid).</li>
+                    <li><strong>gamma:</strong> Kernel coefficient for 'rbf', 'poly' and 'sigmoid'.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if model and model.name == 'SVR' %}
+    <!-- SVR -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>Support Vector Regressor (SVR)</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>Support Vector Regression (SVR) uses the same principle as the SVM for classification, with a few
+                    minor differences. In the case of regression, a margin of tolerance (epsilon) is set in
+                    approximation to the SVM which would have already requested from the problem: there is no
+                    penalty for errors as long as they are smaller than this epsilon.</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>Instead of a strict line, imagine a tube. SVR tries to fit as many data points as possible inside
+                    this tube. Points inside the tube don't cost anything, but points outside do.</p>
+
+                <span class="section-title">Core Concept:</span>
+                <div class="equation">
+                    y = w'φ(x) + b (subject to ε-insensitive loss)
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>kernel:</strong> Specifies the kernel type.</li>
+                    <li><strong>C:</strong> Regularization parameter.</li>
+                    <li><strong>epsilon:</strong> Epsilon in the epsilon-SVR model. It specifies the epsilon-tube
+                        within which no penalty is associated.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if model and model.name == 'Lasso' %}
+    <!-- Lasso -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>Lasso Regression (L1)</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>Lasso (Least Absolute Shrinkage and Selection Operator) is a regression analysis method that
+                    performs both variable selection and regularization in order to enhance the prediction accuracy
+                    and interpretability of the statistical model it produces.</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>Imagine you have a backpack and you want to fill it with items that are most useful for a trip.
+                    Lasso forces you to choose only the absolute essentials and leave the rest behind (setting their
+                    weight to zero), making your backpack lighter and easier to manage.</p>
+
+                <span class="section-title">Core Concept:</span>
+                <div class="equation">
+                    Minimize: RSS + λ * Σ|β_j|
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>alpha:</strong> Constant that multiplies the L1 term. Defaults to 1.0.</li>
+                    <li><strong>fit_intercept:</strong> Whether to calculate the intercept for this model.</li>
+                    <li><strong>max_iter:</strong> The maximum number of iterations.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if model and model.name == 'Ridge' %}
+    <!-- Ridge -->
+    <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
+        <div class="model-header">
+            <h2>Ridge Regression (L2)</h2>
+        </div>
+        <div class="model-body">
+            <div class="model-info">
+                <h3>Overview</h3>
+                <p>Ridge Regression is a technique for analyzing multiple regression data that suffer from
+                    multicollinearity. By adding a degree of bias to the regression estimates, ridge regression
+                    reduces the standard errors.</p>
+
+                <span class="section-title">Layman Explanation:</span>
+                <p>Unlike Lasso, which throws items out of the backpack, Ridge just makes everything a little bit
+                    smaller so you can fit more in. It doesn't eliminate variables completely but shrinks their
+                    influence to prevent any single one from dominating.</p>
+
+                <span class="section-title">Core Concept:</span>
+                <div class="equation">
+                    Minimize: RSS + λ * Σ(β_j)^2
+                </div>
+
+                <span class="section-title">Key Hyperparameters:</span>
+                <ul>
+                    <li><strong>alpha:</strong> Regularization strength; must be a positive float.</li>
+                    <li><strong>fit_intercept:</strong> Whether to calculate the intercept for this model.</li>
+                    <li><strong>solver:</strong> Solver to use in the computational routines.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div style="text-align: center;">
+        <a href="/train_model" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Back to Train Model</a>
+    </div>
+
+    {% else %}
+    <div class="alert alert-error" style="text-align: center;">
+        <p>No active dataset found for training. Please go back and select a dataset.</p>
+        <a href="/train_model" class="btn btn-secondary">Back to Train Model</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

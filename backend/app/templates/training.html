@@ -1,113 +1,146 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Train Model</title>
-</head>
+{% block title %}Train Model - OneClick.AI{% endblock %}
 
-<body>
-    <h1>Training Model</h1>
+{% block content %}
+<div class="container">
+    <h1 style="text-align: center; margin-bottom: 2rem; color: #1a202c;">Train a New Model</h1>
+
     {% if dataset %}
-    <p>Currently training with dataset: <strong>{{ dataset.s3_key.split('/')[-1] }}</strong></p>
-    <p>Size: {{ (dataset.file_size / 1024)|round(2) }} KB | Rows: {{ dataset.row_count }}</p>
-
-    <div>
-        <button id="LinearRegression">Linear Regression</button>
-    </div>
-    <br> <br>
-    <div>
-        <button id="LogisticRegression">Logistic Regression</button>
-    </div>
-    <br> <br>
-    <div>
-        <button id="DecisionTree">Decision Tree</button>
-    </div>
-    <br> <br>
-    <div>
-        <button id="RandomForest">Random Forest</button>
-    </div>
-    <br> <br>
-    <div>
-        <button id="KNeighborsClassifier">KNeighbors Classifier</button>
-    </div>
-    <br> <br>
-    <div>
-        <button id="KNeighborsRegressor">KNeighbors Regressor</button>
-    </div>
-    <br> <br>
-    <div>
-        <button id="KMeans">KMeans Clustering</button>
-    </div>
-    <br> <br>
-    <div>
-        <button id="SVC">Support Vector Classifier (SVC)</button>
-    </div>
-    <br> <br>
-    <div>
-        <button id="SVR">Support Vector Regressor (SVR)</button>
-    </div>
-    <br> <br>
-    <div>
-        <button id="Lasso">Lasso Regression (L1)</button>
-    </div>
-    <br> <br>
-    <div>
-        <button id="Ridge">Ridge Regression (L2)</button>
+    <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--primary-color);">
+        <h3 style="margin-top: 0; color: var(--primary-color);">Current Dataset Context</h3>
+        <p style="margin-bottom: 0.5rem;"><i class="fas fa-database" style="margin-right: 8px; color: #6c757d;"></i>
+            <strong>Filename:</strong> {{ dataset.s3_key.split('/')[-1] }}</p>
+        <p style="margin-bottom: 0.5rem;"><i class="fas fa-table" style="margin-right: 8px; color: #6c757d;"></i>
+            <strong>Rows:</strong> {{ dataset.row_count }}</p>
+        <p style="margin-bottom: 0;"><i class="fas fa-file-alt" style="margin-right: 8px; color: #6c757d;"></i>
+            <strong>Size:</strong> {{ (dataset.file_size / 1024)|round(2) }} KB</p>
     </div>
 
+    <h2 style="margin-bottom: 1.5rem;">Select an Algorithm</h2>
+
+    <div class="grid-3">
+        <!-- Linear Regression -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=LinearRegression" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #3498db; margin-bottom: 1rem;">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="card-title">Linear Regression</h3>
+            <p class="card-text">Predict continuous values based on linear relationships.</p>
+        </a>
+
+        <!-- Logistic Regression -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=LogisticRegression" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #e74c3c; margin-bottom: 1rem;">
+                <i class="fas fa-toggle-on"></i>
+            </div>
+            <h3 class="card-title">Logistic Regression</h3>
+            <p class="card-text">Binary classification for categorical outcomes.</p>
+        </a>
+
+        <!-- Decision Tree -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=DecisionTree" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #2ecc71; margin-bottom: 1rem;">
+                <i class="fas fa-tree"></i>
+            </div>
+            <h3 class="card-title">Decision Tree</h3>
+            <p class="card-text">Flowchart-like structure for classification and regression.</p>
+        </a>
+
+        <!-- Random Forest -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=RandomForest" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #27ae60; margin-bottom: 1rem;">
+                <i class="fas fa-forest"></i>
+            </div>
+            <h3 class="card-title">Random Forest</h3>
+            <p class="card-text">Ensemble of decision trees for robust predictions.</p>
+        </a>
+
+        <!-- KNeighbors Classifier -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=KNeighborsClassifier" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #9b59b6; margin-bottom: 1rem;">
+                <i class="fas fa-users"></i>
+            </div>
+            <h3 class="card-title">KNN Classifier</h3>
+            <p class="card-text">Classify based on majority vote of nearest neighbors.</p>
+        </a>
+
+        <!-- KNeighbors Regressor -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=KNeighborsRegressor" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #8e44ad; margin-bottom: 1rem;">
+                <i class="fas fa-project-diagram"></i>
+            </div>
+            <h3 class="card-title">KNN Regressor</h3>
+            <p class="card-text">Predict values based on average of nearest neighbors.</p>
+        </a>
+
+        <!-- KMeans -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=KMeans" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #f1c40f; margin-bottom: 1rem;">
+                <i class="fas fa-cubes"></i>
+            </div>
+            <h3 class="card-title">KMeans Clustering</h3>
+            <p class="card-text">Unsupervised learning to group similar data points.</p>
+        </a>
+
+        <!-- SVC -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=SVC" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #e67e22; margin-bottom: 1rem;">
+                <i class="fas fa-vector-square"></i>
+            </div>
+            <h3 class="card-title">SVC</h3>
+            <p class="card-text">Support Vector Classifier for optimal class separation.</p>
+        </a>
+
+        <!-- SVR -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=SVR" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #d35400; margin-bottom: 1rem;">
+                <i class="fas fa-bezier-curve"></i>
+            </div>
+            <h3 class="card-title">SVR</h3>
+            <p class="card-text">Support Vector Regressor for flexible prediction lines.</p>
+        </a>
+
+        <!-- Lasso -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=Lasso" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #34495e; margin-bottom: 1rem;">
+                <i class="fas fa-filter"></i>
+            </div>
+            <h3 class="card-title">Lasso (L1)</h3>
+            <p class="card-text">Regression with L1 regularization for feature selection.</p>
+        </a>
+
+        <!-- Ridge -->
+        <a href="/models?dataset_id={{ dataset.id }}&model=Ridge" class="card card-hover"
+            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
+            <div style="font-size: 2rem; color: #2c3e50; margin-bottom: 1rem;">
+                <i class="fas fa-mountain"></i>
+            </div>
+            <h3 class="card-title">Ridge (L2)</h3>
+            <p class="card-text">Regression with L2 regularization to prevent overfitting.</p>
+        </a>
+    </div>
 
     {% else %}
-    <p style="color: red;">No active dataset found for training. Please go back and select a dataset.</p>
-    <button onclick="window.location.href='/train_model'">Back to Train Model</button>
+    <div class="alert alert-error" style="text-align: center;">
+        <p>No active dataset found for training. Please <a href="/dashboard"
+                style="color: inherit; text-decoration: underline;">go back to the dashboard</a> and select or upload a
+            dataset.</p>
+    </div>
     {% endif %}
 
-    <script>
-        document.getElementById("LinearRegression").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=LinearRegression";
-        });
-
-        document.getElementById("LogisticRegression").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=LogisticRegression";
-        });
-
-        document.getElementById("DecisionTree").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=DecisionTree";
-        });
-
-        document.getElementById("RandomForest").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=RandomForest";
-        });
-
-        document.getElementById("KNeighborsClassifier").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=KNeighborsClassifier";
-        });
-
-        document.getElementById("KNeighborsRegressor").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=KNeighborsRegressor";
-        });
-
-        document.getElementById("KMeans").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=KMeans";
-        });
-
-        document.getElementById("SVC").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=SVC";
-        });
-
-        document.getElementById("SVR").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=SVR";
-        });
-
-        document.getElementById("Lasso").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=Lasso";
-        });
-
-        document.getElementById("Ridge").addEventListener("click", () => {
-            window.location.href = "/models?dataset_id={{ dataset.id }}&model=Ridge";
-        });
-    </script>
-</body>
-
-</html>
+    <div style="margin-top: 2rem; text-align: center;">
+        <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

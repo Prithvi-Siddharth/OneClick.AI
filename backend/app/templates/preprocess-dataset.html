@@ -1,14 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preprocess Dataset Live</title>
-</head>
+{% block title %}Preprocessing Studio - OneClick.AI{% endblock %}
 
-<body>
-    <h2>Welcome {{ username }}</h2>
-</body>
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="margin: 0;">Preprocessing Studio</h1>
+        <a href="/preprocessing" class="btn btn-secondary">Back to Overview</a>
+    </div>
 
-</html>
+    <div class="card" style="text-align: center; padding: 4rem;">
+        <div style="font-size: 4rem; color: #cbd5e0; margin-bottom: 1.5rem;">
+            <i class="fas fa-tools"></i>
+        </div>
+        <h2 style="color: #1a202c;">Interactive Preprocessing Coming Soon</h2>
+        <p style="color: var(--text-secondary); max-width: 600px; margin: 1rem auto 2rem;">
+            We are building a powerful interactive tool to let you transform your data visually.
+            For now, please use the automatic preprocessing features in the dashboard.
+        </p>
+        <button class="btn btn-primary" onclick="alert('This feature is currently under development.')">
+            Launch Demo
+        </button>
+    </div>
+</div>
+{% endblock %}

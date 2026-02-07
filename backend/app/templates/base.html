@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}OneClick.AI{% endblock %}</title>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+
+    <!-- Navigation Bar -->
+    {% if not hide_navbar %}
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <i class="fas fa-project-diagram"></i>
+            OneClick.AI
+        </a>
+        <div class="navbar-nav">
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/view_datasets" class="nav-link">Data Catalog</a>
+            <a href="/view_models" class="nav-link">Model Catalog</a>
+            <a href="#" class="nav-link">Experiments</a>
+            <div class="dropdown">
+                <a href="#" class="nav-link">About <i class="fas fa-chevron-down" style="font-size: 0.8em;"></i></a>
+                <div class="dropdown-content">
+                    <a href="/about_mission">Our Mission</a>
+                    <a href="/about_developers">Developers</a>
+                </div>
+            </div>
+        </div>
+        <div class="user-menu">
+            <i class="fas fa-bell"></i>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-user-circle" style="font-size: 1.5rem;"></i>
+                <span>{{ username if username else 'User' }}</span>
+                <a href="/logout" style="color: rgba(255,255,255,0.7); margin-left: 10px;"><i
+                        class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Flash Messages -->
+    <div class="container" style="padding-bottom: 0;">
+        {% if error %}
+        <div class="alert alert-danger">
+            {{ error }}
+        </div>
+        {% endif %}
+        {% if message %}
+        <div class="alert alert-success">
+            {{ message }}
+        </div>
+        {% endif %}
+
+        {# Check query params for redirects #}
+        {% if request.query_params.get('error') %}
+        <div class="alert alert-danger">
+            {{ request.query_params.get('error') | replace('_', ' ') | capitalize }}
+        </div>
+        {% endif %}
+        {% if request.query_params.get('message') %}
+        <div class="alert alert-success">
+            {{ request.query_params.get('message') | replace('_', ' ') | capitalize }}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 OneClick.AI. All rights reserved.</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

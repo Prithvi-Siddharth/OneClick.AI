@@ -1,157 +1,195 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Datasets</title>
-</head>
+{% block title %}View Datasets - OneClick.AI{% endblock %}
 
-<body>
-    <nav>
-        <a href="/dashboard">Dashboard</a>
-    </nav>
-    <h1>Welcome {{ username }}</h1>
-    <h2>View Datasets</h2>
-    <ul>
-        {% for dataset in datasets %}
-        <li>
-            {{ dataset.filename }} Uploaded: {{ dataset.upload_date.strftime('%Y-%m-%d') }}
-            <!-- Using dynamic IDs for reference if needed, but class based selection is better -->
-            <button id="viewButton{{ dataset.id }}">View</button>
-            <button id="deleteButton{{ dataset.id }}">Delete</button>
-            <button id="downloadButton{{ dataset.id }}">Download</button>
-        </li>
-        {% endfor %}
-    </ul>
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1 style="color: #1a202c; margin: 0;">Datasets</h1>
+        <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
 
+    <div class="card" style="padding: 0; overflow: hidden;">
+        {% if datasets %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Uploaded Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dataset in datasets %}
+                <tr>
+                    <td>
+                        <i class="fas fa-database" style="color: #6c757d; margin-right: 8px;"></i>
+                        <strong>{{ dataset.filename }}</strong>
+                    </td>
+                    <td>{{ dataset.upload_date.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="viewButton{{ dataset.id }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button id="downloadButton{{ dataset.id }}" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                            <button id="deleteButton{{ dataset.id }}" class="btn btn-sm btn-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="padding: 2rem; text-align: center; color: var(--text-secondary);">
+            <p>No datasets found. <a href="/dashboard">Upload one</a> to get started.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Dataset Preview Modal -->
     <div class="modal-overlay" id="modalOverlay">
-        <div class="modal-box">
+        <div class="modal-box" style="max-width: 90%; width: 90%; max-height: 90vh;">
             <button class="modal-close" id="closeModal">&times;</button>
-            <h2>Dataset Preview</h2>
-            <div id="datasetPreview" style="overflow-x: auto;">
+            <div class="modal-title">Dataset Preview</div>
+            <div id="datasetPreview" style="overflow-x: auto; margin-top: 1rem;">
                 <!-- Table will be injected here -->
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        // takes the elements from the HTML
-        const modalOverlay = document.getElementById('modalOverlay');
-        const closeModal = document.getElementById('closeModal');
-        const datasetPreview = document.getElementById('datasetPreview');
+{% block scripts %}
+<script>
+    // takes the elements from the HTML
+    const modalOverlay = document.getElementById('modalOverlay');
+    const closeModal = document.getElementById('closeModal');
+    const datasetPreview = document.getElementById('datasetPreview');
 
-        // Close modal logic
-        closeModal.addEventListener('click', () => {
-            modalOverlay.style.display = 'none';
-        });
+    // Close modal logic
+    function hideModal() {
+        modalOverlay.style.display = 'none';
+        datasetPreview.innerHTML = "";
+    }
 
-        //if clicked anywhere other than the popup, the popup closes 
-        modalOverlay.addEventListener('click', (e) => {
-            if (e.target === modalOverlay) {
-                modalOverlay.style.display = 'none';
+    closeModal.addEventListener('click', hideModal);
+
+    //if clicked anywhere other than the popup, the popup closes 
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            hideModal();
+        }
+    });
+
+    //view button logic
+    document.querySelectorAll('button[id^="viewButton"]').forEach(btn => { // this selects all buttons that start with id viewButton
+        btn.addEventListener('click', async function () { //this attaches an event listener to each button
+            const datasetId = this.id.replace('viewButton', ''); //this get the dataset id from the button id
+
+            datasetPreview.innerHTML = "<div style='text-align:center; padding: 2rem;'><i class='fas fa-spinner fa-spin fa-2x'></i><p>Loading preview...</p></div>";
+            modalOverlay.style.display = 'flex';
+            try {
+                //fetches the data from the new endpoint
+                const response = await fetch(`/preview_dataset/${datasetId}`);
+                if (!response.ok) {
+                    let errorMsg = "Failed to load data";
+                    try {
+                        const errData = await response.json();
+                        if (errData.detail) errorMsg = errData.detail;
+                    } catch (e) {
+                        console.error("Error parsing error response:", e);
+                    }
+                    throw new Error(errorMsg);
+                }
+
+                const result = await response.json();
+                const data = result.data_preview; //this is the data preview
+                const stats = result.stats;
+
+                if (!data || data.length === 0) {
+                    datasetPreview.innerHTML = "<p>No data found.</p>";
+                    return;
+                }
+
+                //the table is print dynamically
+                let tableHtml = `<div style="margin-bottom: 1rem;"><strong>Total Rows in Dataset:</strong> ${stats.total_rows}</div>`;
+                tableHtml += '<table class="table table-striped" style="width:100%; border-collapse: collapse;">';
+
+                //headers of the table
+                const headers = Object.keys(data[0]);
+                tableHtml += '<thead><tr>';
+                headers.forEach(h => {
+                    tableHtml += `<th>${h}</th>`;
+                });
+                tableHtml += '</tr></thead>';
+                // Body
+                tableHtml += '<tbody>';
+                data.forEach(row => {
+                    tableHtml += '<tr>';
+                    headers.forEach(h => {
+                        tableHtml += `<td>${row[h]}</td>`;
+                    });
+                    tableHtml += '</tr>';
+                });
+                tableHtml += '</tbody></table>';
+                datasetPreview.innerHTML = tableHtml;
+            } catch (error) {
+                datasetPreview.innerHTML = `<p style="color:red; text-align:center;">Error: ${error.message}</p>`;
             }
         });
+    });
 
-        //view button logic
-        document.querySelectorAll('button[id^="viewButton"]').forEach(btn => { // this selects all buttons that start with id viewButton
-            btn.addEventListener('click', async function () { //this attaches an event listener to each button
-                const datasetId = this.id.replace('viewButton', ''); //this get the dataset id from the button id
+    //delete button logic
+    document.querySelectorAll('button[id^="deleteButton"]').forEach(btn => { //this selects all buttons that start with id deleteButton
+        btn.addEventListener('click', async function () {
+            if (!confirm("Are you sure you want to delete this dataset? This action cannot be undone.")) return;
 
-                datasetPreview.innerHTML = "<p>Loading preview...</p>";
-                modalOverlay.style.display = 'flex';
-                try {
-                    //fetches the data from the new endpoint
-                    const response = await fetch(`/preview_dataset/${datasetId}`);
-                    if (!response.ok) {
-                        throw new Error("Failed to load data");
-                    }
-
-                    const result = await response.json();
-                    const data = result.data_preview; //this is the data preview
-                    const stats = result.stats;
-
-                    if (!data || data.length === 0) {
-                        datasetPreview.innerHTML = "<p>No data found.</p>";
-                        return;
-                    }
-
-                    //the table is print dynamically
-                    let tableHtml = `<p><strong>Total Rows in Dataset:</strong> ${stats.total_rows}</p>`;
-                    tableHtml += '<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">';
-
-                    //headers of the table
-                    const headers = Object.keys(data[0]);
-                    tableHtml += '<thead><tr>';
-                    headers.forEach(h => {
-                        tableHtml += `<th style="background:#f4f4f4;">${h}</th>`;
-                    });
-                    tableHtml += '</tr></thead>';
-                    // Body
-                    tableHtml += '<tbody>';
-                    data.forEach(row => {
-                        tableHtml += '<tr>';
-                        headers.forEach(h => {
-                            tableHtml += `<td>${row[h]}</td>`;
-                        });
-                        tableHtml += '</tr>';
-                    });
-                    tableHtml += '</tbody></table>';
-                    datasetPreview.innerHTML = tableHtml;
-                } catch (error) {
-                    datasetPreview.innerHTML = `<p style="color:red;">Error: ${error.message}</p>`;
+            const datasetId = this.id.replace('deleteButton', ''); //this gets the dataset id from the button id
+            try {
+                const response = await fetch(`/delete_dataset/${datasetId}`, {
+                    method: 'DELETE'
+                });
+                if (!response.ok) {
+                    throw new Error("Failed to delete dataset");
                 }
-            });
+                location.reload();
+            } catch (error) {
+                alert(`Error deleting dataset: ${error.message}`);
+            }
         });
+    });
 
-        //delete button logic
-        document.querySelectorAll('button[id^="deleteButton"]').forEach(btn => { //this selects all buttons that start with id deleteButton
-            btn.addEventListener('click', async function () {
-                const datasetId = this.id.replace('deleteButton', ''); //this gets the dataset id from the button id
-                try {
-                    const response = await fetch(`/delete_dataset/${datasetId}`, {
-                        method: 'DELETE'
-                    });
-                    if (!response.ok) {
-                        throw new Error("Failed to delete dataset");
-                    }
-                    location.reload();
-                } catch (error) {
-                    alert(`Error deleting dataset: ${error.message}`);
+    //download button logic
+    document.querySelectorAll('button[id^="downloadButton"]').forEach(btn => { //this selects all buttons that start with id downloadButton
+        btn.addEventListener('click', async function () {
+            const datasetId = this.id.replace('downloadButton', ''); //this gets the dataset id from the button id
+            try {
+                const response = await fetch(`/download_dataset/${datasetId}`, {
+                    method: 'GET'
+                });
+                if (!response.ok) {
+                    throw new Error("Failed to get download URL");
                 }
-            });
-        });
+                const data = await response.json();
 
-        //download button logic
-        document.querySelectorAll('button[id^="downloadButton"]').forEach(btn => { //this selects all buttons that start with id downloadButton
-            btn.addEventListener('click', async function () {
-                const datasetId = this.id.replace('downloadButton', ''); //this gets the dataset id from the button id
-                try {
-                    const response = await fetch(`/download_dataset/${datasetId}`, {
-                        method: 'GET'
-                    });
-                    if (!response.ok) {
-                        throw new Error("Failed to get download URL");
-                    }
-                    const data = await response.json();
-
-                    if (data.download_url) {
-                        const a = document.createElement('a');
-                        a.href = data.download_url; //taken the download_url from the backend
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                    } else {
-                        throw new Error("Download URL not found in response");
-                    }
-                } catch (error) {
-                    alert(`Error downloading dataset: ${error.message}`);
+                if (data.download_url) {
+                    const a = document.createElement('a');
+                    a.href = data.download_url; //taken the download_url from the backend
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    throw new Error("Download URL not found in response");
                 }
-            });
+            } catch (error) {
+                alert(`Error downloading dataset: ${error.message}`);
+            }
         });
-    </script>
-
-</body>
-
-
-</html>
+    });
+</script>
+{% endblock %}

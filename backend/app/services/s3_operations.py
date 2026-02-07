@@ -48,11 +48,25 @@ def get_s3_client():
     """
     Initialize and return a boto3 S3 client.
     """
+    access_key = os.getenv("AWS_ACCESS_KEY_ID")
+    secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
+    region = os.getenv("AWS_REGION", "us-east-1")
+
+    if not access_key or not secret_key:
+        print("Error: AWS credentials not found in environment variables.")
+        print(f"AWS_ACCESS_KEY_ID set: {bool(access_key)}")
+        print(f"AWS_SECRET_ACCESS_KEY set: {bool(secret_key)}")
+        # Check if we should fall back to default profile or IAM roles
+        # If so, we call boto3.client('s3', region_name=region) without keys
+        # But for this app, explicit keys via .env seem expected.
+    
+    # Pass None if not set to let boto3 attempt other methods (like ~/.aws/credentials)
+    # But explicitly warn if both methods fail (handled by NoCredentialsError later)
     return boto3.client(
         's3',
-        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-        region_name=os.getenv("AWS_REGION", "us-east-1")
+        aws_access_key_id=access_key,
+        aws_secret_access_key=secret_key,
+        region_name=region
     )
 
 def read_dataset_from_s3(bucket_name: str, s3_key: str, filename: str, preview_limit: int = 5):

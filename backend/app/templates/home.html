@@ -1,15 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-</head>
-<body>
-    <h1>Welcome to OneClick.AI</h1>
-    <h2>Where ML is made easy</h2>
+{% extends "base.html" %}
 
-    <p>Click here to <a href="/register">Register</a></p>
-    <p>Click here to <a href="/login">Login</a></p>
-</body>
-</html>
+{% block title %}OneClick.AI - Machine Learning Made Easy{% endblock %}
+
+{% block navbar %}
+<!-- Override navbar for landing page if needed, or just use default but maybe hide some links if not logged in. 
+     The base.html handles username check, so it should be fine. -->
+<nav class="navbar">
+    <div class="logo">OneClick.AI</div>
+    <div class="nav-links">
+        <a href="/login" class="nav-item">Login</a>
+        <a href="/register" class="btn btn-sm btn-primary" style="color: white; text-decoration: none;">Get Started</a>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="text-align: center; padding-top: 4rem; padding-bottom: 4rem;">
+    <h1 style="font-size: 3.5rem; color: #1a202c; margin-bottom: 1.5rem; line-height: 1.2;">
+        Machine Learning,<br>
+        <span style="color: var(--primary-color);">Simplified.</span>
+    </h1>
+    <p style="font-size: 1.25rem; color: var(--text-secondary); max-width: 700px; margin: 0 auto 3rem;">
+        Build, train, and deploy AI models without writing a single line of complex code.
+        From raw data to production-ready API in minutes.
+    </p>
+
+    <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 5rem;">
+        <a href="/register" class="btn btn-primary" style="padding: 12px 32px; font-size: 1.1em;">Start for Free</a>
+        <a href="/login" class="btn btn-secondary" style="padding: 12px 32px; font-size: 1.1em;">Login</a>
+    </div>
+
+    <div class="grid-3" style="text-align: left;">
+        <div class="card">
+            <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem;">
+                <i class="fas fa-magic"></i>
+            </div>
+            <h3 class="card-title">Auto Preprocessing</h3>
+            <p class="card-text">Automatically clean, impute, and encode your data. We handle the messy part of data
+                science for you.</p>
+        </div>
+        <div class="card">
+            <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem;">
+                <i class="fas fa-brain"></i>
+            </div>
+            <h3 class="card-title">Model Training</h3>
+            <p class="card-text">Train multiple advanced algorithms comparing performance metrics to find the best model
+                for your data.</p>
+        </div>
+        <div class="card">
+            <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 1rem;">
+                <i class="fas fa-rocket"></i>
+            </div>
+            <h3 class="card-title">Instant Deployment</h3>
+            <p class="card-text">Deploy your best models with one click and get a REST API endpoint ready for production
+                use.</p>
+        </div>
+    </div>
+</div>
+
+<footer
+    style="text-align: center; padding: 2rem; color: var(--text-secondary); border-top: 1px solid #e2e8f0; margin-top: 4rem;">
+    <p>&copy; 2024 OneClick.AI. All rights reserved.</p>
+    <p style="font-size: 0.9em;">
+        <a href="/about_developers" style="color: var(--primary-color);">Developers</a> |
+        <a href="/about_mission" style="color: var(--primary-color);">Our Mission</a>
+    </p>
+</footer>
+{% endblock %}

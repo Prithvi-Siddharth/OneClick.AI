@@ -60,6 +60,14 @@ def read_root(request: Request, response_class=HTMLResponse):
 def register_page(request: Request, response_class=HTMLResponse):
     return templates.TemplateResponse("register.html", {"request": request})
 
+@app.get("/about_developers")
+def about_developers(request: Request):
+    return templates.TemplateResponse("about_developers.html", {"request": request})
+
+@app.get("/about_mission")
+def about_mission(request: Request):
+    return templates.TemplateResponse("about_mission.html", {"request": request})
+
 
 # User registration endpoint
 @app.post("/register")

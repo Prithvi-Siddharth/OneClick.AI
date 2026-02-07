@@ -68,8 +68,10 @@ def get_dataset_preview_and_stats(file_buffer, extension, preview_limit=5):
         df_preview = df_full.head(preview_limit)
         df_preview = df_preview.where(pd.notnull(df_preview), None)
 
+        preview_records = df_preview.to_dict(orient="records")
+
         return {
-            "data_preview": df_preview.to_dict(orient="records"),
+            "data_preview": json_safe(preview_records),
             "stats": json_safe(stats)
         }
 

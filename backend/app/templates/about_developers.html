@@ -1,53 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About the Developers</title>
-</head>
+{% block title %}About Developers - OneClick.AI{% endblock %}
 
-<body>
-    <div class="container" style="max-width: 800px; margin: 0 auto; padding: 20px;">
-        <h1 style="text-align: center;">About the Developers</h1>
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <h1 style="text-align: center; margin-bottom: 2rem; color: #1a202c;">About the Developers</h1>
 
-        <div style="margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
-            <h2>Prithvi Manepalli</h2>
-            <p><strong>Position:</strong> Backend Engineer and Data Scientist</p>
-            <p>Prithvi is a highly skilled Backend Engineer and Data Scientist with a passion for building robust,
-                scalable systems and training high-performance machine learning models. With extensive experience in
-                Python, he excels at bridging the gap between data science research and
-                production-grade application development. He is dedicated to creating efficient APIs and seamless data
-                pipelines that power intelligent applications.</p>
-            <a href="https://www.linkedin.com/in/alex-johnson-dummy" target="_blank">LinkedIn Profile</a>
+    <div class="card" style="margin-bottom: 2rem; display: flex; align-items: center; gap: 2rem; text-align: left;">
+        <div style="flex-shrink: 0;">
+            <img src="{{ url_for('static', path='/images/developers/prithvi_manepalli.jpeg') }}" alt="Prithvi Manepalli"
+                style="width: 250px; height: 250px; border-radius: 50%; object-fit: cover; object-position: top; border: 4px solid #e2e8f0;">
         </div>
-
-        <div style="margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
-            <h2>Yarakaraju Aditya</h2>
-            <p><strong>Position:</strong> Cloud Architect and lead Data Engineer</p>
-            <p>Aditya is an expert Cloud Architect and Data Engineer who specializes in designing and implementing
-                scalable data infrastructure. He has deep expertise in orchestrating complex data workflows, managing
-                data pipelines, and ensuring the reliability and security of machine learning models. His work
-                ensures that our platform remains performant, resilient, and ready to handle massive amounts of data.
+        <div>
+            <h2 style="color: var(--primary-color); margin-bottom: 0.5rem;">Prithvi Manepalli</h2>
+            <p
+                style="font-size: 0.9em; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em; margin-bottom: 1rem;">
+                Backend Engineer and Data Scientist
             </p>
-            <a href="https://www.linkedin.com/in/maria-garcia-dummy" target="_blank">LinkedIn Profile</a>
-        </div>
-
-        <div style="margin-bottom: 20px;">
-            <h2>Viswanath Balla</h2>
-            <p><strong>Position:</strong> Lead Backend developer and ML Engineer</p>
-            <p>Viswanath is a Lead Backend Developer and Machine Learning Engineer with a focus on deploying and
-                optimizing machine learning models for real-world use. He combines strong software engineering
-                principles with deep knowledge of ML algorithms to build systems that are not only intelligent but also
-                maintainable and fast. He loves tackling complex architectural challenges and ensuring smooth model
-                inference in production.</p>
-            <a href="https://www.linkedin.com/in/chen-wei-dummy" target="_blank">LinkedIn Profile</a>
-        </div>
-
-        <div style="text-align: center; margin-top: 30px;">
-            <a href="/dashboard">Back to Dashboard</a>
+            <p>Prithvi is a highly skilled Backend Engineer and Data Scientist with a passion for building robust,
+                scalable
+                systems and training high-performance machine learning models. With extensive experience in Python, he
+                excels at bridging the gap between data science research and production-grade application development.
+                He is
+                dedicated to creating efficient APIs and seamless data pipelines that power intelligent applications.
+            </p>
+            <a href="https://www.linkedin.com/in/prithvi-manepalli-32488a321/" target="_blank"
+                class="btn btn-sm btn-outline-primary" style="margin-top: 1rem; display: inline-block;">
+                <i class="fab fa-linkedin"></i> LinkedIn Profile
+            </a>
         </div>
     </div>
-</body>
 
-</html>
+    <div class="card" style="margin-bottom: 2rem; display: flex; align-items: center; gap: 2rem; text-align: left;">
+        <div style="flex-shrink: 0;">
+            <img src="{{ url_for('static', path='/images/developers/aditya.jpeg') }}" alt="Yarakaraju Aditya"
+                style="width: 250px; height: 250px; border-radius: 50%; object-fit: cover; object-position: center; border: 4px solid #e2e8f0;">
+        </div>
+        <div>
+            <h2 style="color: var(--primary-color); margin-bottom: 0.5rem;">Aditya Yarakaraju</h2>
+            <p
+                style="font-size: 0.9em; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em; margin-bottom: 1rem;">
+                Cloud Architect and Lead AI/ML Engineer
+            </p>
+            <p>Aditya is an expert Cloud Architect and Data/AI-ML Engineer who specializes in designing and implementing
+                scalable
+                data infrastructure. He has deep expertise in orchestrating complex data workflows, managing data and
+                Machine Learning
+                pipelines,
+                and ensuring the reliability and security of machine learning models. His work ensures that our platform
+                remains performant, resilient, and ready to handle massive amounts of data.</p>
+            <a href="https://www.linkedin.com/in/yarakaraju-aditya-310a20306/" target="_blank"
+                class="btn btn-sm btn-outline-primary" style="margin-top: 1rem; display: inline-block;">
+                <i class="fab fa-linkedin"></i> LinkedIn Profile
+            </a>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 2rem; display: flex; align-items: center; gap: 2rem; text-align: left;">
+        <div style="flex-shrink: 0;">
+            <img src="{{ url_for('static', path='/images/developers/viswanath.jpeg') }}" alt="Viswanath Balla"
+                style="width: 250px; height: 250px; border-radius: 50%; object-fit: cover; object-position: center; border: 4px solid #e2e8f0;">
+        </div>
+        <div>
+            <h2 style="color: var(--primary-color); margin-bottom: 0.5rem;">Viswanath Balla</h2>
+            <p
+                style="font-size: 0.9em; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em; margin-bottom: 1rem;">
+                Lead Backend Developer and ML Engineer
+            </p>
+            <p>Viswanath is a Lead Backend Developer and Machine Learning Engineer with a focus on deploying and
+                optimizing
+                machine learning models for real-world use. He combines strong software engineering principles with deep
+                knowledge of ML algorithms to build systems that are not only intelligent but also maintainable and
+                fast. He
+                loves tackling complex architectural challenges and ensuring smooth model inference in production.</p>
+            <a href="https://www.linkedin.com/in/viswanath-balla-574047344/" target="_blank"
+                class="btn btn-sm btn-outline-primary" style="margin-top: 1rem; display: inline-block;">
+                <i class="fab fa-linkedin"></i> LinkedIn Profile
+            </a>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+        <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}
