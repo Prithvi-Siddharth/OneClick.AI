@@ -2,12 +2,107 @@
 
 {% block title %}Preprocessing Studio - OneClick.AI{% endblock %}
 
+{% block head %}
+<style>
+    .preprocess-grid {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 1rem;
+    }
+
+    .preprocess-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #ffffff;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        min-width: 180px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .preprocess-card:hover {
+        border-color: var(--primary-color);
+        background: #f8fbff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .preprocess-card input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: var(--primary-color);
+    }
+
+    .preprocess-card label {
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+    }
+
+    .preprocess-card h3 {
+        font-size: 0.95rem;
+        margin: 0;
+        color: #1e293b;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px;
+    }
+
+    .preprocess-card p {
+        font-size: 0.75rem;
+        margin: 0;
+        color: #64748b;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* Active state for selected cards */
+    .preprocess-card:has(input:checked) {
+        border-color: var(--primary-color);
+        background: #f0f7ff;
+        border-width: 2px;
+        padding: 11px 15px;
+        /* Adjust for border width change */
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h1>Preprocessing Studio</h1>
         <a href="/preprocessing" class="btn btn-secondary">Back</a>
     </div>
+
+    <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
+        <h2>Select Attributes</h2>
+
+        <div class="preprocess-grid">
+
+            {% for attribute in dataset.columns %}
+            <div class="preprocess-card">
+                <input type="checkbox" id="{{ attribute }}" onchange="applyPreprocessing()" />
+                <label for="{{ attribute }}">
+                    <h3>{{ attribute }}</h3>
+                    <p>{{ dataset.dtypes[attribute] }}</p>
+                </label>
+            </div>
+            {% endfor %}
+
+        </div>
+
+    </div>
+
 
     <!-- Preprocessing Options -->
     <div class="card" style="padding: 2rem; margin-bottom: 2rem;">

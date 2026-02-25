@@ -724,9 +724,21 @@ def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    #fetching the path of dataset from db
+    active_dataset = db.query(TemporaryDataset).filter(
+                TemporaryDataset.user_id == int(user_id)
+            ).order_by(TemporaryDataset.id.desc()).first()
+    
+    #fetching the dataset from s3 bucket.
+    s3 = get_s3_client()
+    response = s3.get_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key)
+    from io import BytesIO
+    df = pd.read_csv(BytesIO(response['Body'].read()))
+    
     return templates.TemplateResponse("preprocess-dataset.html", {
         "request": request,
-        "username": user.username
+        "username": user.username,
+        "dataset": df
     })
 
 # Train model
