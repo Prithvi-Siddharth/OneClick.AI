@@ -14,20 +14,37 @@
             const data = JSON.parse(event.data);
 
             if (data.type === "status") {
-                const statusBox = document.getElementById("status-box");
-                statusBox.textContent += "\n" + data.message;
-                statusBox.scrollTop = statusBox.scrollHeight;
+                document.getElementById("status-text").textContent = data.message;
+            } else if (data.type === "progress") {
+                updateProgress(data.percentage, data.message);
             } else if (data.type === "preview") {
                 renderPreview(data.data_preview);
                 document.getElementById("preview-loading").style.display = "none";
+                // Optionally hide progress after some delay
+                setTimeout(() => {
+                    if (document.getElementById("progress-percentage").textContent === "100%") {
+                        // document.getElementById("progress-wrapper").style.display = "none";
+                    }
+                }, 3000);
             }
         } catch (e) {
-            // Fallback for plain text messages
-            const statusBox = document.getElementById("status-box");
-            statusBox.textContent += "\n" + event.data;
-            statusBox.scrollTop = statusBox.scrollHeight;
+            console.error("Error parsing message:", e);
         }
     };
+
+    function updateProgress(percent, message) {
+        const wrapper = document.getElementById("progress-wrapper");
+        const bar = document.getElementById("progress-bar");
+        const percentageText = document.getElementById("progress-percentage");
+        const statusText = document.getElementById("status-text");
+
+        wrapper.style.display = "block";
+        bar.style.width = percent + "%";
+        percentageText.textContent = percent + "%";
+        if (message) {
+            statusText.textContent = message;
+        }
+    }
 
     socket.onerror = (error) => {
         console.error("WebSocket error:", error);
@@ -37,20 +54,53 @@
         console.log("❌ WebSocket closed");
     };
 
+    function toggleAccordion(id) {
+        const item = document.getElementById(id);
+        const isOpen = item.classList.contains('active');
+
+        // Independent toggle logic
+        if (isOpen) {
+            item.classList.remove('active');
+        } else {
+            item.classList.add('active');
+        }
+    }
+
+    // Expand the first section by default
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
+            const firstSection = document.getElementById('section-attributes');
+            if (firstSection) firstSection.classList.add('active');
+        }, 300);
+    });
+
     function applyPreprocessing() {
         document.getElementById("preview-loading").style.display = "block";
-        const selectedOps = {
-            onehot: document.getElementById("onehot").checked,
-            label: document.getElementById("label").checked,
-            minmax: document.getElementById("minmax").checked
-        };
+
+        // Find all selected attributes
+        const selectedAttrEls = document.querySelectorAll('input[name="attribute-select"]:checked');
+        if (selectedAttrEls.length === 0) {
+            alert("Please select at least one attribute!");
+            document.getElementById("preview-loading").style.display = "none";
+            return;
+        }
+
+        const attributes = Array.from(selectedAttrEls).map(el => el.value);
+
+        const selectedOps = {};
+        ['onehot', 'label', 'target', 'minmax'].forEach(op => {
+            const el = document.getElementById(op);
+            if (el) selectedOps[op] = el.checked;
+        });
+
+        document.getElementById("status-display").style.display = "block";
+        updateProgress(0, "📡 Sending request...");
 
         socket.send(JSON.stringify({
             action: "apply_preprocessing",
+            attributes: attributes, // Send the list of attributes
             operations: selectedOps
         }));
-
-        document.getElementById("status-box").textContent = "📡 Sent preprocessing request...";
     }
 
     function renderPreview(data) {

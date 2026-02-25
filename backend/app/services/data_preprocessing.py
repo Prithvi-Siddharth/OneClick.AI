@@ -80,27 +80,38 @@ def get_dataset_preview_and_stats(file_buffer, extension, preview_limit=5):
         return {"error": f"Pandas processing error: {str(e)}"}
 
 
-def apply_preprocessing(df_full, operations):
+def apply_preprocessing(df_full, operations, attributes):
     try:
+        # attributes is now a list
+        if not attributes:
+            return df_full
+
         if operations.get("onehot"):
-            # Select categorical columns
-            cat_cols = df_full.select_dtypes(include=['object', 'category']).columns.tolist()
-            if cat_cols:
+            # One-Hot is usually better applied as a batch if multiple columns selected
+            # Filter for categorical columns in the selection
+            valid_cats = [a for a in attributes if a in df_full.columns and df_full[a].dtype in ['object', 'category']]
+            if valid_cats:
                 encoder = preprocessing.OneHotEncoder(sparse_output=False, handle_unknown='ignore')
-                encoded_data = encoder.fit_transform(df_full[cat_cols])
-                encoded_df = pd.DataFrame(encoded_data, columns=encoder.get_feature_names_out(cat_cols), index=df_full.index)
-                # Drop original categorical columns and join encoded ones
-                df_full = df_full.drop(columns=cat_cols).join(encoded_df)
+                encoded_data = encoder.fit_transform(df_full[valid_cats])
+                encoded_df = pd.DataFrame(encoded_data, columns=encoder.get_feature_names_out(valid_cats), index=df_full.index)
+                df_full = df_full.drop(columns=valid_cats).join(encoded_df)
 
         if operations.get("label"):
-            for col in df_full.select_dtypes(include=['object', 'category']).columns:
-                df_full[col] = df_full[col].astype('category').cat.codes
+            for attribute in attributes:
+                if attribute in df_full.columns:
+                    encoder = preprocessing.LabelEncoder()
+                    df_full[attribute] = encoder.fit_transform(df_full[attribute].astype(str))
 
-        if operations.get("minmax"):
-            numeric_cols = df_full.select_dtypes(include=['number']).columns.tolist()
-            if numeric_cols:
-                scaler = preprocessing.MinMaxScaler()
-                df_full[numeric_cols] = scaler.fit_transform(df_full[numeric_cols])
+        if operations.get("target"):
+            for attribute in attributes:
+                if attribute in df_full.columns:
+                    # Target encoding requires a target column
+                    target_col = df_full.columns[-1] if len(df_full.columns) > 1 else None
+                    if target_col and target_col != attribute:
+                        encoder = preprocessing.TargetEncoder()
+                        df_full[attribute] = encoder.fit_transform(df_full[[attribute]], df_full[target_col])
+                    else:
+                        continue # Skip if no target column available for this attribute
         
         return df_full
     except Exception as e:

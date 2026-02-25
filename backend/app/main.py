@@ -884,6 +884,9 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
     async def send_status(msg):
         await websocket.send_text(json.dumps({"type": "status", "message": msg}))
 
+    async def send_progress(percent, msg):
+        await websocket.send_text(json.dumps({"type": "progress", "percentage": percent, "message": msg}))
+
     async def send_preview(df):
         # head(5) and convert to records
         preview = df.head(5).where(pd.notnull(df), None).to_dict(orient="records")
@@ -931,8 +934,10 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 await send_status("✅ Preview loaded.")
             
             elif action == "apply_preprocessing":
-                await send_status("📡 Backend received preprocessing request...")
-                await send_status(f"📝 Processing dataset: {active_dataset.s3_key}")
+                await send_progress(5, "📡 Backend received request...")
+                ops = message.get("operations", {})
+                attributes = message.get("attributes", [])
+                await send_progress(10, f"� Loading dataset for {len(attributes)} attributes...")
                 
                 # 2. Load from S3
                 s3 = get_s3_client()
@@ -941,25 +946,26 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 df = pd.read_csv(BytesIO(response['Body'].read()))
 
                 # 3. Apply preprocessing
-                ops = message.get("operations", {})
-                await send_status(f"⚙️ Applying operations: {ops}")
-                processed_df = apply_preprocessing(df, ops)
+                await send_progress(30, "⚙️ Applying transformations...")
+                processed_df = apply_preprocessing(df, ops, attributes)
 
                 if isinstance(processed_df, dict) and "error" in processed_df:
-                    await send_status(f"❌ Error: {processed_df['error']}")
+                    await send_progress(0, f"❌ Error: {processed_df['error']}")
                     continue
 
                 # 4. Save result back to S3
+                await send_progress(60, "💾 Generating processed file...")
                 csv_buffer = BytesIO()
                 processed_df.to_csv(csv_buffer, index=False)
                 csv_buffer.seek(0)
                 
-                await send_status("💾 Saving changes to S3...")
+                await send_progress(80, "☁️ Uploading changes to S3...")
                 s3.put_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key, Body=csv_buffer.getvalue())
                 
                 # 5. Send updated preview
+                await send_progress(95, "📋 Refreshing data preview...")
                 await send_preview(processed_df)
-                await send_status("🚀 Preprocessing complete! The dataset has been updated.")
+                await send_progress(100, "🚀 Preprocessing complete!")
                 
     except WebSocketDisconnect:
         print(f"WebSocket disconnected for user {user_id}")

@@ -74,6 +74,108 @@
         padding: 11px 15px;
         /* Adjust for border width change */
     }
+
+    /* Progress Bar Styles */
+    .progress-wrapper {
+        display: none;
+        flex: 1;
+        max-width: 300px;
+        margin-left: 1.5rem;
+    }
+
+    .progress-container {
+        width: 100%;
+        height: 8px;
+        /* Slightly thinner */
+        background-color: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .progress-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--primary-color), #6366f1);
+        transition: width 0.4s ease-out;
+    }
+
+    .progress-info {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 4px;
+        font-size: 0.75rem;
+        /* Smaller text */
+        color: #64748b;
+    }
+
+    #progress-percentage {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .status-compact {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+        justify-content: flex-end;
+    }
+
+    /* Accordion Styles */
+    .accordion-section {
+        margin-bottom: 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .accordion-header {
+        padding: 1.25rem 1.5rem;
+        background: #1e293b;
+        color: #f8fafc;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: background 0.2s;
+        user-select: none;
+    }
+
+    .accordion-header:hover {
+        background: #334155;
+    }
+
+    .accordion-header h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: inherit;
+    }
+
+    .accordion-icon {
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .accordion-section.active .accordion-icon {
+        transform: rotate(180deg);
+    }
+
+    .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.4s;
+        background: #fff;
+    }
+
+    .accordion-section.active .accordion-content {
+        max-height: 1000px;
+        /* High enough value to contain content */
+        padding: 1.5rem;
+        border-top: 1px solid #e2e8f0;
+    }
 </style>
 {% endblock %}
 
@@ -84,81 +186,101 @@
         <a href="/preprocessing" class="btn btn-secondary">Back</a>
     </div>
 
-    <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
-        <h2>Select Attributes</h2>
-
-        <div class="preprocess-grid">
-
-            {% for attribute in dataset.columns %}
-            <div class="preprocess-card">
-                <input type="checkbox" id="{{ attribute }}" onchange="applyPreprocessing()" />
-                <label for="{{ attribute }}">
-                    <h3>{{ attribute }}</h3>
-                    <p>{{ dataset.dtypes[attribute] }}</p>
-                </label>
-            </div>
-            {% endfor %}
-
-        </div>
-
-    </div>
-
-
-    <!-- Preprocessing Options -->
-    <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
-        <h2>Select Preprocessing Steps</h2>
-
-        <div class="preprocess-grid">
-
-            <!-- One Hot Encoding -->
-            <div class="preprocess-card">
-                <input type="checkbox" id="onehot" onchange="applyPreprocessing()" />
-                <label for="onehot">
-                    <h3>One-Hot Encoding</h3>
-                    <p>Convert categorical features into binary vectors.</p>
-                </label>
-            </div>
-
-            <!-- Label Encoding -->
-            <div class="preprocess-card">
-                <input type="checkbox" id="label" onchange="applyPreprocessing()" />
-                <label for="label">
-                    <h3>Label Encoding</h3>
-                    <p>Convert categorical labels into numeric form.</p>
-                </label>
-            </div>
-
-            <!-- MinMax Scaling -->
-            <div class="preprocess-card">
-                <input type="checkbox" id="minmax" onchange="applyPreprocessing()" />
-                <label for="minmax">
-                    <h3>Min-Max Scaling</h3>
-                    <p>Scale numerical values between 0 and 1.</p>
-                </label>
-            </div>
-
-        </div>
-
-    </div>
-
-    <!-- Live Status -->
-    <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
-        <h2>Live Status</h2>
-        <pre id="status-box">Waiting for actions...</pre>
-    </div>
-
     <!-- Data Preview -->
     <div class="card" style="padding: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h2>Data Preview</h2>
-            <div id="preview-loading" style="display: none; color: var(--primary-color);">
-                <i class="fas fa-spinner fa-spin"></i> Updating...
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <h2 style="margin: 0;">Data Preview</h2>
+                <div id="preview-loading" style="display: none; color: var(--primary-color);">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+            </div>
+
+            <div id="status-display" class="status-compact">
+                <p id="status-text"
+                    style="color: #64748b; font-size: 0.85rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">
+                    Waiting for actions...</p>
+
+                <div id="progress-wrapper" class="progress-wrapper">
+                    <div class="progress-container">
+                        <div id="progress-bar" class="progress-bar"></div>
+                    </div>
+                    <div class="progress-info">
+                        <span id="progress-percentage">0%</span>
+                    </div>
+                </div>
             </div>
         </div>
         <div id="preview-container" style="overflow-x: auto;">
             <p style="color: var(--text-secondary);">Waiting for data to load...</p>
         </div>
     </div>
+    <br>
+    <br>
+
+    <!-- Section 1: Select Attributes -->
+    <div class="accordion-section" id="section-attributes">
+        <div class="accordion-header" onclick="toggleAccordion('section-attributes')">
+            <h2><i class="fas fa-list-check" style="margin-right: 10px;"></i> Step 1: Select Attributes</h2>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+        </div>
+        <div class="accordion-content">
+            <div class="preprocess-grid">
+                {% for attribute in dataset.columns %}
+                <div class="preprocess-card">
+                    <input type="checkbox" name="attribute-select" class="attribute-radio" value="{{ attribute }}"
+                        id="attr_{{ attribute }}" />
+                    <label for="attr_{{ attribute }}">
+                        <h3>{{ attribute }}</h3>
+                        <p>{{ dataset.dtypes[attribute] }}</p>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Preprocessing Options -->
+    <div class="accordion-section" id="section-options">
+        <div class="accordion-header" onclick="toggleAccordion('section-options')">
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i> Step 2: Preprocessing Options</h2>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+        </div>
+        <div class="accordion-content">
+            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply
+                Encoding</button>
+
+            <div class="preprocess-grid">
+                <!-- One Hot Encoding -->
+                <div class="preprocess-card">
+                    <input type="radio" name="encoding" id="onehot" />
+                    <label for="onehot">
+                        <h3>One-Hot Encoding</h3>
+                        <p>Convert categorical features into binary vectors.</p>
+                    </label>
+                </div>
+
+                <!-- Label Encoding -->
+                <div class="preprocess-card">
+                    <input type="radio" name="encoding" id="label" />
+                    <label for="label">
+                        <h3>Label Encoding</h3>
+                        <p>Convert categorical labels into numeric form.</p>
+                    </label>
+                </div>
+
+                <!-- Target Encoding -->
+                <div class="preprocess-card">
+                    <input type="radio" name="encoding" id="target" />
+                    <label for="target">
+                        <h3>Target Encoding</h3>
+                        <p>Convert categorical labels into numeric form.</p>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 {% endblock %}
 
