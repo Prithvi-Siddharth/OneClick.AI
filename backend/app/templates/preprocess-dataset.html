@@ -176,6 +176,78 @@
         padding: 1.5rem;
         border-top: 1px solid #e2e8f0;
     }
+
+    /* Tooltip Styles */
+    .preprocess-card {
+        position: relative;
+    }
+
+    .info-tooltip {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%) translateY(-10px);
+        background: #1e293b;
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        width: 220px;
+        z-index: 100;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s ease;
+        pointer-events: none;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        text-align: center;
+        line-height: 1.4;
+    }
+
+    .preprocess-card:hover .info-tooltip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    /* Interactive Preview Table (Pandas Style) */
+    .interactive-preview {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        font-size: 0.85rem;
+        background-color: #ffffff;
+        border: 1px solid #e5e5e5;
+    }
+
+    .interactive-preview thead th {
+        position: sticky;
+        top: 0;
+        background-color: #ffffff;
+        color: #000000;
+        font-weight: 600;
+        padding: 10px 12px;
+        border: 1px solid #e5e5e5;
+        text-align: left;
+        z-index: 20;
+        white-space: nowrap;
+    }
+
+    .interactive-preview tbody td {
+        padding: 8px 12px;
+        border: 1px solid #e5e5e5;
+        color: #333333;
+        transition: background-color 0.1s ease;
+    }
+
+    .interactive-preview tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+
+    .interactive-preview tbody td:hover {
+        background-color: #dae8ff !important;
+        color: #000000 !important;
+        cursor: cell;
+    }
 </style>
 {% endblock %}
 
@@ -183,7 +255,8 @@
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h1>Preprocessing Studio</h1>
-        <a href="#" class="btn btn-secondary" onclick="showHistory()">Know what you have done till now</a>
+        <a href="#" class="btn btn-secondary" onclick="showHistory()"><i class="fas fa-history"
+                style="margin-right: 8px;"></i>Activity Log</a>
         <a href="/preprocessing" class="btn btn-secondary">Back</a>
     </div>
 
@@ -212,7 +285,7 @@
                 </div>
             </div>
         </div>
-        <div id="preview-container" style="overflow-x: auto;">
+        <div id="preview-container" style="overflow: auto; max-height: 500px; border-radius: 8px;">
             <p style="color: var(--text-secondary);">Waiting for data to load...</p>
         </div>
     </div>
@@ -235,21 +308,20 @@
                         <h3>{{ attribute }}</h3>
                         <p>{{ dataset.dtypes[attribute] }}</p>
                     </label>
+                    <div class="info-tooltip">Select this attribute for the next preprocessing steps.</div>
                 </div>
                 {% endfor %}
             </div>
         </div>
     </div>
-
     <!-- Section 2: Preprocessing Options -->
     <div class="accordion-section" id="section-drop-columns">
         <div class="accordion-header" onclick="toggleAccordion('section-drop-columns')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i> Step 2: Drop Columns</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 2: Drop Columns</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
             <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
-
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
                 <div class="preprocess-card">
@@ -258,8 +330,9 @@
                         <h3>Drop by attribute</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
+                    <div class="info-tooltip">Removes specific columns from the dataset that you don't need for
+                        analysis.</div>
                 </div>
-
                 <!-- Label Encoding -->
                 <div class="preprocess-card">
                     <input type="radio" name="encoding" id="label" />
@@ -267,6 +340,8 @@
                         <h3>Remove Duplicates</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Identifies and removes identical rows to prevent skewed results and
+                        overfitting.</div>
                 </div>
             </div>
         </div>
@@ -274,12 +349,11 @@
 
     <div class="accordion-section" id="section-missing-values">
         <div class="accordion-header" onclick="toggleAccordion('section-missing-values')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i> Step 3: Missing Value Imputation</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 3: Missing Value Imputation</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
             <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
-
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
                 <div class="preprocess-card">
@@ -288,8 +362,9 @@
                         <h3>Mean</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
+                    <div class="info-tooltip">Fills missing values with the average of the column. Best for normally
+                        distributed data.</div>
                 </div>
-
                 <!-- Label Encoding -->
                 <div class="preprocess-card">
                     <input type="radio" name="encoding" id="label" />
@@ -297,8 +372,9 @@
                         <h3>Median</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Fills missing values with the middle value of the sorted column. Robust to
+                        outliers.</div>
                 </div>
-
                 <!-- Target Encoding -->
                 <div class="preprocess-card">
                     <input type="radio" name="encoding" id="target" />
@@ -306,43 +382,48 @@
                         <h3>Mode</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Fills missing values with the most frequent value. Good for categorical
+                        data.</div>
                 </div>
-
+                <!-- Constant Imputation -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="target_const" />
+                    <label for="target_const">
                         <h3>Constant</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Fills missing values with a specific user-defined value.</div>
                 </div>
-
+                <!-- Drop Rows -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="target_drop" />
+                    <label for="target_drop">
                         <h3>Drop rows</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Removes any row that contains at least one missing value. Use when data is
+                        abundant.</div>
                 </div>
-
+                <!-- KNN Imputer -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="target_knn" />
+                    <label for="target_knn">
                         <h3>KNN Imputer</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Predicts missing values using the K-Nearest Neighbors algorithm based on
+                        other features.</div>
                 </div>
             </div>
         </div>
     </div>
-
     <div class="accordion-section" id="section-outliers">
         <div class="accordion-header" onclick="toggleAccordion('section-outliers')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i> Step 4: Outlier Handling</h2>
-            <i class="fas fa-chevron-down accordion-icon"></i>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 4: Outlier Handling</h2><i
+                class="fas fa-chevron-down accordion-icon"></i>
         </div>
-        <div class="accordion-content">
-            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
-
+        <div class="accordion-content"><button class="btn btn-primary" style="margin-bottom: 1.5rem;"
+                onclick="applyPreprocessing()">Apply</button>
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
                 <div class="preprocess-card">
@@ -351,8 +432,8 @@
                         <h3>IQR Method</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
+                    <div class="info-tooltip">Detects outliers using the Interquartile Range (IQR=Q3 - Q1).</div>
                 </div>
-
                 <!-- Label Encoding -->
                 <div class="preprocess-card">
                     <input type="radio" name="encoding" id="label" />
@@ -360,8 +441,9 @@
                         <h3>Z-score</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Detects outliers based on how many standard deviations they are from the
+                        mean.</div>
                 </div>
-
                 <!-- Target Encoding -->
                 <div class="preprocess-card">
                     <input type="radio" name="encoding" id="target" />
@@ -369,19 +451,19 @@
                         <h3>Replace with constant</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Clamps outlier values to a specified constant or replaces them entirely.
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-
     <div class="accordion-section" id="section-encoding">
         <div class="accordion-header" onclick="toggleAccordion('section-encoding')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i> Step 5: Encoding</h2>
-            <i class="fas fa-chevron-down accordion-icon"></i>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 5: Encoding</h2><i
+                class="fas fa-chevron-down accordion-icon"></i>
         </div>
-        <div class="accordion-content">
-            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
-
+        <div class="accordion-content"><button class="btn btn-primary" style="margin-bottom: 1.5rem;"
+                onclick="applyPreprocessing()">Apply</button>
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
                 <div class="preprocess-card">
@@ -390,8 +472,9 @@
                         <h3>One-Hot Encoding</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
+                    <div class="info-tooltip">Creates binary columns for each category. Best for non-ordinal categorical
+                        data.</div>
                 </div>
-
                 <!-- Label Encoding -->
                 <div class="preprocess-card">
                     <input type="radio" name="encoding" id="label" />
@@ -399,8 +482,9 @@
                         <h3>Label Encoding</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Assigns a unique integer to each category. Suitable for ordinal data or
+                        tree-based models.</div>
                 </div>
-
                 <!-- Target Encoding -->
                 <div class="preprocess-card">
                     <input type="radio" name="encoding" id="target" />
@@ -408,79 +492,85 @@
                         <h3>Target Encoding</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Replaces categories with the mean of the target variable for that
+                        category.</div>
                 </div>
-                
+                <!-- Frequency Encoding -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="freq" />
+                    <label for="freq">
                         <h3>Frequency Encoding</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Replaces categories with their count or frequency in the dataset.</div>
                 </div>
-
+                <!-- Ordinal Encoding -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="ordinal" />
+                    <label for="ordinal">
                         <h3>Ordinal Encoding</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Similar to label encoding but allows specifying the order of categories.
+                    </div>
                 </div>
-
-                
             </div>
         </div>
     </div>
-
     <div class="accordion-section" id="section-scaling">
         <div class="accordion-header" onclick="toggleAccordion('section-scaling')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i> Step 6: Feature Scaling</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 6: Feature Scaling</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
-            <button class="btn btn-primary" style="margin-bottom: 1.5remPreprocessing()">Apply</button>
-
+            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
             <div class="preprocess-grid">
-                <!-- One Hot Encoding -->
+                <!-- Min-Max Scaling -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="onehot" />
-                    <label for="onehot">
+                    <input type="radio" name="encoding" id="minmax" />
+                    <label for="minmax">
                         <h3>Min-Max Scaling</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
+                    <div class="info-tooltip">Rescales features to a range of [0, 1] or [-1, 1]. Sensitive to outliers.
+                    </div>
                 </div>
-
-                <!-- Label Encoding -->
+                <!-- Z-score Scaling -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="label" />
-                    <label for="label">
+                    <input type="radio" name="encoding" id="zscore_scale" />
+                    <label for="zscore_scale">
                         <h3>Z-score Scaling</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Standardizes features by removing the mean and scaling to unit variance.
+                    </div>
                 </div>
-
-                <!-- Target Encoding -->
+                <!-- Robust Scaling -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="robust" />
+                    <label for="robust">
                         <h3>Robust Scaling</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Scales features using statistics that are robust to outliers (IQR).</div>
                 </div>
-
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="maxabs" />
+                    <label for="maxabs">
                         <h3>Max Abs Scaling</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Scales each feature by its maximum absolute value. Good for sparse data.
+                    </div>
                 </div>
-
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="standard" />
+                    <label for="standard">
                         <h3>Standard Scaling</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Standardizes features by removing the mean and scaling to unit variance.
+                    </div>
                 </div>
             </div>
         </div>
@@ -488,70 +578,72 @@
 
     <div class="accordion-section" id="section-transformations">
         <div class="accordion-header" onclick="toggleAccordion('section-transformations')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i> Step 7: Transformations</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 7: Transformations</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
             <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
-
             <div class="preprocess-grid">
-                <!-- One Hot Encoding -->
+                <!-- Log Transform -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="onehot" />
-                    <label for="onehot">
+                    <input type="radio" name="encoding" id="log" />
+                    <label for="log">
                         <h3>Log Transform</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
+                    <div class="info-tooltip">Applies the natural log to features. Helps handle skewed data.</div>
                 </div>
-
-                <!-- Label Encoding -->
+                <!-- Square Root Transform -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="label" />
-                    <label for="label">
+                    <input type="radio" name="encoding" id="sqrt" />
+                    <label for="sqrt">
                         <h3>Square Root Transform</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Applies the square root function to the data.</div>
                 </div>
-
-                <!-- Target Encoding -->
+                <!-- Reciprocal Transform -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="reciprocal" />
+                    <label for="reciprocal">
                         <h3>Reciprocal Transform</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Applies 1/x to the data. Use only for non-zero values.</div>
                 </div>
-
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="boxcox" />
+                    <label for="boxcox">
                         <h3>Box-Cox Transform</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Finds the optimal power transformation to normalize data. Works only for
+                        positive data.</div>
                 </div>
-
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="yeojohnson" />
+                    <label for="yeojohnson">
                         <h3>Yeo-Johnson Transform</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">A power transformation that works for both positive and negative data.
+                    </div>
                 </div>
-
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="discretization" />
+                    <label for="discretization">
                         <h3>Discretization</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Groups continuous features into discrete intervals or bins.</div>
                 </div>
-
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="binning" />
+                    <label for="binning">
                         <h3>Binning</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Converts continuous numerical data into discrete categories or bins.</div>
                 </div>
             </div>
         </div>
@@ -559,38 +651,41 @@
 
     <div class="accordion-section" id="section-feature-selection">
         <div class="accordion-header" onclick="toggleAccordion('section-feature-selection')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i> Step 8: Feature Selection</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 8: Feature Selection</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
             <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
-
             <div class="preprocess-grid">
-                <!-- One Hot Encoding -->
+                <!-- Remove low variance -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="onehot" />
-                    <label for="onehot">
+                    <input type="radio" name="encoding" id="low_variance" />
+                    <label for="low_variance">
                         <h3>Remove low variance</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
+                    <div class="info-tooltip">Filters out features with variance below a certain threshold (e.g.,
+                        constant columns).</div>
                 </div>
-
-                <!-- Label Encoding -->
+                <!-- Select k-best attributes -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="label" />
-                    <label for="label">
+                    <input type="radio" name="encoding" id="kbest" />
+                    <label for="kbest">
                         <h3>Select k-best attributes</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Selects the top K features that have the strongest relationship with the
+                        target variable.</div>
                 </div>
-
-                <!-- Target Encoding -->
+                <!-- Tree based importance -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="tree_importance" />
+                    <label for="tree_importance">
                         <h3>Tree based importance</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Uses decision trees (e.g., Random Forest) to rank features by their
+                        importance.</div>
                 </div>
             </div>
         </div>
@@ -598,38 +693,41 @@
 
     <div class="accordion-section" id="section-data-reduction">
         <div class="accordion-header" onclick="toggleAccordion('section-data-reduction')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i> Step 9: Data Reduction</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 9: Data Reduction</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
             <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
-
             <div class="preprocess-grid">
-                <!-- One Hot Encoding -->
+                <!-- PCA -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="onehot" />
-                    <label for="onehot">
+                    <input type="radio" name="encoding" id="pca" />
+                    <label for="pca">
                         <h3>PCA</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
+                    <div class="info-tooltip">Principal Component Analysis: Linear dimensionality reduction using
+                        singular value decomposition.</div>
                 </div>
-
-                <!-- Label Encoding -->
+                <!-- LDA -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="label" />
-                    <label for="label">
+                    <input type="radio" name="encoding" id="lda" />
+                    <label for="lda">
                         <h3>LDA</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Linear Discriminant Analysis: Finds directions that maximize class
+                        separation.</div>
                 </div>
-
-                <!-- Target Encoding -->
+                <!-- ICA -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="encoding" id="ica" />
+                    <label for="ica">
                         <h3>ICA</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Independent Component Analysis: Separates a multivariable signal into
+                        additive subcomponents.</div>
                 </div>
             </div>
         </div>
@@ -637,37 +735,167 @@
 
     <div class="accordion-section" id="section-imbalanced-data">
         <div class="accordion-header" onclick="toggleAccordion('section-imbalanced-data')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i> Step 10: Imbalanced Data Handling</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 10: Imbalanced Data Handling</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
             <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
-
             <div class="preprocess-grid">
-                <!-- One Hot Encoding -->
+                <!-- SMOTE -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="onehot" />
-                    <label for="onehot">
+                    <input type="radio" name="encoding" id="smote" />
+                    <label for="smote">
                         <h3>SMOTE</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
+                    <div class="info-tooltip">Synthetic Minority Over-sampling Technique: Generates synthetic samples
+                        for the minority class.</div>
                 </div>
-
-                <!-- Label Encoding -->
+                <!-- Class weights -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="label" />
-                    <label for="label">
+                    <input type="radio" name="encoding" id="class_weights" />
+                    <label for="class_weights">
                         <h3>Class weights</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
+                    <div class="info-tooltip">Assigns higher penalties to errors in the minority class during model
+                        training.</div>
                 </div>
             </div>
         </div>
     </div>
-
 </div>
 {% endblock %}
 
 {% block scripts %}
 {% include "_websocket_script.html" %}
+
+<script>
+    // Accordion Logic
+    function toggleAccordion(id) {
+        const section = document.getElementById(id);
+        const isOpen = section.classList.contains('active');
+
+        // Close all other sections
+        document.querySelectorAll('.accordion-section').forEach(s => {
+            s.classList.remove('active');
+        });
+
+        // Toggle current
+        if (!isOpen) {
+            section.classList.add('active');
+        }
+    }
+
+    // Initialize first section
+    document.addEventListener('DOMContentLoaded', () => {
+        toggleAccordion('section-attributes');
+        updatePreview(); // Initial load
+    });
+
+    // Activity Log / History
+    function showHistory() {
+        alert("Action history feature coming soon!");
+    }
+
+    // Interactive Preview Update
+    async function updatePreview() {
+        const previewContainer = document.getElementById('preview-container');
+        const loadingIndicator = document.getElementById('preview-loading');
+
+        loadingIndicator.style.display = 'inline-block';
+
+        try {
+            const response = await fetch('/preview_temporary_dataset/active'); // Or specific ID
+            if (!response.ok) throw new Error("Failed to load preview");
+
+            const result = await response.json();
+            const data = result.data_preview;
+
+            if (!data || data.length === 0) {
+                previewContainer.innerHTML = "<p>No data available for preview.</p>";
+                return;
+            }
+
+            let tableHtml = '<table class="interactive-preview">';
+            const headers = Object.keys(data[0]);
+
+            tableHtml += '<thead><tr>';
+            headers.forEach(h => tableHtml += `<th>${h}</th>`);
+            tableHtml += '</tr></thead>';
+
+            tableHtml += '<tbody>';
+            data.forEach(row => {
+                tableHtml += '<tr>';
+                headers.forEach(h => tableHtml += `<td>${row[h] ?? ''}</td>`);
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+
+            previewContainer.innerHTML = tableHtml;
+        } catch (error) {
+            console.error("Preview Error:", error);
+            previewContainer.innerHTML = `<p style="color: var(--error-color);">Error loading preview: ${error.message}</p>`;
+        } finally {
+            loadingIndicator.style.display = 'none';
+        }
+    }
+
+    // Apply Preprocessing Button
+    async function applyPreprocessing() {
+        const btn = event.target;
+        const originalText = btn.innerText;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+        const statusText = document.getElementById('status-text');
+        const progressWrapper = document.getElementById('progress-wrapper');
+        const progressBar = document.getElementById('progress-bar');
+        const progressPercentage = document.getElementById('progress-percentage');
+
+        statusText.innerText = "Initializing preprocessing...";
+        progressWrapper.style.display = 'flex';
+        progressBar.style.width = '0%';
+        progressPercentage.innerText = '0%';
+
+        try {
+            // Simulated progress for UX feel
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 90) progress = 90;
+                progressBar.style.width = `${progress}%`;
+                progressPercentage.innerText = `${Math.round(progress)}%`;
+                statusText.innerText = "Applying selected transformations...";
+            }, 500);
+
+            // Mock call - in real app this would be a POST to /apply_preprocessing
+            await new Promise(resolve => setTimeout(resolve, 2500));
+
+            clearInterval(interval);
+            progressBar.style.width = '100%';
+            progressPercentage.innerText = '100%';
+            statusText.innerText = "Success! Dataset updated.";
+            statusText.style.color = 'var(--success-color)';
+
+            // Refresh preview
+            await updatePreview();
+
+            setTimeout(() => {
+                progressWrapper.style.display = 'none';
+                statusText.style.color = '#64748b';
+                statusText.innerText = "Waiting for actions...";
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }, 3000);
+
+        } catch (error) {
+            statusText.innerText = `Error: ${error.message}`;
+            statusText.style.color = 'var(--error-color)';
+            btn.disabled = false;
+            btn.innerText = originalText;
+        }
+    }
+</script>
 {% endblock %}

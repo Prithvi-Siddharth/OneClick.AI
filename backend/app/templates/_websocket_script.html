@@ -110,17 +110,17 @@
             return;
         }
 
-        let html = '<table class="table table-striped" style="width:100%; border-collapse: collapse; font-size: 0.9em;">';
+        let html = '<table class="interactive-preview">';
         const headers = Object.keys(data[0]);
 
         html += '<thead><tr>';
-        headers.forEach(h => html += `<th style="text-align: left; padding: 8px; border-bottom: 2px solid #e2e8f0;">${h}</th>`);
+        headers.forEach(h => html += `<th>${h}</th>`);
         html += '</tr></thead>';
 
         html += '<tbody>';
         data.forEach(row => {
             html += '<tr>';
-            headers.forEach(h => html += `<td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${row[h] ?? ''}</td>`);
+            headers.forEach(h => html += `<td>${row[h] ?? ''}</td>`);
             html += '</tr>';
         });
         html += '</tbody></table>';
