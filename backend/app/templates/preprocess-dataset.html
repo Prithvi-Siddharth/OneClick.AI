@@ -325,8 +325,8 @@
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="onehot" />
-                    <label for="onehot">
+                    <input type="radio" name="drop_columns" id="drop_attr" />
+                    <label for="drop_attr">
                         <h3>Drop by attribute</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
@@ -335,8 +335,8 @@
                 </div>
                 <!-- Label Encoding -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="label" />
-                    <label for="label">
+                    <input type="radio" name="drop_columns" id="remove_duplicates" />
+                    <label for="remove_duplicates">
                         <h3>Remove Duplicates</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
@@ -357,8 +357,8 @@
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="onehot" />
-                    <label for="onehot">
+                    <input type="radio" name="missing_values" id="mean" />
+                    <label for="mean">
                         <h3>Mean</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
@@ -367,8 +367,8 @@
                 </div>
                 <!-- Label Encoding -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="label" />
-                    <label for="label">
+                    <input type="radio" name="missing_values" id="median" />
+                    <label for="median">
                         <h3>Median</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
@@ -377,8 +377,8 @@
                 </div>
                 <!-- Target Encoding -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="missing_values" id="mode" />
+                    <label for="mode">
                         <h3>Mode</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
@@ -387,8 +387,8 @@
                 </div>
                 <!-- Constant Imputation -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target_const" />
-                    <label for="target_const">
+                    <input type="radio" name="missing_values" id="constant" />
+                    <label for="constant">
                         <h3>Constant</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
@@ -396,8 +396,8 @@
                 </div>
                 <!-- Drop Rows -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target_drop" />
-                    <label for="target_drop">
+                    <input type="radio" name="missing_values" id="drop_rows" />
+                    <label for="drop_rows">
                         <h3>Drop rows</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
@@ -406,8 +406,8 @@
                 </div>
                 <!-- KNN Imputer -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target_knn" />
-                    <label for="target_knn">
+                    <input type="radio" name="missing_values" id="knn" />
+                    <label for="knn">
                         <h3>KNN Imputer</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
@@ -427,8 +427,8 @@
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="onehot" />
-                    <label for="onehot">
+                    <input type="radio" name="outliers" id="iqr" />
+                    <label for="iqr">
                         <h3>IQR Method</h3>
                         <p>Convert categorical features into binary vectors.</p>
                     </label>
@@ -436,8 +436,8 @@
                 </div>
                 <!-- Label Encoding -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="label" />
-                    <label for="label">
+                    <input type="radio" name="outliers" id="zscore" />
+                    <label for="zscore">
                         <h3>Z-score</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
@@ -446,8 +446,8 @@
                 </div>
                 <!-- Target Encoding -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="target" />
-                    <label for="target">
+                    <input type="radio" name="outliers" id="replace_constant" />
+                    <label for="replace_constant">
                         <h3>Replace with constant</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
@@ -527,7 +527,7 @@
             <div class="preprocess-grid">
                 <!-- Min-Max Scaling -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="minmax" />
+                    <input type="radio" name="scaling" id="minmax" />
                     <label for="minmax">
                         <h3>Min-Max Scaling</h3>
                         <p>Convert categorical features into binary vectors.</p>
@@ -537,7 +537,7 @@
                 </div>
                 <!-- Z-score Scaling -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="zscore_scale" />
+                    <input type="radio" name="scaling" id="zscore_scale" />
                     <label for="zscore_scale">
                         <h3>Z-score Scaling</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -547,7 +547,7 @@
                 </div>
                 <!-- Robust Scaling -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="robust" />
+                    <input type="radio" name="scaling" id="robust" />
                     <label for="robust">
                         <h3>Robust Scaling</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -555,7 +555,7 @@
                     <div class="info-tooltip">Scales features using statistics that are robust to outliers (IQR).</div>
                 </div>
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="maxabs" />
+                    <input type="radio" name="scaling" id="maxabs" />
                     <label for="maxabs">
                         <h3>Max Abs Scaling</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -564,7 +564,7 @@
                     </div>
                 </div>
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="standard" />
+                    <input type="radio" name="scaling" id="standard" />
                     <label for="standard">
                         <h3>Standard Scaling</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -586,7 +586,7 @@
             <div class="preprocess-grid">
                 <!-- Log Transform -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="log" />
+                    <input type="radio" name="transformations" id="log" />
                     <label for="log">
                         <h3>Log Transform</h3>
                         <p>Convert categorical features into binary vectors.</p>
@@ -595,7 +595,7 @@
                 </div>
                 <!-- Square Root Transform -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="sqrt" />
+                    <input type="radio" name="transformations" id="sqrt" />
                     <label for="sqrt">
                         <h3>Square Root Transform</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -604,7 +604,7 @@
                 </div>
                 <!-- Reciprocal Transform -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="reciprocal" />
+                    <input type="radio" name="transformations" id="reciprocal" />
                     <label for="reciprocal">
                         <h3>Reciprocal Transform</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -612,7 +612,7 @@
                     <div class="info-tooltip">Applies 1/x to the data. Use only for non-zero values.</div>
                 </div>
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="boxcox" />
+                    <input type="radio" name="transformations" id="boxcox" />
                     <label for="boxcox">
                         <h3>Box-Cox Transform</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -621,7 +621,7 @@
                         positive data.</div>
                 </div>
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="yeojohnson" />
+                    <input type="radio" name="transformations" id="yeojohnson" />
                     <label for="yeojohnson">
                         <h3>Yeo-Johnson Transform</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -630,7 +630,7 @@
                     </div>
                 </div>
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="discretization" />
+                    <input type="radio" name="transformations" id="discretization" />
                     <label for="discretization">
                         <h3>Discretization</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -638,7 +638,7 @@
                     <div class="info-tooltip">Groups continuous features into discrete intervals or bins.</div>
                 </div>
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="binning" />
+                    <input type="radio" name="transformations" id="binning" />
                     <label for="binning">
                         <h3>Binning</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -659,7 +659,7 @@
             <div class="preprocess-grid">
                 <!-- Remove low variance -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="low_variance" />
+                    <input type="radio" name="feature_selection" id="low_variance" />
                     <label for="low_variance">
                         <h3>Remove low variance</h3>
                         <p>Convert categorical features into binary vectors.</p>
@@ -669,7 +669,7 @@
                 </div>
                 <!-- Select k-best attributes -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="kbest" />
+                    <input type="radio" name="feature_selection" id="kbest" />
                     <label for="kbest">
                         <h3>Select k-best attributes</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -679,7 +679,7 @@
                 </div>
                 <!-- Tree based importance -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="tree_importance" />
+                    <input type="radio" name="feature_selection" id="tree_importance" />
                     <label for="tree_importance">
                         <h3>Tree based importance</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -701,7 +701,7 @@
             <div class="preprocess-grid">
                 <!-- PCA -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="pca" />
+                    <input type="radio" name="data_reduction" id="pca" />
                     <label for="pca">
                         <h3>PCA</h3>
                         <p>Convert categorical features into binary vectors.</p>
@@ -711,7 +711,7 @@
                 </div>
                 <!-- LDA -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="lda" />
+                    <input type="radio" name="data_reduction" id="lda" />
                     <label for="lda">
                         <h3>LDA</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -721,7 +721,7 @@
                 </div>
                 <!-- ICA -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="ica" />
+                    <input type="radio" name="data_reduction" id="ica" />
                     <label for="ica">
                         <h3>ICA</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -743,7 +743,7 @@
             <div class="preprocess-grid">
                 <!-- SMOTE -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="smote" />
+                    <input type="radio" name="imbalanced_data" id="smote" />
                     <label for="smote">
                         <h3>SMOTE</h3>
                         <p>Convert categorical features into binary vectors.</p>
@@ -753,7 +753,7 @@
                 </div>
                 <!-- Class weights -->
                 <div class="preprocess-card">
-                    <input type="radio" name="encoding" id="class_weights" />
+                    <input type="radio" name="imbalanced_data" id="class_weights" />
                     <label for="class_weights">
                         <h3>Class weights</h3>
                         <p>Convert categorical labels into numeric form.</p>
@@ -769,133 +769,4 @@
 
 {% block scripts %}
 {% include "_websocket_script.html" %}
-
-<script>
-    // Accordion Logic
-    function toggleAccordion(id) {
-        const section = document.getElementById(id);
-        const isOpen = section.classList.contains('active');
-
-        // Close all other sections
-        document.querySelectorAll('.accordion-section').forEach(s => {
-            s.classList.remove('active');
-        });
-
-        // Toggle current
-        if (!isOpen) {
-            section.classList.add('active');
-        }
-    }
-
-    // Initialize first section
-    document.addEventListener('DOMContentLoaded', () => {
-        toggleAccordion('section-attributes');
-        updatePreview(); // Initial load
-    });
-
-    // Activity Log / History
-    function showHistory() {
-        alert("Action history feature coming soon!");
-    }
-
-    // Interactive Preview Update
-    async function updatePreview() {
-        const previewContainer = document.getElementById('preview-container');
-        const loadingIndicator = document.getElementById('preview-loading');
-
-        loadingIndicator.style.display = 'inline-block';
-
-        try {
-            const response = await fetch('/preview_temporary_dataset/active'); // Or specific ID
-            if (!response.ok) throw new Error("Failed to load preview");
-
-            const result = await response.json();
-            const data = result.data_preview;
-
-            if (!data || data.length === 0) {
-                previewContainer.innerHTML = "<p>No data available for preview.</p>";
-                return;
-            }
-
-            let tableHtml = '<table class="interactive-preview">';
-            const headers = Object.keys(data[0]);
-
-            tableHtml += '<thead><tr>';
-            headers.forEach(h => tableHtml += `<th>${h}</th>`);
-            tableHtml += '</tr></thead>';
-
-            tableHtml += '<tbody>';
-            data.forEach(row => {
-                tableHtml += '<tr>';
-                headers.forEach(h => tableHtml += `<td>${row[h] ?? ''}</td>`);
-                tableHtml += '</tr>';
-            });
-            tableHtml += '</tbody></table>';
-
-            previewContainer.innerHTML = tableHtml;
-        } catch (error) {
-            console.error("Preview Error:", error);
-            previewContainer.innerHTML = `<p style="color: var(--error-color);">Error loading preview: ${error.message}</p>`;
-        } finally {
-            loadingIndicator.style.display = 'none';
-        }
-    }
-
-    // Apply Preprocessing Button
-    async function applyPreprocessing() {
-        const btn = event.target;
-        const originalText = btn.innerText;
-
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-
-        const statusText = document.getElementById('status-text');
-        const progressWrapper = document.getElementById('progress-wrapper');
-        const progressBar = document.getElementById('progress-bar');
-        const progressPercentage = document.getElementById('progress-percentage');
-
-        statusText.innerText = "Initializing preprocessing...";
-        progressWrapper.style.display = 'flex';
-        progressBar.style.width = '0%';
-        progressPercentage.innerText = '0%';
-
-        try {
-            // Simulated progress for UX feel
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 15;
-                if (progress > 90) progress = 90;
-                progressBar.style.width = `${progress}%`;
-                progressPercentage.innerText = `${Math.round(progress)}%`;
-                statusText.innerText = "Applying selected transformations...";
-            }, 500);
-
-            // Mock call - in real app this would be a POST to /apply_preprocessing
-            await new Promise(resolve => setTimeout(resolve, 2500));
-
-            clearInterval(interval);
-            progressBar.style.width = '100%';
-            progressPercentage.innerText = '100%';
-            statusText.innerText = "Success! Dataset updated.";
-            statusText.style.color = 'var(--success-color)';
-
-            // Refresh preview
-            await updatePreview();
-
-            setTimeout(() => {
-                progressWrapper.style.display = 'none';
-                statusText.style.color = '#64748b';
-                statusText.innerText = "Waiting for actions...";
-                btn.disabled = false;
-                btn.innerText = originalText;
-            }, 3000);
-
-        } catch (error) {
-            statusText.innerText = `Error: ${error.message}`;
-            statusText.style.color = 'var(--error-color)';
-            btn.disabled = false;
-            btn.innerText = originalText;
-        }
-    }
-</script>
 {% endblock %}
