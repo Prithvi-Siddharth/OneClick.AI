@@ -74,6 +74,26 @@
         }, 300);
     });
 
+    function resetRadioButtons() {
+        // Reset all radio button groups after preprocessing
+        const radioGroups = [
+            'drop_columns',
+            'missing_values',
+            'outliers',
+            'encoding',
+            'scaling',
+            'transformations',
+            'feature_selection',
+            'data_reduction',
+            'imbalanced_data'
+        ];
+
+        radioGroups.forEach(groupName => {
+            const checked = document.querySelector(`input[name="${groupName}"]:checked`);
+            if (checked) checked.checked = false;
+        });
+    }
+
     function applyPreprocessing() {
         document.getElementById("preview-loading").style.display = "block";
 
@@ -88,9 +108,31 @@
         const attributes = Array.from(selectedAttrEls).map(el => el.value);
 
         const selectedOps = {};
-        ['onehot', 'label', 'target', 'minmax'].forEach(op => {
-            const el = document.getElementById(op);
-            if (el) selectedOps[op] = el.checked;
+
+        // Define all preprocessing options from Step 2 to 10
+        const steps = {
+            drop_columns: ['drop_attr', 'remove_duplicates'],
+            missing_values: ['mean', 'median', 'mode', 'constant', 'drop_rows', 'knn'],
+            outliers: ['iqr', 'zscore', 'replace_constant'],
+            encoding: ['onehot', 'label', 'target', 'freq', 'ordinal'],
+            scaling: ['minmax', 'zscore_scale', 'robust', 'maxabs', 'standard'],
+            transformations: ['log', 'sqrt', 'reciprocal', 'boxcox', 'yeojohnson', 'discretization', 'binning'],
+            feature_selection: ['low_variance', 'kbest', 'tree_importance'],
+            data_reduction: ['pca', 'lda', 'ica'],
+            imbalanced_data: ['smote', 'class_weights']
+        };
+
+        // Populate selectedOps with checked values
+        Object.keys(steps).forEach(stepKey => {
+            const stepOps = steps[stepKey];
+            stepOps.forEach(opId => {
+                const el = document.getElementById(opId);
+                if (el && el.checked) {
+                    // Store the specific operation within its step category
+                    if (!selectedOps[stepKey]) selectedOps[stepKey] = [];
+                    selectedOps[stepKey].push(opId);
+                }
+            });
         });
 
         document.getElementById("status-display").style.display = "block";
@@ -101,6 +143,8 @@
             attributes: attributes, // Send the list of attributes
             operations: selectedOps
         }));
+
+        resetRadioButtons();
     }
 
     function renderPreview(data) {
