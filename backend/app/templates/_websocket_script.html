@@ -19,6 +19,9 @@
                 updateProgress(data.percentage, data.message);
             } else if (data.type === "preview") {
                 renderPreview(data.data_preview);
+                if (data.columns) {
+                    renderAttributePanel(data.columns);
+                }
                 document.getElementById("preview-loading").style.display = "none";
                 // Optionally hide progress after some delay
                 setTimeout(() => {
@@ -26,6 +29,13 @@
                         // document.getElementById("progress-wrapper").style.display = "none";
                     }
                 }, 3000);
+            } else if (data.type === "error") {
+                if (data.message && (data.message.includes("is not numeric") || data.message.includes("is not categorical"))) {
+                    alert("Did your data school forget to teach variable types? Stick to counting colors—maybe you'll get that kindergarten diploma.");
+                } else {
+                    alert("❌ Error: " + data.message);
+                }
+                document.getElementById("preview-loading").style.display = "none";
             }
         } catch (e) {
             console.error("Error parsing message:", e);
@@ -95,18 +105,22 @@
     }
 
     function applyPreprocessing() {
-        document.getElementById("preview-loading").style.display = "block";
-
         // Find all selected attributes
         const selectedAttrEls = document.querySelectorAll('input[name="attribute-select"]:checked');
-        if (selectedAttrEls.length === 0) {
+        const checkedRadios = document.querySelectorAll('input[type="radio"]:checked');
+
+        if (selectedAttrEls.length === 0 && checkedRadios.length === 0) {
+            alert("Please select at least one attribute and an operation!");
+            return;
+        } else if (selectedAttrEls.length === 0) {
             alert("Please select at least one attribute!");
-            document.getElementById("preview-loading").style.display = "none";
+            return;
+        } else if (checkedRadios.length === 0) {
+            alert("Please select at least one operation!");
             return;
         }
 
         const attributes = Array.from(selectedAttrEls).map(el => el.value);
-
         const selectedOps = {};
 
         // Define all preprocessing options from Step 2 to 10
@@ -135,6 +149,35 @@
             });
         });
 
+        // Client-side Validation: Check if numeric operations are applied to non-numeric attributes
+        const numericSteps = ['outliers', 'scaling', 'transformations'];
+        const hasNumericOp = numericSteps.some(step => selectedOps[step] && selectedOps[step].length > 0);
+
+        if (hasNumericOp) {
+            const nonNumericFound = Array.from(selectedAttrEls).some(el => {
+                const dtype = el.getAttribute('data-dtype');
+                return dtype !== 'int' && dtype !== 'float';
+            });
+            if (nonNumericFound) {
+                alert("Did your data school forget to teach variable types? Stick to counting colors—maybe you'll get that kindergarten diploma.");
+                return;
+            }
+        }
+
+        // Client-side Validation: Check if encoding (categorical) operations are applied to numeric attributes
+        if (selectedOps['encoding'] && selectedOps['encoding'].length > 0) {
+            const numericFound = Array.from(selectedAttrEls).some(el => {
+                const dtype = el.getAttribute('data-dtype');
+                return dtype === 'int' || dtype === 'float';
+            });
+            if (numericFound) {
+                alert("Did your data school forget to teach variable types? Stick to counting colors—maybe you'll get that kindergarten diploma.");
+                return;
+            }
+        }
+
+        // Only show loading and progress AFTER validation
+        document.getElementById("preview-loading").style.display = "block";
         document.getElementById("status-display").style.display = "block";
         updateProgress(0, "📡 Sending request...");
 
@@ -171,4 +214,50 @@
 
         container.innerHTML = html;
     }
+
+    function renderAttributePanel(columns) {
+        const grid = document.querySelector('#section-attributes .preprocess-grid');
+        if (!grid) return;
+
+        // Remember which attributes were checked so selections survive re-render
+        const previouslyChecked = new Set(
+            [...document.querySelectorAll('.attribute-radio:checked')].map(el => el.value)
+        );
+
+        grid.innerHTML = '';
+
+        columns.forEach(({ name, dtype }) => {
+            // Shorten pandas dtype to readable label
+            const dtypeLabel = dtype.startsWith('int') ? 'int'
+                : dtype.startsWith('float') ? 'float'
+                    : dtype === 'bool' ? 'bool'
+                        : dtype.startsWith('datetime') ? 'datetime'
+                            : 'object';
+
+            const card = document.createElement('div');
+            card.className = 'preprocess-card';
+            card.innerHTML = `
+                <input type="checkbox"
+                       name="attribute-select"
+                       class="attribute-radio"
+                       value="${name}"
+                       data-dtype="${dtypeLabel}"
+                       id="attr_${CSS.escape(name)}" />
+                <label for="attr_${CSS.escape(name)}">
+                    <h3 title="${name}">${name}</h3>
+                    <p>${dtypeLabel}</p>
+                </label>
+                <div class="info-tooltip">Select this attribute for the next preprocessing steps.</div>
+            `;
+
+            // Restore checked state — dropped columns won't exist in columns so they naturally disappear
+            if (previouslyChecked.has(name)) {
+                card.querySelector('input[type="checkbox"]').checked = true;
+            }
+
+            grid.appendChild(card);
+        });
+    }
+
+
 </script>

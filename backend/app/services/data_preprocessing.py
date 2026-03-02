@@ -3,6 +3,7 @@ import numpy as np
 from io import BytesIO
 from sklearn import preprocessing
 from sklearn.impute import KNNImputer
+from fastapi import HTTPException 
 
 def get_dataset_preview_and_stats(file_buffer, extension, preview_limit=5):
     try:
@@ -94,8 +95,11 @@ def apply_preprocessing(df_full, operations, attributes):
     attributes: list of column names like ["column1", "column2"]
     """
     try:
-        if not attributes and not any(operations.values()):
-            return df_full
+        if not attributes or not any(operations.values()):
+            raise HTTPException(
+                status_code=400,
+                detail="No attributes or operations selected"
+            )
 
         # Helper to get numeric/categorical attributes from the selected ones
         numeric_attrs = [a for a in attributes if a in df_full.columns and pd.api.types.is_numeric_dtype(df_full[a])]
@@ -132,23 +136,67 @@ def apply_preprocessing(df_full, operations, attributes):
         
         # Step 4: Outlier Handling
         outlier_ops = operations.get("outliers", [])
+        if outlier_ops:
+            for attr in attributes:
+                if attr in df_full.columns and not pd.api.types.is_numeric_dtype(df_full[attr]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Attribute is not numeric"
+                    )
+
         for attr in numeric_attrs:
+
             if "iqr" in outlier_ops:
                 q1 = df_full[attr].quantile(0.25)
                 q3 = df_full[attr].quantile(0.75)
                 iqr = q3 - q1
                 lower = q1 - 1.5 * iqr
                 upper = q3 + 1.5 * iqr
-                df_full[attr] = df_full[attr].clip(lower, upper)
+                df_full[attr] = df_full[attr].clip(lower=lower, upper=upper)
+
             elif "zscore" in outlier_ops:
                 mean = df_full[attr].mean()
                 std = df_full[attr].std()
                 lower = mean - 3 * std
                 upper = mean + 3 * std
-                df_full[attr] = df_full[attr].clip(lower, upper)
+                df_full[attr] = df_full[attr].clip(lower=lower, upper=upper)
 
+            elif "mean" in outlier_ops:
+                # Replace IQR outliers with column mean
+                q1 = df_full[attr].quantile(0.25)
+                q3 = df_full[attr].quantile(0.75)
+                iqr = q3 - q1
+                lower = q1 - 1.5 * iqr
+                upper = q3 + 1.5 * iqr
+        
+                mean_val = df_full[attr].mean() 
+                mask = (df_full[attr] < lower) | (df_full[attr] > upper)
+                df_full.loc[mask, attr] = mean_val
+                df_full[attr] = df_full[attr].fillna(mean_val)
+
+            elif "median" in outlier_ops:
+                # Replace IQR outliers with column median
+                q1 = df_full[attr].quantile(0.25)
+                q3 = df_full[attr].quantile(0.75)
+                iqr = q3 - q1
+                lower = q1 - 1.5 * iqr
+                upper = q3 + 1.5 * iqr
+        
+                med_val = df_full[attr].median()
+                mask = (df_full[attr] < lower) | (df_full[attr] > upper)
+                df_full.loc[mask, attr] = med_val
+                df_full[attr] = df_full[attr].fillna(med_val)
+        
         # Step 5: Encoding
         encoding_ops = operations.get("encoding", [])
+        if encoding_ops:
+            for attr in attributes:
+                if attr in df_full.columns and pd.api.types.is_numeric_dtype(df_full[attr]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Attribute '{attr}' is not categorical. Encoding requires categorical data."
+                    )
+        
         if "onehot" in encoding_ops and categorical_attrs:
             df_full = pd.get_dummies(df_full, columns=categorical_attrs, drop_first=True)
             # Categorical attributes are gone now, update metadata
@@ -168,7 +216,15 @@ def apply_preprocessing(df_full, operations, attributes):
                     df_full[attr] = df_full[attr].map(means)
 
         # Step 6: Feature Scaling
-        scaling_ops = operations.get("scaling", [])
+        scaling_ops = [op for op in operations.get("scaling", []) if op]
+        if scaling_ops:
+            for attr in attributes:
+                if attr in df_full.columns and not pd.api.types.is_numeric_dtype(df_full[attr]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Attribute '{attr}' is not numeric. Scaling requires numeric data."
+                    )
+        
         if numeric_attrs:
             if "minmax" in scaling_ops:
                 scaler = preprocessing.MinMaxScaler()
@@ -184,7 +240,15 @@ def apply_preprocessing(df_full, operations, attributes):
                 df_full[numeric_attrs] = scaler.fit_transform(df_full[numeric_attrs])
 
         # Step 7: Transformations
-        trans_ops = operations.get("transformations", [])
+        trans_ops = [op for op in operations.get("transformations", []) if op]
+        if trans_ops:
+            for attr in attributes:
+                if attr in df_full.columns and not pd.api.types.is_numeric_dtype(df_full[attr]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Attribute '{attr}' is not numeric. Transformations require numeric data."
+                    )
+        
         for attr in numeric_attrs:
             if "log" in trans_ops:
                 df_full[attr] = np.log1p(df_full[attr].clip(lower=0))
@@ -204,6 +268,8 @@ def apply_preprocessing(df_full, operations, attributes):
         # Feature Selection, Data Reduction, Imbalanced Data usually happen right before training
         
         return df_full
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()

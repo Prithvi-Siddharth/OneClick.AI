@@ -295,7 +295,7 @@
     <!-- Section 1: Select Attributes -->
     <div class="accordion-section" id="section-attributes">
         <div class="accordion-header" onclick="toggleAccordion('section-attributes')">
-            <h2><i class="fas fa-list-check" style="margin-right: 10px;"></i> Step 1: Select Attributes</h2>
+            <h2><i class="fas fa-list-check" style="margin-right: 10px;"></i> 1: Select Attributes</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
@@ -317,7 +317,7 @@
     <!-- Section 2: Preprocessing Options -->
     <div class="accordion-section" id="section-drop-columns">
         <div class="accordion-header" onclick="toggleAccordion('section-drop-columns')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 2: Drop Columns</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>2: Drop Columns</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
@@ -349,13 +349,13 @@
 
     <div class="accordion-section" id="section-missing-values">
         <div class="accordion-header" onclick="toggleAccordion('section-missing-values')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 3: Missing Value Imputation</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>3: Missing Value Imputation</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
             <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
             <div class="preprocess-grid">
-                <!-- One Hot Encoding -->
+                <!-- Replace with Mean -->
                 <div class="preprocess-card">
                     <input type="radio" name="missing_values" id="mean" />
                     <label for="mean">
@@ -365,7 +365,7 @@
                     <div class="info-tooltip">Fills missing values with the average of the column. Best for normally
                         distributed data.</div>
                 </div>
-                <!-- Label Encoding -->
+                <!-- Replace with Median -->
                 <div class="preprocess-card">
                     <input type="radio" name="missing_values" id="median" />
                     <label for="median">
@@ -375,7 +375,7 @@
                     <div class="info-tooltip">Fills missing values with the middle value of the sorted column. Robust to
                         outliers.</div>
                 </div>
-                <!-- Target Encoding -->
+                <!-- Replace with Mode -->
                 <div class="preprocess-card">
                     <input type="radio" name="missing_values" id="mode" />
                     <label for="mode">
@@ -384,15 +384,6 @@
                     </label>
                     <div class="info-tooltip">Fills missing values with the most frequent value. Good for categorical
                         data.</div>
-                </div>
-                <!-- Constant Imputation -->
-                <div class="preprocess-card">
-                    <input type="radio" name="missing_values" id="constant" />
-                    <label for="constant">
-                        <h3>Constant</h3>
-                        <p>Convert categorical labels into numeric form.</p>
-                    </label>
-                    <div class="info-tooltip">Fills missing values with a specific user-defined value.</div>
                 </div>
                 <!-- Drop Rows -->
                 <div class="preprocess-card">
@@ -419,7 +410,7 @@
     </div>
     <div class="accordion-section" id="section-outliers">
         <div class="accordion-header" onclick="toggleAccordion('section-outliers')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 4: Outlier Handling</h2><i
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>4: Outlier Handling</h2><i
                 class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content"><button class="btn btn-primary" style="margin-bottom: 1.5rem;"
@@ -459,7 +450,7 @@
     </div>
     <div class="accordion-section" id="section-encoding">
         <div class="accordion-header" onclick="toggleAccordion('section-encoding')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 5: Encoding</h2><i
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>5: Encoding</h2><i
                 class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content"><button class="btn btn-primary" style="margin-bottom: 1.5rem;"
@@ -519,7 +510,7 @@
     </div>
     <div class="accordion-section" id="section-scaling">
         <div class="accordion-header" onclick="toggleAccordion('section-scaling')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 6: Feature Scaling</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>6: Feature Scaling</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
@@ -578,7 +569,7 @@
 
     <div class="accordion-section" id="section-transformations">
         <div class="accordion-header" onclick="toggleAccordion('section-transformations')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 7: Transformations</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>7: Transformations</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
@@ -651,7 +642,7 @@
 
     <div class="accordion-section" id="section-feature-selection">
         <div class="accordion-header" onclick="toggleAccordion('section-feature-selection')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 8: Feature Selection</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>8: Feature Selection</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
@@ -693,7 +684,7 @@
 
     <div class="accordion-section" id="section-data-reduction">
         <div class="accordion-header" onclick="toggleAccordion('section-data-reduction')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 9: Data Reduction</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>9: Data Reduction</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
@@ -735,7 +726,7 @@
 
     <div class="accordion-section" id="section-imbalanced-data">
         <div class="accordion-header" onclick="toggleAccordion('section-imbalanced-data')">
-            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>Step 10: Imbalanced Data Handling</h2>
+            <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>10: Imbalanced Data Handling</h2>
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">

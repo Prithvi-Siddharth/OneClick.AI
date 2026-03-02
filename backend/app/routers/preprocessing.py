@@ -230,22 +230,31 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
     async def send_preview(df):
         # head(5) and convert to records
         preview = df.head(5).where(pd.notnull(df), None).to_dict(orient="records")
-        await websocket.send_text(json.dumps({"type": "preview", "data_preview": preview}))
+        # Extract column names and dtypes
+        columns = [{"name": str(col), "dtype": str(dtype)} for col, dtype in df.dtypes.items()]
+        await websocket.send_text(json.dumps({
+            "type": "preview", 
+            "data_preview": preview,
+            "columns": columns
+        }))
 
     # helper to get user id from websocket
     token = websocket.cookies.get("access_token")
     user_id = None
+    auth_error = "Token missing"
     if token:
         try:
             from app.security import JWT_SECRET_KEY, JWT_ALGORITHM
-            from jose import jwt
+            from jose import jwt, JWTError
             payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
             user_id = payload.get("sub")
-        except:
-            pass
+            if not user_id:
+                auth_error = "User ID missing in token"
+        except Exception as e:
+            auth_error = f"Token validation failed: {str(e)}"
 
     if not user_id:
-        await websocket.send_text(json.dumps({"type": "status", "message": "❌ Authentication failed. Please log in."}))
+        await websocket.send_text(json.dumps({"type": "status", "message": f"❌ Authentication failed: {auth_error}. Please log in."}))
         await websocket.close()
         return
 
@@ -309,6 +318,11 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 
     except WebSocketDisconnect:
         print(f"WebSocket disconnected for user {user_id}")
+    except HTTPException as e:
+        try:
+            await websocket.send_text(json.dumps({"type": "error", "message": e.detail}))
+        except:
+            pass
     except Exception as e:
         try:
             await websocket.send_text(json.dumps({"type": "status", "message": f"❌ Critical Error: {str(e)}"}))
