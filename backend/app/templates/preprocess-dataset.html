@@ -755,6 +755,15 @@
             </div>
         </div>
     </div>
+
+    <div class="action-buttons">
+        <button class="btn btn-primary" onclick="saveDatasetToCatalog()">
+            <i class="fas fa-save"></i> Save to Catalog
+        </button>
+        <button class="btn btn-secondary" onclick="downloadDataset('{{ dataset_id }}')">
+            <i class="fas fa-download"></i> Download Dataset
+        </button>
+    </div>
 </div>
 {% endblock %}
 

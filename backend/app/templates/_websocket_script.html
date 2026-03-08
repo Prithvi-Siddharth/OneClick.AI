@@ -259,5 +259,49 @@
         });
     }
 
+    async function downloadDataset(id) {
+        if (!id) {
+            alert("Dataset ID not found!");
+            return;
+        }
+
+        try {
+            const response = await fetch("/download_preprocessed_dataset/" + id);
+            const data = await response.json();
+
+            if (data.download_url) {
+                window.location.href = data.download_url;
+            } else if (data.error) {
+                alert("Error: " + data.error);
+            }
+        } catch (error) {
+            console.error("Download failed:", error);
+            alert("Failed to initiate download.");
+        }
+    }
+
+    async function saveDatasetToCatalog() {
+        document.getElementById("preview-loading").style.display = "block";
+        try {
+            const response = await fetch('/save_preprocessed_dataset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                alert("✅ " + data.message);
+                window.location.href = "/view_datasets";
+            } else {
+                alert("❌ Error: " + data.error);
+            }
+        } catch (error) {
+            console.error("Save failed:", error);
+            alert("Failed to save dataset.");
+        } finally {
+            document.getElementById("preview-loading").style.display = "none";
+        }
+    }
+
 
 </script>

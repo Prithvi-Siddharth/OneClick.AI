@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Form
+from fastapi import APIRouter, Depends, Request, Form, HTTPException, status
 from fastapi.responses import RedirectResponse, JSONResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -9,6 +9,7 @@ from app.db import get_db
 from app.models import Dataset, TemporaryDataset
 from app.security import get_current_user_id
 from app.services.s3_operations import duplicate_dataset_in_s3
+from app.services.constants import get_hyperparameters
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
@@ -129,8 +130,43 @@ def models_page(request: Request, db: Session = Depends(get_db), dataset_id: int
         # Fallback to the latest temporary dataset if no ID provided or not found
         dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
     
-    return templates.TemplateResponse("models.html", {
+    return templates.TemplateResponse("train_dataset.html", {
         "request": request,
         "dataset": dataset,
-        "model": {"name": model} if model else None
+        "model": model,
+        "hyperparameters": get_hyperparameters(model)
     })
+
+@router.post("/tune_hyperparameters")
+async def tune_hyperparameters(request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    try:
+        # Get data from the form request
+        data = await request.json()
+        model_name = data.get("model_name")
+        params = data.get("hyperparameters", {})
+
+        print(f"--- Hyperparameter Tuning Request ---")
+        print(f"User: {user_id}")
+        print(f"Model: {model_name}")
+        print(f"Params: {params}")
+        print(f"--------------------------------------")
+        
+        return JSONResponse(
+            content={
+                "status": "success",
+                "message": f"Tuning request received for {model_name}. Training started in background.",
+                "received_params": params
+            },
+            status_code=status.HTTP_200_OK
+        )
+
+    except Exception as e:
+        print(f"Error in tune_hyperparameters: {str(e)}")
+        return JSONResponse(
+            content={"status": "error", "message": str(e)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

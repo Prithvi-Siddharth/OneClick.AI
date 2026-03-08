@@ -41,7 +41,7 @@ def get_dataset_preview_and_stats(file_buffer, extension, preview_limit=5):
         # Helper to sanitize dicts for JSON (replaces NaN with None and handles numpy types)
         def json_safe(val):
             if isinstance(val, dict):
-                return {k: json_safe(v) for k, v in json_safe(v).items() if k is not None} # Minor fix for dict keys
+                return {k: json_safe(v) for k, v in val.items() if k is not None} # Minor fix for dict keys
             elif isinstance(val, (list, tuple)):
                 return [json_safe(v) for v in val]
             elif pd.isna(val) or val is pd.NA:
