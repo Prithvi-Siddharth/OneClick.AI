@@ -54,3 +54,14 @@ class TemporaryDataset(Base):
     row_count = Column(Integer, nullable=True)
     upload_date = Column(DateTime, default=datetime.utcnow)
     feature_schema = Column(String(4096), nullable=True)
+
+class PreprocessingLog(Base):
+    __tablename__ = "preprocessing_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    temp_dataset_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, nullable=False)
+    operation_type = Column(String(255), nullable=False)
+    operation_name = Column(String(255), nullable=False)
+    attributes = Column(String(4096), nullable=True) # JSON list of attributes
+    timestamp = Column(DateTime, default=datetime.utcnow)

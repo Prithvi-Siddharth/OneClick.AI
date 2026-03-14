@@ -29,6 +29,10 @@
                         // document.getElementById("progress-wrapper").style.display = "none";
                     }
                 }, 3000);
+            } else if (data.type === "history") {
+                renderHistory(data.data);
+            } else if (data.type === "log_update") {
+                data.data.forEach(log => addLogEntry(log));
             } else if (data.type === "error") {
                 if (data.message && (data.message.includes("is not numeric") || data.message.includes("is not categorical"))) {
                     alert("Did your data school forget to teach variable types? Stick to counting colors—maybe you'll get that kindergarten diploma.");
@@ -291,7 +295,7 @@
             const data = await response.json();
             if (response.ok) {
                 alert("✅ " + data.message);
-                window.location.href = "/view_datasets";
+                window.location.href = "/preprocess-dataset";
             } else {
                 alert("❌ Error: " + data.error);
             }
@@ -303,5 +307,50 @@
         }
     }
 
+    // Activity Log Functions
+    function showHistory() {
+        document.getElementById("activity-log-sidebar").classList.add("open");
+    }
+
+    function hideHistory() {
+        document.getElementById("activity-log-sidebar").classList.remove("open");
+    }
+
+    function renderHistory(history) {
+        const logList = document.getElementById("log-list");
+        if (!history || history.length === 0) {
+            logList.innerHTML = '<p style="color: #64748b; text-align: center; margin-top: 2rem;">No preprocessing steps applied yet.</p>';
+            return;
+        }
+
+        logList.innerHTML = '';
+        history.forEach(log => addLogEntry(log));
+    }
+
+    function addLogEntry(log) {
+        const logList = document.getElementById("log-list");
+        // Remove empty state message if it exists
+        if (logList.querySelector('p')) {
+            logList.innerHTML = '';
+        }
+
+        const div = document.createElement('div');
+        div.className = 'log-item';
+
+        // Format operation name
+        const opName = log.operation_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const stepType = log.operation_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+        div.innerHTML = `
+            <div class="log-item-header">
+                <span>${opName}</span>
+                <span class="log-item-time">${log.timestamp}</span>
+            </div>
+            <div class="log-item-details">${stepType} transformation applied.</div>
+            <div class="log-item-attrs">${log.attributes.join(', ')}</div>
+        `;
+
+        logList.prepend(div);
+    }
 
 </script>

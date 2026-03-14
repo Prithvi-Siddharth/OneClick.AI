@@ -7,7 +7,7 @@ from io import BytesIO
 from datetime import datetime
 
 from app.db import get_db
-from app.models import User, Dataset, TemporaryDataset
+from app.models import User, Dataset, TemporaryDataset, PreprocessingLog
 from app.security import get_current_user_id
 from app.services.s3_operations import get_s3_client, process_and_save_dataset_temporary, duplicate_dataset_in_s3, read_dataset_from_s3
 from app.services.data_preprocessing import apply_preprocessing
@@ -291,6 +291,23 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
             "columns": columns
         }))
 
+    async def send_history(temp_id):
+        logs = db.query(PreprocessingLog).filter(
+            PreprocessingLog.temp_dataset_id == temp_id,
+            PreprocessingLog.user_id == int(user_id)
+        ).order_by(PreprocessingLog.timestamp.asc()).all()
+        
+        history = [
+            {
+                "operation_type": log.operation_type,
+                "operation_name": log.operation_name,
+                "attributes": json.loads(log.attributes) if log.attributes else [],
+                "timestamp": log.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            for log in logs
+        ]
+        await websocket.send_text(json.dumps({"type": "history", "data": history}))
+
     # helper to get user id from websocket
     token = websocket.cookies.get("access_token")
     user_id = None
@@ -333,6 +350,7 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 from io import BytesIO
                 df = pd.read_csv(BytesIO(response['Body'].read()))
                 await send_preview(df)
+                await send_history(active_dataset.id)
                 await send_status("✅ Preview loaded.")
             
             elif action == "apply_preprocessing":
@@ -367,6 +385,28 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 # 5. Send updated preview
                 await send_progress(95, "📋 Refreshing data preview...")
                 await send_preview(processed_df)
+
+                # 6. Log operations and send log update
+                new_logs = []
+                for step_type, op_list in ops.items():
+                    for op_name in op_list:
+                        log_entry = PreprocessingLog(
+                            temp_dataset_id=active_dataset.id,
+                            user_id=int(user_id),
+                            operation_type=step_type,
+                            operation_name=op_name,
+                            attributes=json.dumps(attributes)
+                        )
+                        db.add(log_entry)
+                        new_logs.append({
+                            "operation_type": step_type,
+                            "operation_name": op_name,
+                            "attributes": attributes,
+                            "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                        })
+                db.commit()
+                await websocket.send_text(json.dumps({"type": "log_update", "data": new_logs}))
+                
                 await send_progress(100, "🚀 Preprocessing complete!")
                 
     except WebSocketDisconnect:

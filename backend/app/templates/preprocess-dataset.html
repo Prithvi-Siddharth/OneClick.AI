@@ -248,6 +248,90 @@
         color: #000000 !important;
         cursor: cell;
     }
+
+    /* Activity Log Sidebar */
+    .activity-log-sidebar {
+        position: fixed;
+        top: 0;
+        right: -400px;
+        width: 400px;
+        height: 100%;
+        background: #ffffff;
+        box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .activity-log-sidebar.open {
+        right: 0;
+    }
+
+    .activity-log-header {
+        padding: 1.5rem;
+        background: #1e293b;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .activity-log-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .log-item {
+        border-left: 3px solid var(--primary-color);
+        padding: 12px 16px;
+        margin-bottom: 1rem;
+        background: #f8fafc;
+        border-radius: 0 8px 8px 0;
+        font-size: 0.85rem;
+        position: relative;
+    }
+
+    .log-item::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 15px;
+        width: 12px;
+        height: 12px;
+        background: var(--primary-color);
+        border-radius: 50%;
+        border: 2px solid white;
+    }
+
+    .log-item-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .log-item-time {
+        font-size: 0.7rem;
+        color: #64748b;
+    }
+
+    .log-item-details {
+        color: #475569;
+        font-size: 0.8rem;
+    }
+
+    .log-item-attrs {
+        margin-top: 6px;
+        font-family: 'Courier New', Courier, monospace;
+        background: #f1f5f9;
+        padding: 4px 8px;
+        border-radius: 4px;
+        display: inline-block;
+        font-size: 0.75rem;
+    }
 </style>
 {% endblock %}
 
@@ -777,6 +861,24 @@
         <button class="btn btn-secondary" onclick="downloadDataset('{{ dataset_id }}')">
             <i class="fas fa-download"></i> Download Dataset
         </button>
+        <button class="btn btn-danger" onclick="window.location.href='/train_model'">
+            <i class="fas fa-save"></i> Start Training
+        </button>
+    </div>
+
+    <!-- Activity Log Sidebar -->
+    <div id="activity-log-sidebar" class="activity-log-sidebar">
+        <div class="activity-log-header">
+            <h2 style="margin: 0; font-size: 1.25rem;"><i class="fas fa-history"></i> Activity Log</h2>
+            <button class="btn btn-secondary" onclick="hideHistory()" style="padding: 5px 10px;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="activity-log-content" class="activity-log-content">
+            <div id="log-list">
+                <p style="color: #64748b; text-align: center; margin-top: 2rem;">No preprocessing steps applied yet.</p>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
