@@ -435,15 +435,23 @@
                     <div class="info-tooltip">Detects outliers based on how many standard deviations they are from the
                         mean.</div>
                 </div>
-                <!-- Target Encoding -->
+                <!-- Replace with mean -->
                 <div class="preprocess-card">
-                    <input type="radio" name="outliers" id="replace_constant" />
-                    <label for="replace_constant">
-                        <h3>Replace with constant</h3>
+                    <input type="radio" name="outliers" id="replace_mean" />
+                    <label for="replace_mean">
+                        <h3>Replace with mean</h3>
                         <p>Convert categorical labels into numeric form.</p>
                     </label>
-                    <div class="info-tooltip">Clamps outlier values to a specified constant or replaces them entirely.
-                    </div>
+                    <div class="info-tooltip">Replaces outlier values with the mean of the column.</div>
+                </div>
+                <!-- Replace with median -->
+                <div class="preprocess-card">
+                    <input type="radio" name="outliers" id="replace_median" />
+                    <label for="replace_median">
+                        <h3>Replace with median</h3>
+                        <p>Convert categorical labels into numeric form.</p>
+                    </label>
+                    <div class="info-tooltip">Replaces outlier values with the median of the column.</div>
                 </div>
             </div>
         </div>
@@ -554,15 +562,6 @@
                     <div class="info-tooltip">Scales each feature by its maximum absolute value. Good for sparse data.
                     </div>
                 </div>
-                <div class="preprocess-card">
-                    <input type="radio" name="scaling" id="standard" />
-                    <label for="standard">
-                        <h3>Standard Scaling</h3>
-                        <p>Convert categorical labels into numeric form.</p>
-                    </label>
-                    <div class="info-tooltip">Standardizes features by removing the mean and scaling to unit variance.
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -602,6 +601,7 @@
                     </label>
                     <div class="info-tooltip">Applies 1/x to the data. Use only for non-zero values.</div>
                 </div>
+                <!-- Box-Cox Transform -->
                 <div class="preprocess-card">
                     <input type="radio" name="transformations" id="boxcox" />
                     <label for="boxcox">
@@ -611,6 +611,7 @@
                     <div class="info-tooltip">Finds the optimal power transformation to normalize data. Works only for
                         positive data.</div>
                 </div>
+                <!-- Yeo-Johnson Transform -->
                 <div class="preprocess-card">
                     <input type="radio" name="transformations" id="yeojohnson" />
                     <label for="yeojohnson">
@@ -620,14 +621,7 @@
                     <div class="info-tooltip">A power transformation that works for both positive and negative data.
                     </div>
                 </div>
-                <div class="preprocess-card">
-                    <input type="radio" name="transformations" id="discretization" />
-                    <label for="discretization">
-                        <h3>Discretization</h3>
-                        <p>Convert categorical labels into numeric form.</p>
-                    </label>
-                    <div class="info-tooltip">Groups continuous features into discrete intervals or bins.</div>
-                </div>
+                <!-- Binning -->
                 <div class="preprocess-card">
                     <input type="radio" name="transformations" id="binning" />
                     <label for="binning">
@@ -677,6 +671,26 @@
                     </label>
                     <div class="info-tooltip">Uses decision trees (e.g., Random Forest) to rank features by their
                         importance.</div>
+                </div>
+                <!-- Correlation threshold -->
+                <div class="preprocess-card">
+                    <input type="radio" name="feature_selection" id="correlation_threshold" />
+                    <label for="correlation_threshold">
+                        <h3>Correlation threshold</h3>
+                        <p>Convert categorical labels into numeric form.</p>
+                    </label>
+                    <div class="info-tooltip">Removes features that have a correlation coefficient below a certain
+                        threshold with the target variable.</div>
+                </div>
+                <!-- Chi-squared -->
+                <div class="preprocess-card">
+                    <input type="radio" name="feature_selection" id="chi2" />
+                    <label for="chi2">
+                        <h3>Chi-squared</h3>
+                        <p>Convert categorical labels into numeric form.</p>
+                    </label>
+                    <div class="info-tooltip">Tests the independence of categorical features with the target variable
+                        using the chi-squared test.</div>
                 </div>
             </div>
         </div>

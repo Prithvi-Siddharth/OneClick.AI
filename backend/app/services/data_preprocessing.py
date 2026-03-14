@@ -214,6 +214,17 @@ def apply_preprocessing(df_full, operations, attributes):
                 if attr != target_col:
                     means = df_full.groupby(attr)[target_col].mean()
                     df_full[attr] = df_full[attr].map(means)
+        
+        if "freq" in encoding_ops and categorical_attrs:
+            for attr in categorical_attrs:
+                freq = df_full[attr].value_counts(normalize=True)
+                df_full[attr] = df_full[attr].map(freq)
+        
+        if "ordinal" in encoding_ops and categorical_attrs:
+            for attr in categorical_attrs:
+                unique_values = df_full[attr].unique()
+                value_to_rank = {value: rank for rank, value in enumerate(unique_values)}
+                df_full[attr] = df_full[attr].map(value_to_rank)
 
         # Step 6: Feature Scaling
         scaling_ops = [op for op in operations.get("scaling", []) if op]
@@ -229,7 +240,7 @@ def apply_preprocessing(df_full, operations, attributes):
             if "minmax" in scaling_ops:
                 scaler = preprocessing.MinMaxScaler()
                 df_full[numeric_attrs] = scaler.fit_transform(df_full[numeric_attrs])
-            elif "standard" in scaling_ops or "zscore_scale" in scaling_ops:
+            elif "zscore_scale" in scaling_ops:
                 scaler = preprocessing.StandardScaler()
                 df_full[numeric_attrs] = scaler.fit_transform(df_full[numeric_attrs])
             elif "robust" in scaling_ops:
@@ -259,13 +270,63 @@ def apply_preprocessing(df_full, operations, attributes):
             elif "yeojohnson" in trans_ops:
                 pt = preprocessing.PowerTransformer(method='yeo-johnson')
                 df_full[[attr]] = pt.fit_transform(df_full[[attr]])
+            elif "boxcox" in trans_ops:
+                pt = preprocessing.PowerTransformer(method='box-cox')
+                df_full[[attr]] = pt.fit_transform(df_full[[attr]])
         
-        if "binning" in trans_ops or "discretization" in trans_ops:
+        if "binning" in trans_ops:
             for attr in numeric_attrs:
                 df_full[attr] = pd.qcut(df_full[attr], q=5, labels=False, duplicates='drop')
 
-        # Steps 8-10: Simplified Placeholders for now as they often require target columns or specific params
-        # Feature Selection, Data Reduction, Imbalanced Data usually happen right before training
+        # Step 8: Feature Selection
+        feature_selection_ops = [op for op in operations.get("feature_selection", []) if op]
+        if feature_selection_ops:
+            for attr in attributes:
+                if attr in df_full.columns and not pd.api.types.is_numeric_dtype(df_full[attr]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Attribute '{attr}' is not numeric. Feature selection requires numeric data."
+                    )
+            if "low_variance" in feature_selection_ops:
+                df_full = df_full.loc[:, df_full.var() > 0.1]
+            if "kbest_f_classif" in feature_selection_ops:
+                df_full = df_full.loc[:, df_full.kbest_f_classif() > 0.1]
+            if "tree_importance" in feature_selection_ops:
+                df_full = df_full.loc[:, df_full.tree_importance() > 0.1]
+            if "correlation_threshold" in feature_selection_ops:
+                df_full = df_full.loc[:, df_full.corr() > 0.1]
+            if "chi2" in feature_selection_ops:
+                df_full = df_full.loc[:, df_full.chi2() > 0.1]
+        
+        # Step 9: Data Reduction
+        data_reduction_ops = [op for op in operations.get("data_reduction", []) if op]
+        if data_reduction_ops:
+            for attr in attributes:
+                if attr in df_full.columns and not pd.api.types.is_numeric_dtype(df_full[attr]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Attribute '{attr}' is not numeric. Data reduction requires numeric data."
+                    )
+            if "pca" in data_reduction_ops:
+                df_full = df_full.loc[:, df_full.pca() > 0.1]
+            if "lda" in data_reduction_ops:
+                df_full = df_full.loc[:, df_full.lda() > 0.1]
+            if "svd" in data_reduction_ops:
+                df_full = df_full.loc[:, df_full.svd() > 0.1]
+        
+        # Step 10: Imbalanced Data
+        imbalanced_data_ops = [op for op in operations.get("imbalanced_data", []) if op]
+        if imbalanced_data_ops:
+            for attr in attributes:
+                if attr in df_full.columns and not pd.api.types.is_numeric_dtype(df_full[attr]):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Attribute '{attr}' is not numeric. Imbalanced data requires numeric data."
+                    )
+            if "smote" in imbalanced_data_ops:
+                df_full = df_full.loc[:, df_full.smote() > 0.1]
+            if "class_weights" in imbalanced_data_ops:
+                df_full = df_full.loc[:, df_full.class_weights() > 0.1]
         
         return df_full
     except HTTPException:
