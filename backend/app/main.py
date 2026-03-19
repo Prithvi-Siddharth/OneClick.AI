@@ -11,7 +11,7 @@ from app.db import engine
 from app.models import Base
 
 # Import all routers
-from app.routers import auth, dashboard, data_catalog, model_catalog, preprocessing, training
+from app.routers import auth, dashboard, data_catalog, model_catalog, preprocessing, training, notes
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
@@ -37,6 +37,7 @@ app.include_router(data_catalog.router)
 app.include_router(model_catalog.router)
 app.include_router(preprocessing.router)
 app.include_router(training.router)
+app.include_router(notes.router)
 
 
 # rendering of home.html page

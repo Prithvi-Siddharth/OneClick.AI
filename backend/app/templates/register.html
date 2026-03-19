@@ -1,86 +1,140 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block title %}Register - OneClick.AI{% endblock %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - OneClick.AI</title>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+</head>
 
-{% block content %}
-<div class="auth-wrapper">
-    <div class="auth-card">
-        <div class="auth-header">
-            <div class="auth-logo">
-                <i class="fas fa-project-diagram"></i>
-                OneClick.AI
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <i class="fas fa-project-diagram"></i>
+            OneClick.AI
+        </a>
+        <div class="navbar-nav" style="margin-left: auto;">
+            <div class="dropdown">
+                <a href="#" class="nav-link">About <i class="fas fa-chevron-down" style="font-size: 0.8em;"></i></a>
+                <div class="dropdown-content">
+                    <a href="/about_mission">Our Mission</a>
+                    <a href="/about_developers">Developers</a>
+                    <a href="/about_techstack">Tech Stack</a>
+                    <a href="/about_guide">User Guide</a>
+                </div>
             </div>
-            <h3>Create an Account</h3>
-            <p class="text-secondary">Fill the details to register</p>
         </div>
+    </nav>
 
-        <form action="/register" method="POST" autocomplete="on">
-
-            {% if message %}
-            <div class="alert alert-success">
-                {{ message }}
-            </div>
-            {% endif %}
-
-            {% if error %}
-            <div class="alert alert-error">
-                {{ error }}
-            </div>
-            {% endif %}
-
-            <div class="form-group" style="text-align: left;">
-                <label for="username" class="form-label">Username</label>
-                <div style="position: relative;">
-                    <i class="fas fa-user-circle" style="position: absolute; left: 10px; top: 12px; color: #aaa;"></i>
-                    <input type="text" id="username" name="username" class="form-control"
-                        placeholder="Choose a username" style="padding-left: 35px;" required>
-                </div>
-            </div>
-
-            <div class="form-group" style="text-align: left;">
-                <label for="email" class="form-label">Email Address</label>
-                <div style="position: relative;">
-                    <i class="fas fa-envelope" style="position: absolute; left: 10px; top: 12px; color: #aaa;"></i>
-                    <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email"
-                        style="padding-left: 35px;" required>
-                </div>
-            </div>
-
-            <div class="form-group" style="text-align: left;">
-                <label for="password" class="form-label">Password</label>
-                <div style="position: relative;">
-                    <i class="fas fa-lock" style="position: absolute; left: 10px; top: 12px; color: #aaa;"></i>
-                    <input type="password" id="password" name="password" class="form-control"
-                        placeholder="Create a password" style="padding-left: 35px; padding-right: 40px;" required>
-                    <i class="fas fa-eye" id="togglePassword"
-                        style="position: absolute; right: 10px; top: 12px; color: #aaa; cursor: pointer;"></i>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
-            </div>
-
-            <div style="margin-top: 20px; font-size: 0.9rem;">
-                Already have an account? <a href="/login">Login</a>
-            </div>
-
-        </form>
+    <!-- Flash Messages -->
+    <div class="container" style="padding-bottom: 0;">
+        {# Check query params for redirects #}
+        {% if request.query_params.get('error') %}
+        <div class="alert alert-danger">
+            {{ request.query_params.get('error') | replace('_', ' ') | capitalize }}
+        </div>
+        {% endif %}
+        {% if request.query_params.get('message') %}
+        <div class="alert alert-success">
+            {{ request.query_params.get('message') | replace('_', ' ') | capitalize }}
+        </div>
+        {% endif %}
     </div>
-</div>
-{% endblock %}
 
-{% block scripts %}
-<script>
-    const togglePassword = document.querySelector('#togglePassword');
-    const password = document.querySelector('#password');
+    <!-- Main Content -->
+    <main>
+        <div class="auth-wrapper">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <div class="auth-logo">
+                        <i class="fas fa-project-diagram"></i>
+                        OneClick.AI
+                    </div>
+                    <h3>Create an Account</h3>
+                    <p class="text-secondary">Fill the details to register</p>
+                </div>
 
-    togglePassword.addEventListener('click', function (e) {
-        // toggle the type attribute
-        const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-        password.setAttribute('type', type);
-        // toggle the eye slash icon
-        this.classList.toggle('fa-eye-slash');
-    });
-</script>
-{% endblock %}
+                <form action="/register" method="POST" autocomplete="on">
+
+                    {% if message %}
+                    <div class="alert alert-success">
+                        {{ message }}
+                    </div>
+                    {% endif %}
+
+                    {% if error %}
+                    <div class="alert alert-error">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <div class="form-group" style="text-align: left;">
+                        <label for="username" class="form-label">Username</label>
+                        <div style="position: relative;">
+                            <i class="fas fa-user-circle" style="position: absolute; left: 10px; top: 12px; color: #aaa;"></i>
+                            <input type="text" id="username" name="username" class="form-control"
+                                placeholder="Choose a username" style="padding-left: 35px;" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="text-align: left;">
+                        <label for="email" class="form-label">Email Address</label>
+                        <div style="position: relative;">
+                            <i class="fas fa-envelope" style="position: absolute; left: 10px; top: 12px; color: #aaa;"></i>
+                            <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email"
+                                style="padding-left: 35px;" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="text-align: left;">
+                        <label for="password" class="form-label">Password</label>
+                        <div style="position: relative;">
+                            <i class="fas fa-lock" style="position: absolute; left: 10px; top: 12px; color: #aaa;"></i>
+                            <input type="password" id="password" name="password" class="form-control"
+                                placeholder="Create a password" style="padding-left: 35px; padding-right: 40px;" required>
+                            <i class="fas fa-eye" id="togglePassword"
+                                style="position: absolute; right: 10px; top: 12px; color: #aaa; cursor: pointer;"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+                    </div>
+
+                    <div style="margin-top: 20px; font-size: 0.9rem;">
+                        Already have an account? <a href="/login">Login</a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 OneClick.AI. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const togglePassword = document.querySelector('#togglePassword');
+        const password = document.querySelector('#password');
+
+        if (togglePassword && password) {
+            togglePassword.addEventListener('click', function (e) {
+                // toggle the type attribute
+                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+                password.setAttribute('type', type);
+                // toggle the eye slash icon
+                this.classList.toggle('fa-eye-slash');
+            });
+        }
+    </script>
+</body>
+
+</html>

@@ -65,3 +65,12 @@ class PreprocessingLog(Base):
     operation_name = Column(String(255), nullable=False)
     attributes = Column(String(4096), nullable=True) # JSON list of attributes
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+class Note(Base):
+    __tablename__ = 'notes'
+    
+    note_id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=False)
+    note_text = Column(String(10000), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
