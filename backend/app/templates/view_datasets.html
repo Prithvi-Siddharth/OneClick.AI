@@ -50,7 +50,11 @@
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h1 style="color: #1a202c; margin: 0;">Datasets</h1>
-        <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary" id="openUploadBtn"><i class="fas fa-plus"></i> Add to Catalog</button>
+            <input type="file" id="datasetFileInput" style="display: none;" />
+            <a href="/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
     </div>
 
     <div class="card" style="padding: 0; overflow: hidden;">
@@ -104,6 +108,33 @@
                 <!-- Table will be injected here -->
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Upload Dataset Modal -->
+<div class="modal-overlay" id="uploadModalOverlay">
+    <div class="modal-box">
+        <button class="modal-close" id="closeUploadModal">&times;</button>
+        <div class="modal-title">Upload Dataset</div>
+        <form id="uploadForm" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <span class="form-label">Selected File</span>
+                <div id="selectedFileText" style="padding: 10px; background: #f8f9fa; border: 1px dashed #ced4da; border-radius: 4px;">No file selected</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="datasetFilename">Dataset Filename</label>
+                <input class="form-control" type="text" id="datasetFilename" name="datasetFilename" required />
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="datasetDescription">Description</label>
+                <textarea class="form-control" id="datasetDescription" name="datasetDescription" rows="3" placeholder="Enter dataset details..."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" id="cancelUploadBtn">Cancel</button>
+                <button class="btn btn-primary" type="submit">Upload</button>
+            </div>
+            <div id="uploadStatusText" style="margin-top: 10px; text-align: center; font-size: 0.9rem;"></div>
+        </form>
     </div>
 </div>
 {% endblock %}
@@ -234,6 +265,68 @@
                 alert(`Error downloading dataset: ${error.message}`);
             }
         });
+    });
+
+    // --- Upload Dataset Logic ---
+    const openUploadBtn = document.getElementById('openUploadBtn');
+    const datasetFileInput = document.getElementById('datasetFileInput');
+    const uploadModalOverlay = document.getElementById('uploadModalOverlay');
+    const closeUploadModal = document.getElementById('closeUploadModal');
+    const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadStatusText = document.getElementById('uploadStatusText');
+    const selectedFileText = document.getElementById('selectedFileText');
+    const datasetFilenameInput = document.getElementById('datasetFilename');
+    const datasetDescriptionInput = document.getElementById('datasetDescription');
+    let selectedUploadFile = null;
+
+    openUploadBtn.addEventListener('click', () => datasetFileInput.click());
+
+    datasetFileInput.addEventListener('change', () => {
+        if (!datasetFileInput.files || datasetFileInput.files.length === 0) return;
+        selectedUploadFile = datasetFileInput.files[0];
+        selectedFileText.innerText = `${selectedUploadFile.name} (${(selectedUploadFile.size / 1024).toFixed(2)} KB)`;
+        datasetFilenameInput.value = selectedUploadFile.name.replace(/\.[^/.]+$/, '');
+        datasetDescriptionInput.value = '';
+        uploadStatusText.innerText = '';
+        uploadModalOverlay.style.display = 'flex';
+    });
+
+    function closeUploadModalFn() {
+        uploadModalOverlay.style.display = 'none';
+        uploadStatusText.innerText = '';
+        datasetFileInput.value = '';
+    }
+
+    closeUploadModal.addEventListener('click', closeUploadModalFn);
+    cancelUploadBtn.addEventListener('click', closeUploadModalFn);
+    uploadModalOverlay.addEventListener('click', (e) => { if (e.target === uploadModalOverlay) closeUploadModalFn(); });
+
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!selectedUploadFile) { uploadStatusText.innerText = 'No file selected.'; return; }
+        const finalName = datasetFilenameInput.value.trim();
+        const desc = datasetDescriptionInput.value.trim();
+        if (!finalName) { uploadStatusText.innerText = 'Filename is required.'; return; }
+
+        uploadStatusText.innerText = 'Uploading...';
+        const formData = new FormData();
+        formData.append('dataset_file', selectedUploadFile);
+        formData.append('datasetFilename', finalName);
+        formData.append('datasetDescription', desc);
+
+        try {
+            const response = await fetch('/upload_dataset', { method: 'POST', body: formData });
+            if (!response.ok) {
+                const err = await response.text();
+                uploadStatusText.innerHTML = `<span style="color: var(--error-color)">Upload failed: ${err}</span>`;
+                return;
+            }
+            uploadStatusText.innerHTML = `<span style="color: var(--success-color)">Uploaded successfully!</span>`;
+            setTimeout(() => { closeUploadModalFn(); location.reload(); }, 1000);
+        } catch (error) {
+            uploadStatusText.innerHTML = `<span style="color: var(--error-color)">Error uploading file.</span>`;
+        }
     });
 </script>
 {% endblock %}

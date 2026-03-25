@@ -61,6 +61,7 @@ def connect_dataset_train(
             raise ValueError("S3_BUCKET_NAME not configured in environment variables")
 
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        source_ext = os.path.splitext(dataset.s3_key)[1]  # e.g. '.xlsx'
 
         # Call the function with required metadata from the catalog record
         temp_dataset = duplicate_dataset_in_s3(
@@ -68,7 +69,7 @@ def connect_dataset_train(
             user_id=int(user_id),
             bucket_name=bucket_name,
             source_key=dataset.s3_key,
-            destination_key=f"{dataset.user_id}/temporary_datasets/{timestamp}",
+            destination_key=f"{dataset.user_id}/temporary_datasets/{timestamp}{source_ext}",
             row_count=dataset.row_count,
             feature_schema=dataset.feature_schema,
             file_size=dataset.file_size

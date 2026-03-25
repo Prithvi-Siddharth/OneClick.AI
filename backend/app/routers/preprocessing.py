@@ -16,6 +16,40 @@ router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
 
 
+def read_df_from_s3(s3_bucket: str, s3_key: str) -> pd.DataFrame:
+    """
+    Reads a dataset from S3 into a pandas DataFrame.
+    Automatically detects file format from the S3 key extension.
+    Supports: csv, json, xls, xlsx
+    """
+    s3 = get_s3_client()
+    response = s3.get_object(Bucket=s3_bucket, Key=s3_key)
+    content = response['Body'].read()
+    file_buffer = BytesIO(content)
+
+    ext = s3_key.lower().rsplit('.', 1)[-1] if '.' in s3_key.split('/')[-1] else ''
+
+    # If no extension found, sniff file content for Excel (ZIP/PK magic bytes)
+    if ext not in ('csv', 'json', 'xls', 'xlsx'):
+        if content[:4] == b'PK\x03\x04':  # ZIP magic bytes (xlsx is a ZIP)
+            ext = 'xlsx'
+        else:
+            ext = 'csv'  # Default fallback
+
+    if ext == 'csv':
+        return pd.read_csv(file_buffer)
+    elif ext == 'json':
+        try:
+            return pd.read_json(file_buffer, lines=True)
+        except ValueError:
+            file_buffer.seek(0)
+            return pd.read_json(file_buffer)
+    elif ext in ('xls', 'xlsx'):
+        return pd.read_excel(file_buffer)
+    else:
+        return pd.read_csv(file_buffer)
+
+
 #preprocessing page
 @router.get("/preprocessing")
 def preprocessing_page(request: Request, db: Session = Depends(get_db)):
@@ -126,6 +160,7 @@ def connect_dataset(
             raise ValueError("S3_BUCKET_NAME not configured in environment variables")
 
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        source_ext = os.path.splitext(dataset.s3_key)[1]  # e.g. '.xlsx'
 
         # Call the function with required metadata from the catalog record
         temp_dataset = duplicate_dataset_in_s3(
@@ -133,7 +168,7 @@ def connect_dataset(
             user_id=int(user_id),
             bucket_name=bucket_name,
             source_key=dataset.s3_key,
-            destination_key=f"{dataset.user_id}/temporary_datasets/{timestamp}",
+            destination_key=f"{dataset.user_id}/temporary_datasets/{timestamp}{source_ext}",
             row_count=dataset.row_count,
             feature_schema=dataset.feature_schema,
             file_size=dataset.file_size
@@ -177,7 +212,7 @@ def preview_temporary_dataset(temp_id: int, request: Request, db: Session = Depe
     data = read_dataset_from_s3(
         bucket_name=temp_dataset.s3_bucket,
         s3_key=temp_dataset.s3_key,
-        filename=f"temp_{temp_id}.csv", # Placeholder name
+        filename=temp_dataset.s3_key.split('/')[-1],  # Use actual filename from S3 key
         preview_limit=5
     )
     
@@ -203,10 +238,7 @@ def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
             ).order_by(TemporaryDataset.id.desc()).first()
     
     #fetching the dataset from s3 bucket.
-    s3 = get_s3_client()
-    response = s3.get_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key)
-    from io import BytesIO
-    df = pd.read_csv(BytesIO(response['Body'].read()))
+    df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
     
     return templates.TemplateResponse("preprocess-dataset.html", {
         "request": request,
@@ -345,10 +377,7 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
 
             if action == "get_preview":
                 await send_status("📋 Fetching initial preview...")
-                s3 = get_s3_client()
-                response = s3.get_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key)
-                from io import BytesIO
-                df = pd.read_csv(BytesIO(response['Body'].read()))
+                df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
                 await send_preview(df)
                 await send_history(active_dataset.id)
                 await send_status("✅ Preview loaded.")
@@ -360,10 +389,7 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 await send_progress(10, f"� Loading dataset for {len(attributes)} attributes...")
                 
                 # 2. Load from S3
-                s3 = get_s3_client()
-                response = s3.get_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key)
-                from io import BytesIO
-                df = pd.read_csv(BytesIO(response['Body'].read()))
+                df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
 
                 # 3. Apply preprocessing
                 await send_progress(30, "⚙️ Applying transformations...")
