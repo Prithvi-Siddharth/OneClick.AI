@@ -380,3 +380,5 @@ def apply_preprocessing(df_full, operations, attributes):
         import traceback
         traceback.print_exc()
         return {"error": f"Pandas processing error: {str(e)}"}
+
+
