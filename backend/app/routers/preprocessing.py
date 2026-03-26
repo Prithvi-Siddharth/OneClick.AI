@@ -406,6 +406,7 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 csv_buffer.seek(0)
                 
                 await send_progress(80, "☁️ Uploading changes to S3...")
+                s3 = get_s3_client()
                 s3.put_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key, Body=csv_buffer.getvalue())
                 
                 # 5. Send updated preview

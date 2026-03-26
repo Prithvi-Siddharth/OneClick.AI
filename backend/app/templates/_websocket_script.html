@@ -187,6 +187,7 @@
             operations: selectedOps
         }));
 
+        addLogEntry(selectedOps, attributes); 
         resetRadioButtons();
     }
 
@@ -303,5 +304,68 @@
         }
     }
 
+    function showHistory() {
+        document.getElementById('activity-log-sidebar').classList.add('open');
+        document.getElementById('sidebar-overlay').style.display = 'block';
+    }
+
+    function hideHistory() {
+        document.getElementById('activity-log-sidebar').classList.remove('open');
+        document.getElementById('sidebar-overlay').style.display = 'none';
+    }
+
+    // Close when clicking outside the sidebar
+    document.addEventListener('click', (e) => {
+        const sidebar = document.getElementById('activity-log-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (e.target === overlay) {
+            hideHistory();
+        }
+    });
+
+    // ── Activity Log State ────────────────────────────────────────────────────────
+    const activityLog = [];
+
+    function addLogEntry(operations, attributes) {
+        const timestamp = new Date().toLocaleTimeString();
+
+        // Build a readable label for what was applied
+        Object.entries(operations).forEach(([step, ops]) => {
+            ops.forEach(op => {
+                activityLog.unshift({           // unshift = newest first
+                    step: step.replace(/_/g, ' '),
+                    operation: op.replace(/_/g, ' '),
+                    attributes: attributes,
+                    timestamp
+                });
+            });
+        });
+
+        renderLogList();
+    }
+
+    function renderLogList() {
+        const logList = document.getElementById('log-list');
+
+        if (activityLog.length === 0) {
+            logList.innerHTML = '<p style="color: #64748b; text-align: center; margin-top: 2rem;">No preprocessing steps applied yet.</p>';
+            return;
+        }
+
+        logList.innerHTML = activityLog.map((entry, index) => `
+            <div class="log-item">
+                <div class="log-item-header">
+                    <span>#${activityLog.length - index} &nbsp;|&nbsp; ${entry.step}</span>
+                    <span class="log-item-time">${entry.timestamp}</span>
+                </div>
+                <div class="log-item-details">
+                    Operation: <strong>${entry.operation}</strong>
+                </div>
+                <div class="log-item-attrs">
+                    ${entry.attributes.join(', ')}
+                </div>
+            </div>
+        `).join('');
+    }
 
 </script>
