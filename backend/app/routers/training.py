@@ -10,6 +10,8 @@ from app.models import Dataset, TemporaryDataset
 from app.security import get_current_user_id
 from app.services.s3_operations import duplicate_dataset_in_s3
 from app.services.constants import get_hyperparameters
+from app.models import Experiment
+import json
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
@@ -125,17 +127,21 @@ def models_page(request: Request, db: Session = Depends(get_db), dataset_id: int
     
     dataset = None
     if dataset_id:
-        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.id == dataset_id, TemporaryDataset.user_id == int(user_id)).first()
+        dataset = db.query(TemporaryDataset).filter(
+            TemporaryDataset.id == dataset_id, 
+            TemporaryDataset.user_id == int(user_id)
+        ).first()
     
-    if not dataset:
-        # Fallback to the latest temporary dataset if no ID provided or not found
-        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+    try:
+        hyperparams = get_hyperparameters(model)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"Model {model} not supported")
     
     return templates.TemplateResponse("train_dataset.html", {
         "request": request,
         "dataset": dataset,
         "model": model,
-        "hyperparameters": get_hyperparameters(model)
+        "hyperparameters": hyperparams
     })
 
 @router.post("/tune_hyperparameters")

@@ -3,7 +3,10 @@ import numpy as np
 from io import BytesIO
 from sklearn import preprocessing
 from sklearn.impute import KNNImputer
-from fastapi import HTTPException 
+from fastapi import HTTPException
+from sklearn.decomposition import PCA, TruncatedSVD
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.feature_selection import VarianceThreshold, SelectKBest, f_classif
 
 def get_dataset_preview_and_stats(file_buffer, extension, preview_limit=5):
     try:
@@ -252,27 +255,27 @@ def apply_preprocessing(df_full, operations, attributes):
 
         # Step 7: Transformations
         trans_ops = [op for op in operations.get("transformations", []) if op]
-        if trans_ops:
+        if trans_ops and numeric_attrs:
             for attr in attributes:
                 if attr in df_full.columns and not pd.api.types.is_numeric_dtype(df_full[attr]):
                     raise HTTPException(
                         status_code=400,
                         detail=f"Attribute '{attr}' is not numeric. Transformations require numeric data."
                     )
-        
-        for attr in numeric_attrs:
-            if "log" in trans_ops:
-                df_full[attr] = np.log1p(df_full[attr].clip(lower=0))
-            elif "sqrt" in trans_ops:
-                df_full[attr] = np.sqrt(df_full[attr].clip(lower=0))
-            elif "reciprocal" in trans_ops:
-                df_full[attr] = 1 / (df_full[attr].replace(0, np.nan))
-            elif "yeojohnson" in trans_ops:
-                pt = preprocessing.PowerTransformer(method='yeo-johnson')
-                df_full[[attr]] = pt.fit_transform(df_full[[attr]])
-            elif "boxcox" in trans_ops:
-                pt = preprocessing.PowerTransformer(method='box-cox')
-                df_full[[attr]] = pt.fit_transform(df_full[[attr]])
+            for attr in numeric_attrs:
+                if "log" in trans_ops:
+                    df_full[attr] = np.log1p(df_full[attr].clip(lower=0))
+                elif "sqrt" in trans_ops:
+                    df_full[attr] = np.sqrt(df_full[attr].clip(lower=0))
+                elif "reciprocal" in trans_ops:
+                    # replace(0, np.nan) prevents DivisionByZero errors
+                    df_full[attr] = 1 / (df_full[attr].replace(0, np.nan))
+                elif "yeojohnson" in trans_ops:
+                    pt = preprocessing.PowerTransformer(method='yeo-johnson')
+                    df_full[[attr]] = pt.fit_transform(df_full[[attr]])
+                elif "boxcox" in trans_ops:
+                    pt = preprocessing.PowerTransformer(method='box-cox')
+                    df_full[[attr]] = pt.fit_transform(df_full[[attr]].clip(lower=1e-6))
         
         if "binning" in trans_ops:
             for attr in numeric_attrs:
@@ -280,54 +283,96 @@ def apply_preprocessing(df_full, operations, attributes):
 
         # Step 8: Feature Selection
         feature_selection_ops = [op for op in operations.get("feature_selection", []) if op]
-        if feature_selection_ops:
+        if feature_selection_ops and numeric_attrs:
+            # Validation
             for attr in attributes:
                 if attr in df_full.columns and not pd.api.types.is_numeric_dtype(df_full[attr]):
                     raise HTTPException(
                         status_code=400,
                         detail=f"Attribute '{attr}' is not numeric. Feature selection requires numeric data."
                     )
+            
+            # Assume last column is target for supervised methods
+            target_col = df_full.columns[-1]
+
             if "low_variance" in feature_selection_ops:
-                df_full = df_full.loc[:, df_full.var() > 0.1]
+                selector = VarianceThreshold(threshold=0.1)
+                selected_data = selector.fit_transform(df_full[numeric_attrs])
+                new_cols = df_full[numeric_attrs].columns[selector.get_support()].tolist()
+                df_full = df_full.drop(columns=numeric_attrs).join(pd.DataFrame(selected_data, columns=new_cols, index=df_full.index))
+                numeric_attrs = new_cols
+
             if "kbest_f_classif" in feature_selection_ops:
-                df_full = df_full.loc[:, df_full.kbest_f_classif() > 0.1]
-            if "tree_importance" in feature_selection_ops:
-                df_full = df_full.loc[:, df_full.tree_importance() > 0.1]
+                k = min(10, len(numeric_attrs))
+                selector = SelectKBest(f_classif, k=k)
+                selector.fit(df_full[numeric_attrs], df_full[target_col])
+                new_cols = df_full[numeric_attrs].columns[selector.get_support()].tolist()
+                df_full = df_full.drop(columns=numeric_attrs).join(df_full[new_cols])
+                numeric_attrs = new_cols
+
             if "correlation_threshold" in feature_selection_ops:
-                df_full = df_full.loc[:, df_full.corr() > 0.1]
-            if "chi2" in feature_selection_ops:
-                df_full = df_full.loc[:, df_full.chi2() > 0.1]
-        
+                corr_matrix = df_full[numeric_attrs].corr().abs()
+                upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(bool))
+                to_drop = [column for column in upper.columns if any(upper[column] > 0.9)]
+                df_full = df_full.drop(columns=to_drop)
+                numeric_attrs = [c for c in numeric_attrs if c not in to_drop]
+
         # Step 9: Data Reduction
         data_reduction_ops = [op for op in operations.get("data_reduction", []) if op]
-        if data_reduction_ops:
+        if data_reduction_ops and numeric_attrs:
             for attr in attributes:
                 if attr in df_full.columns and not pd.api.types.is_numeric_dtype(df_full[attr]):
                     raise HTTPException(
                         status_code=400,
                         detail=f"Attribute '{attr}' is not numeric. Data reduction requires numeric data."
                     )
+
             if "pca" in data_reduction_ops:
-                df_full = df_full.loc[:, df_full.pca() > 0.1]
-            if "lda" in data_reduction_ops:
-                df_full = df_full.loc[:, df_full.lda() > 0.1]
-            if "svd" in data_reduction_ops:
-                df_full = df_full.loc[:, df_full.svd() > 0.1]
-        
+                pca = PCA(n_components=0.95 if len(numeric_attrs) > 1 else 1) 
+                transformed = pca.fit_transform(df_full[numeric_attrs])
+                new_cols = [f"PC{i+1}" for i in range(transformed.shape[1])]
+                df_pca = pd.DataFrame(transformed, columns=new_cols, index=df_full.index)
+                df_full = df_full.drop(columns=numeric_attrs).join(df_pca)
+                numeric_attrs = new_cols
+
+            elif "lda" in data_reduction_ops:
+                target_col = df_full.columns[-1]
+                lda = LinearDiscriminantAnalysis()
+                transformed = lda.fit_transform(df_full[numeric_attrs], df_full[target_col].astype(str))
+                new_cols = [f"LDA{i+1}" for i in range(transformed.shape[1])]
+                df_lda = pd.DataFrame(transformed, columns=new_cols, index=df_full.index)
+                df_full = df_full.drop(columns=numeric_attrs).join(df_lda)
+                numeric_attrs = new_cols
+
+            elif "svd" in data_reduction_ops:
+                svd = TruncatedSVD(n_components=min(len(numeric_attrs)-1, 5))
+                transformed = svd.fit_transform(df_full[numeric_attrs])
+                new_cols = [f"SVD{i+1}" for i in range(transformed.shape[1])]
+                df_svd = pd.DataFrame(transformed, columns=new_cols, index=df_full.index)
+                df_full = df_full.drop(columns=numeric_attrs).join(df_svd)
+                numeric_attrs = new_cols
+
         # Step 10: Imbalanced Data
         imbalanced_data_ops = [op for op in operations.get("imbalanced_data", []) if op]
-        if imbalanced_data_ops:
-            for attr in attributes:
-                if attr in df_full.columns and not pd.api.types.is_numeric_dtype(df_full[attr]):
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Attribute '{attr}' is not numeric. Imbalanced data requires numeric data."
-                    )
+        if imbalanced_data_ops and numeric_attrs:
+            target_col = df_full.columns[-1]
             if "smote" in imbalanced_data_ops:
-                df_full = df_full.loc[:, df_full.smote() > 0.1]
+                try:
+                    from imblearn.over_sampling import SMOTE
+                    smote = SMOTE()
+                    X_res, y_res = smote.fit_resample(df_full[numeric_attrs], df_full[target_col])
+                    df_res = pd.DataFrame(X_res, columns=numeric_attrs)
+                    df_res[target_col] = y_res
+                    df_full = df_res
+                except ImportError:
+                    pass
+
             if "class_weights" in imbalanced_data_ops:
-                df_full = df_full.loc[:, df_full.class_weights() > 0.1]
-        
+                from sklearn.utils.class_weight import compute_class_weight
+                weights = compute_class_weight('balanced', classes=np.unique(df_full[target_col]), y=df_full[target_col])
+                weight_dict = dict(zip(np.unique(df_full[target_col]), weights))
+                df_full['sample_weight'] = df_full[target_col].map(weight_dict)
+
         return df_full
     except HTTPException:
         raise
@@ -335,3 +380,5 @@ def apply_preprocessing(df_full, operations, attributes):
         import traceback
         traceback.print_exc()
         return {"error": f"Pandas processing error: {str(e)}"}
+
+
