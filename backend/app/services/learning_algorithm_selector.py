@@ -1,4 +1,4 @@
-def recommend_algorithms(
+def recommend_algorithms_scoring(
     problem_type="classification",
     dataset_size="medium",
     feature_type="numerical",
@@ -47,97 +47,158 @@ def recommend_algorithms(
         Top 3 recommended algorithms
     """
 
-    recommendations = []
+
+    # ===============================
+    # 1. Initialize Scores
+    # ===============================
+
+    scores = {
+        # Regression
+        "Linear Regression": 0,
+        "Ridge (L2)": 0,
+        "Lasso (L1)": 0,
+        "SVR": 0,
+        "KNN Regressor": 0,
+
+        # Classification
+        "Logistic Regression": 0,
+        "SVC": 0,
+        "KNN Classifier": 0,
+
+        # General / Tree-based
+        "Decision Tree": 0,
+        "Random Forest": 0,
+
+        # Clustering
+        "KMeans Clustering": 0
+    }
+
+    # ===============================
+    # 2. Problem Type Weighting
+    # ===============================
 
     if problem_type == "regression":
-
-        if need_interpretability:
-            if linearity == "linear":
-                recommendations = ["Linear Regression", "Ridge (L2)", "Lasso (L1)"]
-            else:
-                recommendations = ["Decision Tree", "Ridge (L2)", "Lasso (L1)"]
-
-        else:
-            if dataset_size == "small":
-                recommendations = ["KNN Regressor", "SVR", "Decision Tree"]
-            else:
-                if noise_level == "high":
-                    recommendations = ["Random Forest", "SVR", "Ridge (L2)"]
-                else:
-                    recommendations = ["Random Forest", "Decision Tree", "SVR"]
-
-        # Feature dimensionality tweak
-        if n_features == "high":
-            recommendations.insert(0, "Ridge (L2)")
-
-    # ===============================
-    # 2. CLASSIFICATION LOGIC
-    # ===============================
+        for algo in ["Linear Regression", "Ridge (L2)", "Lasso (L1)", "SVR", "KNN Regressor", "Decision Tree", "Random Forest"]:
+            scores[algo] += 3
 
     elif problem_type == "classification":
-
-        if need_interpretability:
-            if feature_type == "numerical":
-                recommendations = ["Logistic Regression", "Decision Tree", "SVC"]
-            else:
-                recommendations = ["Decision Tree", "Logistic Regression", "KNN Classifier"]
-
-        else:
-            if dataset_size == "small":
-                recommendations = ["KNN Classifier", "SVC", "Decision Tree"]
-            else:
-                if noise_level == "high":
-                    recommendations = ["Random Forest", "SVC", "KNN Classifier"]
-                else:
-                    recommendations = ["Random Forest", "SVC", "Decision Tree"]
-
-        # Handle imbalance
-        if class_balance == "imbalanced":
-            recommendations.insert(0, "Random Forest")
-
-        # Linearity preference
-        if linearity == "linear":
-            recommendations.insert(0, "Logistic Regression")
-
-    # ===============================
-    # 3. CLUSTERING LOGIC
-    # ===============================
+        for algo in ["Logistic Regression", "SVC", "KNN Classifier", "Decision Tree", "Random Forest"]:
+            scores[algo] += 3
 
     elif problem_type == "clustering":
-
-        if dataset_size == "small":
-            recommendations = ["KMeans Clustering", "KNN Classifier", "Decision Tree"]
-        else:
-            if noise_level == "high":
-                recommendations = ["KMeans Clustering", "Random Forest", "Decision Tree"]
-            else:
-                recommendations = ["KMeans Clustering", "KNN Classifier", "SVC"]
+        scores["KMeans Clustering"] += 5
 
     # ===============================
-    # 4. SPEED CONSTRAINT ADJUSTMENT
+    # 3. Linearity
+    # ===============================
+
+    if linearity == "linear":
+        scores["Linear Regression"] += 3
+        scores["Logistic Regression"] += 3
+        scores["Ridge (L2)"] += 2
+        scores["Lasso (L1)"] += 2
+
+    elif linearity == "non-linear":
+        scores["Random Forest"] += 3
+        scores["Decision Tree"] += 2
+        scores["SVC"] += 2
+        scores["KNN Classifier"] += 1
+        scores["KNN Regressor"] += 1
+
+    # ===============================
+    # 4. Dataset Size
+    # ===============================
+
+    if dataset_size == "small":
+        scores["KNN Classifier"] += 3
+        scores["KNN Regressor"] += 3
+        scores["SVC"] += 2
+
+    elif dataset_size == "large":
+        scores["Random Forest"] += 3
+        scores["Ridge (L2)"] += 2
+        scores["Lasso (L1)"] += 2
+
+    # ===============================
+    # 5. Noise Handling
+    # ===============================
+
+    if noise_level == "high":
+        scores["Random Forest"] += 4
+        scores["Ridge (L2)"] += 2
+        scores["Lasso (L1)"] += 2
+
+    elif noise_level == "low":
+        scores["Linear Regression"] += 2
+        scores["Logistic Regression"] += 2
+
+    # ===============================
+    # 6. Interpretability
+    # ===============================
+
+    if need_interpretability:
+        scores["Linear Regression"] += 3
+        scores["Logistic Regression"] += 3
+        scores["Decision Tree"] += 3
+
+    # ===============================
+    # 7. Feature Type
+    # ===============================
+
+    if feature_type == "mixed":
+        scores["Decision Tree"] += 2
+        scores["Random Forest"] += 2
+        scores["KNN Classifier"] += 1
+
+    # ===============================
+    # 8. Class Imbalance
+    # ===============================
+
+    if class_balance == "imbalanced":
+        scores["Random Forest"] += 3
+        scores["SVC"] += 2
+
+    # ===============================
+    # 9. Speed Constraint
     # ===============================
 
     if speed_requirement == "fast":
-        # Prefer simpler models
-        fast_models = [
-            "Linear Regression", "Logistic Regression",
-            "Decision Tree", "KNN Classifier", "KNN Regressor"
-        ]
-        recommendations = sorted(
-            recommendations,
-            key=lambda x: x not in fast_models
-        )
+        scores["Linear Regression"] += 2
+        scores["Logistic Regression"] += 2
+        scores["Decision Tree"] += 2
 
     # ===============================
-    # 5. REMOVE DUPLICATES & RETURN TOP 3
+    # 10. High Dimensional Data
     # ===============================
 
-    # Preserve order while removing duplicates
-    seen = set()
-    final_recommendations = []
-    for algo in recommendations:
-        if algo not in seen:
-            final_recommendations.append(algo)
-            seen.add(algo)
+    if n_features == "high":
+        scores["Ridge (L2)"] += 3
+        scores["Lasso (L1)"] += 3
+        scores["SVC"] += 2
 
-    return final_recommendations[:3]
+    # ===============================
+    # 11. Sort & Return Top 3
+    # ===============================
+
+    sorted_algos = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+    top_algorithms = [algo for algo, score in sorted_algos if score > 0]
+
+    # Fallback safety
+    if len(top_algorithms) < 3:
+        return ["Random Forest", "SVC", "Decision Tree"]
+
+    return top_algorithms[:3]
+
+
+# result = recommend_algorithms_scoring(
+#     problem_type="classification",
+#     dataset_size="large",
+#     noise_level="high",
+#     linearity="non-linear",
+#     class_balance="imbalanced"
+# )
+
+# print(result)
+
+
