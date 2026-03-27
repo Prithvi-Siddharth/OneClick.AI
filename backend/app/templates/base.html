@@ -16,36 +16,55 @@
 
     <!-- Navigation Bar -->
     {% if not hide_navbar %}
-    <nav class="navbar">
-        <a href="/dashboard" class="navbar-brand">
-            <i class="fas fa-project-diagram"></i>
-            OneClick.AI
-        </a>
-        <div class="navbar-nav">
-            <a href="/dashboard" class="nav-link">Dashboard</a>
-            <a href="/view_datasets" class="nav-link">Data Catalog</a>
-            <a href="/view_models" class="nav-link">Model Catalog</a>
-            <a href="#" class="nav-link">Experiments</a>
-            <div class="dropdown">
-                <a href="#" class="nav-link">About <i class="fas fa-chevron-down" style="font-size: 0.8em;"></i></a>
-                <div class="dropdown-content">
-                    <a href="/about_mission">Our Mission</a>
-                    <a href="/about_developers">Developers</a>
-                    <a href="/about_techstack">Tech Stack</a>
-                    <a href="/about_guide">User Guide</a>
+        {% if request.cookies.get('access_token') %}
+        <nav class="navbar">
+            <a href="/dashboard" class="navbar-brand">
+                <i class="fas fa-project-diagram"></i>
+                OneClick.AI
+            </a>
+            <div class="navbar-nav">
+                <a href="/dashboard" class="nav-link">Dashboard</a>
+                <a href="/view_datasets" class="nav-link">Data Catalog</a>
+                <a href="/view_models" class="nav-link">Model Catalog</a>
+                <a href="#" class="nav-link">Experiments</a>
+                <div class="dropdown">
+                    <a href="#" class="nav-link">About <i class="fas fa-chevron-down" style="font-size: 0.8em;"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/about_mission">Our Mission</a>
+                        <a href="/about_developers">Developers</a>
+                        <a href="/about_techstack">Tech Stack</a>
+                        <a href="/about_guide">User Guide</a>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="user-menu">
-            <i class="fas fa-bell"></i>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-user-circle" style="font-size: 1.5rem;"></i>
-                <span>{{ username if username else 'User' }}</span>
-                <a href="/logout" style="color: rgba(255,255,255,0.7); margin-left: 10px;"><i
-                        class="fas fa-sign-out-alt"></i></a>
+            <div class="user-menu">
+                <i class="fas fa-bell"></i>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-user-circle" style="font-size: 1.5rem;"></i>
+                    <span>{{ username if username else 'User' }}</span>
+                    <a href="/logout" style="color: rgba(255,255,255,0.7); margin-left: 10px;"><i
+                            class="fas fa-sign-out-alt"></i></a>
+                </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+        {% else %}
+        <nav class="navbar">
+            <a href="/" class="logo" style="text-decoration: none; color: white; font-weight: bold; font-size: 1.2rem;">OneClick.AI</a>
+            <div class="nav-links" style="display: flex; align-items: center; gap: 15px; margin-left: auto;">
+                <div class="dropdown" style="position: relative;">
+                    <a href="#" class="nav-link">About <i class="fas fa-chevron-down" style="font-size: 0.8em;"></i></a>
+                    <div class="dropdown-content">
+                        <a href="/about_mission">Our Mission</a>
+                        <a href="/about_developers">Developers</a>
+                        <a href="/about_techstack">Tech Stack</a>
+                        <a href="/about_guide">User Guide</a>
+                    </div>
+                </div>
+                <a href="/login" class="nav-link" style="color: rgba(255,255,255,0.85);">Login</a>
+                <a href="/register" class="btn btn-sm btn-primary" style="color: white; text-decoration: none;">Get Started</a>
+            </div>
+        </nav>
+        {% endif %}
     {% endif %}
 
     <!-- Flash Messages -->
@@ -84,6 +103,7 @@
         <p>&copy; 2026 OneClick.AI. All rights reserved.</p>
     </footer>
 
+    {% if request.cookies.get('access_token') %}
     <!-- General Features Tool -->
     <div id="features-menu-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 15px;">
         
@@ -571,6 +591,7 @@
             }
         });
     </script>
+    {% endif %}
 
     {% block scripts %}{% endblock %}
 </body>

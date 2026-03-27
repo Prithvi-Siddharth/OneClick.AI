@@ -8,7 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 from app.db import engine
-from app.models import Base
+from app.models import Base, User
+from app.db import get_db
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from app.security import get_current_user_id
 
 # Import all routers
 from app.routers import auth, dashboard, data_catalog, model_catalog, preprocessing, training, notes
@@ -48,21 +52,32 @@ def read_root(request: Request, response_class=HTMLResponse):
 
 
 
+def get_optional_user(request: Request, db: Session):
+    try:
+        user_id = get_current_user_id(request)
+        if user_id:
+            user = db.query(User).filter(User.user_id == int(user_id)).first()
+            if user:
+                return user.username
+    except Exception:
+        pass
+    return None
+
 @app.get("/about_developers")
-def about_developers(request: Request):
-    return templates.TemplateResponse("about_developers.html", {"request": request})
+def about_developers(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("about_developers.html", {"request": request, "username": get_optional_user(request, db)})
 
 @app.get("/about_mission")
-def about_mission(request: Request):
-    return templates.TemplateResponse("about_mission.html", {"request": request})
+def about_mission(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("about_mission.html", {"request": request, "username": get_optional_user(request, db)})
 
 @app.get("/about_techstack")
-def about_techstack(request: Request):
-    return templates.TemplateResponse("about_techstack.html", {"request": request})
+def about_techstack(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("about_techstack.html", {"request": request, "username": get_optional_user(request, db)})
 
 @app.get("/about_guide")
-def about_guide(request: Request):
-    return templates.TemplateResponse("about_guide.html", {"request": request})
+def about_guide(request: Request, db: Session = Depends(get_db)):
+    return templates.TemplateResponse("about_guide.html", {"request": request, "username": get_optional_user(request, db)})
 
 #websocket route for testing
 @app.websocket("/ws")
