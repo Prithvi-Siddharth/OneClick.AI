@@ -14,6 +14,8 @@ from sqlalchemy.orm import Session
 from botocore.exceptions import NoCredentialsError
 from app.models import Dataset, Experiment, TemporaryDataset
 from app.services.data_preprocessing import get_dataset_preview_and_stats
+from io import BytesIO
+import json
 
 
 # Ensure that you have AWS credentials in your environment variables:
@@ -221,7 +223,7 @@ def process_and_save_dataset(
         file_size=file_size,
         row_count=row_count,
         description=description,
-        feature_schema=str(schema_dict) 
+        feature_schema=json.dumps(schema_dict) 
     )
 
     db.add(new_dataset)
@@ -276,7 +278,7 @@ def process_and_save_dataset_temporary(
         s3_bucket=bucket_name,
         file_size=file_size,
         row_count=row_count,
-        feature_schema=str(schema_dict) 
+        feature_schema=json.dumps(schema_dict) 
     )
 
     db.add(new_dataset)
@@ -460,3 +462,23 @@ def create_presigned_download_url(bucket_name: str, s3_key: str, filename: str, 
     return response
 
 
+def load_dataset_as_dataframe(bucket_name: str, s3_key: str):
+    """
+    Helper to fetch a file from S3 and return a Pandas DataFrame.
+    """
+    s3 = get_s3_client()
+    response = s3.get_object(Bucket=bucket_name, Key=s3_key)
+    content = response['Body'].read()
+    
+    # Identify file type by extension
+    ext = s3_key.split('.')[-1].lower()
+    
+    if ext == 'csv':
+        return pd.read_csv(BytesIO(content))
+    elif ext == 'json':
+        # Handles most JSON formats in this app
+        return pd.read_json(BytesIO(content))
+    elif ext in ['xls', 'xlsx']:
+        return pd.read_excel(BytesIO(content))
+    
+    return pd.read_csv(BytesIO(content))

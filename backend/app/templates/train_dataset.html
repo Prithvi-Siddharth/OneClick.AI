@@ -324,8 +324,7 @@
 
             const result = await response.json();
             if (response.ok) {
-                alert("🚀 Success: " + result.message);
-                console.log("Response:", result);
+                window.location.href = `/select_target/${result.experiment_id}`;
             } else {
                 alert("❌ Error: " + (result.message || "Something went wrong"));
             }
@@ -334,5 +333,7 @@
             alert("Failed to connect to the server.");
         }
     }
+
+
 </script>
 {% endblock %}

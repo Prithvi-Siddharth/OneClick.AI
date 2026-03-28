@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Select Target - OneClick.AI{% endblock %}
+
+{% block head %}
+<!-- Load Chart.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .selection-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 5rem 1rem;
+    }
+    .card-premium {
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        padding: 2.5rem;
+        transition: all 0.3s ease;
+    }
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .metric-value {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        margin-top: 0.5rem;
+    }
+    .metric-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        font-weight: 600;
+    }
+    .chart-container {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    .loading-overlay {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem;
+    }
+    .pulse-loader {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: inline-block;
+        position: relative;
+        border: 3px solid #3b82f6;
+        box-sizing: border-box;
+        animation: animloader 2s linear infinite;
+    }
+    .pulse-loader::after {
+        content: '';  
+        box-sizing: border-box;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 3px solid #3b82f6;
+        position: absolute;
+        left: 0;
+        top: 0;
+        animation: animloader 2s linear infinite;
+    }
+    @keyframes animloader {
+        0% { transform: scale(0); opacity: 1; }
+        100% { transform: scale(1); opacity: 0; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="selection-container">
+    <div class="card-premium">
+        <!-- Step Indicator -->
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; color: #64748b; font-size: 0.9rem; font-weight: 500;">
+            <span>Configuration</span>
+            <i class="fas fa-chevron-right" style="font-size: 0.7rem; opacity: 0.5;"></i>
+            <span style="color: var(--primary-color); font-weight: 700;">Final Training</span>
+        </div>
+
+        <!-- Selection Phase -->
+        <div id="selection-phase">
+            <div style="margin-bottom: 2rem;">
+                <h2 style="font-size: 1.875rem; font-weight: 800; color: #1e293b; margin-bottom: 0.5rem;">One Last Step</h2>
+                <p style="color: #64748b;">Choose which variable you want your AI to predict. We'll handle the rest.</p>
+            </div>
+
+            <form id="final-train-form">
+                <input type="hidden" name="experiment_id" value="{{ experiment_id }}">
+                
+                <div style="margin-bottom: 2rem;">
+                    <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 0.75rem;">Target Variable (Y-Axis)</label>
+                    <div style="position: relative;">
+                        <i class="fas fa-bullseye" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--primary-color);"></i>
+                        <select name="target_column" class="form-input" style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border-radius: 10px; border: 2px solid #e2e8f0; appearance: none; cursor: pointer; transition: border-color 0.2s;">
+                            {% for col in columns %}
+                            <option value="{{ col }}">{{ col }}</option>
+                            {% endfor %}
+                        </select>
+                        <i class="fas fa-chevron-down" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
+                    </div>
+                </div>
+
+                <button type="submit" id="submit-btn" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 0.75rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);">
+                    <i class="fas fa-rocket"></i> Launch Training Session
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading Phase -->
+        <div id="loading-phase" class="loading-overlay">
+            <span class="pulse-loader"></span>
+            <h3 style="margin-top: 2rem; color: #1e293b;">Training Your Model...</h3>
+            <p style="color: #64748b; text-align: center;">This usually takes 5-20 seconds depending on dataset size.</p>
+        </div>
+
+        <!-- Results Phase (Hidden by default) -->
+        <div id="results-phase" style="display: none;">
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <div style="width: 60px; height: 60px; background: #dcfce7; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2 style="font-size: 1.875rem; font-weight: 800; color: #1e293b;">Training Successful!</h2>
+                <p style="color: #64748b;">Your model has been trained and evaluated.</p>
+            </div>
+
+            <div class="metrics-grid" id="metrics-display">
+                <!-- Metrics injected here -->
+            </div>
+
+            <div class="chart-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Performance Validation</h3>
+                    <div style="display: flex; gap: 1rem; font-size: 0.75rem;">
+                        <span style="display: flex; align-items: center; gap: 0.4rem;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></span> Actual</span>
+                        <span style="display: flex; align-items: center; gap: 0.4rem;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span> Predicted</span>
+                    </div>
+                </div>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="predictionChart"></canvas>
+                </div>
+            </div>
+
+            <div style="margin-top: 2.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button onclick="location.reload()" class="btn btn-secondary" style="flex: 1; min-width: 150px; padding: 0.75rem;">
+                    <i class="fas fa-redo" style="margin-right: 8px;"></i> Train Again
+                </button>
+                <button onclick="downloadModel()" class="btn btn-secondary" style="flex: 1; min-width: 150px; padding: 0.75rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;">
+                    <i class="fas fa-download" style="margin-right: 8px;"></i> Download Model
+                </button>
+                <a href="/view_models" class="btn btn-primary" style="flex: 1; min-width: 150px; padding: 0.75rem; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-database" style="margin-right: 8px;"></i> View in Catalog
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentExperimentId = {{ experiment_id }};
+
+    async function downloadModel() {
+        try {
+            const response = await fetch(`/download_model/${currentExperimentId}`);
+            const result = await response.json();
+            if (result.download_url) {
+                window.location.href = result.download_url;
+            } else {
+                alert("Could not generate download link.");
+            }
+        } catch (error) {
+            console.error("Download failed:", error);
+            alert("Error downloading model.");
+        }
+    }
+
+    document.getElementById('final-train-form').onsubmit = async (e) => {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submit-btn');
+        const selectionPhase = document.getElementById('selection-phase');
+        const loadingPhase = document.getElementById('loading-phase');
+        const resultsPhase = document.getElementById('results-phase');
+
+        // Transition to loading
+        selectionPhase.style.display = 'none';
+        loadingPhase.style.display = 'flex';
+
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const response = await fetch('/final_train', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                loadingPhase.style.display = 'none';
+                resultsPhase.style.display = 'block';
+
+                // Display Metrics
+                const metricsDiv = document.getElementById('metrics-display');
+                metricsDiv.innerHTML = ''; 
+
+                for (const [key, value] of Object.entries(result.metrics || {})) {
+                    metricsDiv.innerHTML += `
+                    <div class="metric-card">
+                        <div class="metric-label">${key.replace(/_/g, ' ')}</div>
+                        <div class="metric-value">
+                            ${typeof value === 'number' ? value.toFixed(4) : value}
+                        </div>
+                    </div>`;
+                }
+
+                // Create the Chart
+                const ctx = document.getElementById('predictionChart').getContext('2d');
+                if (window.predictionChartInstance) {
+                    window.predictionChartInstance.destroy();
+                }
+
+                window.predictionChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: result.comparison ? result.comparison.map((_, i) => i + 1) : [],
+                        datasets: [
+                            {
+                                label: 'Actual',
+                                data: result.comparison ? result.comparison.map(d => d.actual) : [],
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 2,
+                                pointRadius: 2
+                            },
+                            {
+                                label: 'Predicted',
+                                data: result.comparison ? result.comparison.map(d => d.predicted) : [],
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                borderWidth: 2,
+                                pointRadius: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                grid: { color: '#f1f5f9' },
+                                border: { display: false }
+                            },
+                            x: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            } else {
+                throw new Error(result.error || 'Training failed');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ ' + error.message);
+            loadingPhase.style.display = 'none';
+            selectionPhase.style.display = 'block';
+        }
+    };
+</script>
+{% endblock %}

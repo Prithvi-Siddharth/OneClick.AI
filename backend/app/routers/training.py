@@ -10,8 +10,15 @@ from app.models import Dataset, TemporaryDataset
 from app.security import get_current_user_id
 from app.services.s3_operations import duplicate_dataset_in_s3
 from app.services.constants import get_hyperparameters
-from app.models import Experiment
+from app.models import Experiment, TemporaryDataset
+from app.services.model_factory import create_model_instance
 import json
+import ast
+import traceback
+import joblib
+from io import BytesIO
+from app.services.constants import ML_HYPERPARAMETERS
+from app.services.model_factory import create_model_instance
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
@@ -148,32 +155,189 @@ def models_page(request: Request, db: Session = Depends(get_db), dataset_id: int
 async def tune_hyperparameters(request: Request, db: Session = Depends(get_db)):
     user_id = get_current_user_id(request)
     if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-
-    try:
-        # Get data from the form request
-        data = await request.json()
-        model_name = data.get("model_name")
-        params = data.get("hyperparameters", {})
-
-        print(f"--- Hyperparameter Tuning Request ---")
-        print(f"User: {user_id}")
-        print(f"Model: {model_name}")
-        print(f"Params: {params}")
-        print(f"--------------------------------------")
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Not authenticated"})
         
-        return JSONResponse(
-            content={
-                "status": "success",
-                "message": f"Tuning request received for {model_name}. Training started in background.",
-                "received_params": params
-            },
-            status_code=status.HTTP_200_OK
-        )
+    data = await request.json()
+    
+    # 1. Save the state in a new Experiment record
+    new_experiment = Experiment(
+        user_id=int(user_id),
+        algorithm=data.get("model_name"),
+        hyperparameters=json.dumps(data.get("hyperparameters", {})),
+        status="PENDING"
+    )
+    db.add(new_experiment)
+    db.commit()
+    db.refresh(new_experiment)
+    # 2. Return the experiment ID so the frontend can redirect
+    return {"status": "success", "experiment_id": new_experiment.id}
 
+
+@router.get("/select_target/{experiment_id}")
+def select_target_page(experiment_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login")
+
+    experiment = db.query(Experiment).filter(Experiment.id == experiment_id, Experiment.user_id == int(user_id)).first()
+    if not experiment:
+        raise HTTPException(status_code =404, detail="Experiment not found")
+
+    # Get the latest dataset to find column names
+    dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+    if not dataset:
+        raise HTTPException(status_code=400, detail="No dataset found for training")
+    
+    # Robustly get columns from the actual S3 file to ensure preprocessed deletions are reflected
+    try:
+        from app.routers.preprocessing import read_df_from_s3
+        df_columns = read_df_from_s3(dataset.s3_bucket, dataset.s3_key).columns.tolist()
+        columns = df_columns
+        
+        # Sync the DB schema if it's different (optional but good for consistency)
+        new_schema = {col: "unknown" for col in columns} # Types aren't strictly needed for the dropdown
+        dataset.feature_schema = json.dumps(new_schema)
+        db.commit()
     except Exception as e:
-        print(f"Error in tune_hyperparameters: {str(e)}")
-        return JSONResponse(
-            content={"status": "error", "message": str(e)},
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        print(f"Error fetching columns from S3: {e}")
+        # Fallback to schema in DB if S3 fails
+        try:
+            if dataset.feature_schema:
+                try:
+                    schema = json.loads(dataset.feature_schema)
+                except json.JSONDecodeError:
+                    schema = ast.literal_eval(dataset.feature_schema)
+            else:
+                schema = {}
+            columns = list(schema.keys())
+        except Exception:
+            columns = []
+
+    return templates.TemplateResponse("select_target.html", {
+        "request": request,
+        "experiment_id": experiment_id,
+        "columns": columns
+    })
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import r2_score, mean_absolute_error, accuracy_score, f1_score
+import pandas as pd
+from app.services.s3_operations import load_dataset_as_dataframe
+
+@router.post("/final_train")
+async def final_train(request: Request, db: Session = Depends(get_db)):
+    try:
+        user_id = get_current_user_id(request)
+        if not user_id:
+            return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Not authenticated"})
+            
+        data = await request.json()
+        experiment_id_raw = data.get("experiment_id")
+        target_column = data.get("target_column")
+        
+        print(f"DEBUG: Starting final_train for experiment {experiment_id_raw}, target {target_column}")
+
+        if not experiment_id_raw or not target_column:
+            return JSONResponse(status_code=400, content={"error": "Missing experiment_id or target_column"})
+
+        experiment_id = int(experiment_id_raw)
+        
+        # 1. Fetch Experiment and Dataset info
+        experiment = db.query(Experiment).filter(Experiment.id == experiment_id, Experiment.user_id == int(user_id)).first()
+        if not experiment:
+             return JSONResponse(status_code=404, content={"error": "Experiment not found for this user"})
+             
+        # Use the newest temporary dataset for this user
+        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+        if not dataset:
+             return JSONResponse(status_code=404, content={"error": "No temporary dataset found"})
+        
+        print(f"DEBUG: Data found. Bucket: {dataset.s3_bucket}, Key: {dataset.s3_key}")
+        
+        # 2. Load the actual data from S3 into a Pandas DataFrame
+        df = load_dataset_as_dataframe(dataset.s3_bucket, dataset.s3_key) 
+        
+        if target_column not in df.columns:
+            return JSONResponse(status_code=400, content={"error": f"Target column '{target_column}' not found in dataset columns: {df.columns.tolist()}"})
+
+        # 3. Prepare X and y
+        X = df.drop(columns=[target_column])
+        y = df[target_column]
+        
+        # Basic cleanup: drop any remaining rows with NaNs in the features or target
+        X = X.dropna()
+        y = y.loc[X.index] # Keep y aligned with X
+        
+        if X.empty:
+            return JSONResponse(status_code=400, content={"error": "Dataset is empty after dropping missing values. Please preprocess your data first."})
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+        # 4. Initialize and Train Model
+        hyperparams = json.loads(experiment.hyperparameters) if experiment.hyperparameters else {}
+        model = create_model_instance(experiment.algorithm, hyperparams)
+        
+        print(f"DEBUG: Training model {experiment.algorithm}...")
+        model.fit(X_train, y_train)
+    
+        # 4.5. Serialize and Save Model to S3
+        print(f"DEBUG: Serializing and saving model...")
+        model_buffer = BytesIO()
+        joblib.dump(model, model_buffer)
+        model_buffer.seek(0)
+        
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        model_filename = f"{experiment.algorithm}_{timestamp}.joblib"
+        model_s3_key = f"{user_id}/models/{model_filename}"
+        
+        from app.services.s3_operations import get_s3_client
+        s3 = get_s3_client()
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+        s3.put_object(Bucket=bucket_name, Key=model_s3_key, Body=model_buffer.getvalue())
+        
+        experiment.model_artifact_path = model_s3_key
+        experiment.name = model_filename
+
+        # 5. Predict and Calculate Metrics
+        predictions = model.predict(X_test)
+        
+        results = {}
+        # Check task type from your constants.py
+        model_info = ML_HYPERPARAMETERS.get(experiment.algorithm)
+        
+        if model_info["task"] == "regression":
+            results["metrics"] = {
+                "r2_score": r2_score(y_test, predictions),
+                "mae": mean_absolute_error(y_test, predictions)
+            }
+        else:
+            results["metrics"] = {
+                "accuracy": accuracy_score(y_test, predictions),
+                "f1_score": f1_score(y_test, predictions, average='weighted')
+            }
+    
+        # 6. Prepare "Predicted vs Actual" for the chart (first 50 rows)
+        comparison = []
+        # Convert to native Python types for JSON serialization
+        for actual, pred in zip(y_test[:10], predictions[:10]):
+            comparison.append({
+                "actual": float(actual) if hasattr(actual, "__float__") else actual, 
+                "predicted": float(pred) if hasattr(pred, "__float__") else pred
+            })
+    
+        # 7. Save to Database and Return
+        experiment.metrics = json.dumps(results["metrics"])
+        experiment.status = "COMPLETED"
+        experiment.target_column = target_column
+        db.commit()
+    
+        print(f"DEBUG: Training complete. Metrics: {results['metrics']}")
+        return {
+            "status": "success",
+            "metrics": results["metrics"],
+            "comparison": comparison
+        }
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": str(e)})
+

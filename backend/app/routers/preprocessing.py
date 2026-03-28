@@ -407,7 +407,16 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 
                 await send_progress(80, "☁️ Uploading changes to S3...")
                 s3 = get_s3_client()
-                s3.put_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key, Body=csv_buffer.getvalue())
+                file_content = csv_buffer.getvalue()
+                s3.put_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key, Body=file_content)
+                
+                # Update DB record with new schema and stats
+                new_schema = {col: str(dtype) for col, dtype in processed_df.dtypes.items()}
+                active_dataset.feature_schema = json.dumps(new_schema)
+                active_dataset.row_count = len(processed_df)
+                active_dataset.file_size = len(file_content)
+                db.commit()
+                db.refresh(active_dataset)
                 
                 # 5. Send updated preview
                 await send_progress(95, "📋 Refreshing data preview...")
