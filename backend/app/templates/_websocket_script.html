@@ -176,6 +176,48 @@
             }
         }
 
+        // Client-side Validation: Check if target-dependent operations are selected without a target column
+        const targetDependentOps = {
+            'encoding':         ['target'],
+            'feature_selection': ['kbest'],
+            'data_reduction':   ['lda'],
+            'imbalanced_data':  ['smote', 'class_weights']
+        };
+        const targetOpNames = {
+            'target':        'Target Encoding',
+            'kbest':         'Select k-best',
+            'lda':           'LDA',
+            'smote':         'SMOTE',
+            'class_weights': 'Class Weights'
+        };
+
+        let missingTargetOp = null;
+        outer: for (const [step, ops] of Object.entries(targetDependentOps)) {
+            if (selectedOps[step]) {
+                for (const op of ops) {
+                    if (selectedOps[step].includes(op)) {
+                        missingTargetOp = targetOpNames[op];
+                        break outer;
+                    }
+                }
+            }
+        }
+
+        if (missingTargetOp && !selectedTargetColumn) {
+            alert(
+                `⚠️ "${missingTargetOp}" requires a target column.\n\n` +
+                `Please open Section 0 (Select Target Column), pick the column your model should predict, ` +
+                `and click "Save Target Column" before applying this step.`
+            );
+            // Scroll to and highlight the target column section
+            const targetSection = document.getElementById('section-target-column');
+            if (targetSection) {
+                targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                targetSection.classList.add('active');
+            }
+            return;
+        }
+
         // Only show loading and progress AFTER validation
         document.getElementById("preview-loading").style.display = "block";
         document.getElementById("status-display").style.display = "block";
@@ -184,7 +226,8 @@
         socket.send(JSON.stringify({
             action: "apply_preprocessing",
             attributes: attributes, // Send the list of attributes
-            operations: selectedOps
+            operations: selectedOps,
+            target_column: selectedTargetColumn  // Send the selected target column
         }));
 
         addLogEntry(selectedOps, attributes); 
@@ -322,6 +365,22 @@
             hideHistory();
         }
     });
+
+    // ── Target Column State ───────────────────────────────────────────────────────
+    let selectedTargetColumn = null;
+
+    function saveTargetColumn() {
+        const selected = document.querySelector('input[name="target_column"]:checked');
+        if (!selected) {
+            alert("Please select a target column first!");
+            return;
+        }
+        selectedTargetColumn = selected.value;
+        const statusEl = document.getElementById('target-column-status');
+        statusEl.textContent = `✅ Target column set to: "${selectedTargetColumn}"`;
+        statusEl.style.color = 'var(--primary-color)';
+        statusEl.style.fontWeight = '600';
+    }
 
     // ── Activity Log State ────────────────────────────────────────────────────────
     const activityLog = [];

@@ -386,14 +386,15 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 await send_progress(5, "📡 Backend received request...")
                 ops = message.get("operations", {})
                 attributes = message.get("attributes", [])
-                await send_progress(10, f"� Loading dataset for {len(attributes)} attributes...")
+                target_column = message.get("target_column", None)  # Target column for target-aware steps
+                await send_progress(10, f"⏳ Loading dataset for {len(attributes)} attributes...")
                 
                 # 2. Load from S3
                 df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
 
                 # 3. Apply preprocessing
                 await send_progress(30, "⚙️ Applying transformations...")
-                processed_df = apply_preprocessing(df, ops, attributes)
+                processed_df = apply_preprocessing(df, ops, attributes, target_column)
 
                 if isinstance(processed_df, dict) and "error" in processed_df:
                     await send_progress(0, f"❌ Error: {processed_df['error']}")

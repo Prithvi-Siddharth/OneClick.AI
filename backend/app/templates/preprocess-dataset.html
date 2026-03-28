@@ -376,6 +376,38 @@
     <br>
     <br>
 
+    <!-- Select Target Column -->
+    <div class="accordion-section" id="section-target-column">
+        <div class="accordion-header" onclick="toggleAccordion('section-target-column')">
+            <h2><i class="fas fa-crosshairs" style="margin-right: 10px;"></i>0: Select Target Column</h2>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+        </div>
+        <div class="accordion-content">
+            <p style="margin-bottom: 1rem; color: #475569; font-size: 0.875rem;">
+                Pick the column your model should predict. This is used by target-aware steps like
+                <em>Target Encoding</em>, <em>Feature Selection</em>, and <em>Imbalanced Data Handling</em>.
+            </p>
+            <div class="preprocess-grid" id="target-column-grid">
+                {% for attribute in dataset.columns %}
+                <div class="preprocess-card">
+                    <input type="radio" name="target_column" id="target_col_{{ attribute }}" value="{{ attribute }}" />
+                    <label for="target_col_{{ attribute }}">
+                        <h3 title="{{ attribute }}">{{ attribute }}</h3>
+                        <p>{{ dataset.dtypes[attribute] }}</p>
+                    </label>
+                    <div class="info-tooltip">Set <strong>{{ attribute }}</strong> as the target (Y) column.</div>
+                </div>
+                {% endfor %}
+            </div>
+            <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+                <button class="btn btn-primary" onclick="saveTargetColumn()">
+                    <i class="fas fa-check" style="margin-right: 6px;"></i>Save Target Column
+                </button>
+                <span id="target-column-status" style="font-size: 0.85rem; color: #64748b;">No target selected yet.</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Section 1: Select Attributes -->
     <div class="accordion-section" id="section-attributes">
         <div class="accordion-header" onclick="toggleAccordion('section-attributes')">
