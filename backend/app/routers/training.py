@@ -9,16 +9,14 @@ from app.db import get_db
 from app.models import Dataset, TemporaryDataset
 from app.security import get_current_user_id
 from app.services.s3_operations import duplicate_dataset_in_s3
-from app.services.constants import get_hyperparameters
-from app.models import Experiment, TemporaryDataset
+from app.services.constants import ML_HYPERPARAMETERS, get_hyperparameters
 from app.services.model_factory import create_model_instance
 import json
 import ast
 import traceback
 import joblib
+import pandas as pd
 from io import BytesIO
-from app.services.constants import ML_HYPERPARAMETERS
-from app.services.model_factory import create_model_instance
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
@@ -181,7 +179,7 @@ def select_target_page(experiment_id: int, request: Request, db: Session = Depen
 
     experiment = db.query(Experiment).filter(Experiment.id == experiment_id, Experiment.user_id == int(user_id)).first()
     if not experiment:
-        raise HTTPException(status_code =404, detail="Experiment not found")
+        raise HTTPException(status_code=404, detail="Experiment not found")
 
     # Get the latest dataset to find column names
     dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
@@ -221,7 +219,6 @@ def select_target_page(experiment_id: int, request: Request, db: Session = Depen
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_absolute_error, accuracy_score, f1_score
-import pandas as pd
 from app.services.s3_operations import load_dataset_as_dataframe
 
 @router.post("/final_train")
@@ -260,16 +257,26 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
         if target_column not in df.columns:
             return JSONResponse(status_code=400, content={"error": f"Target column '{target_column}' not found in dataset columns: {df.columns.tolist()}"})
 
-        # 3. Prepare X and y
+        # Basic cleanup: drop any remaining rows with NaNs
+        df = df.dropna()
+        if df.empty:
+            return JSONResponse(status_code=400, content={"error": "Dataset is empty after dropping missing values."})
+
         X = df.drop(columns=[target_column])
         y = df[target_column]
         
-        # Basic cleanup: drop any remaining rows with NaNs in the features or target
-        X = X.dropna()
-        y = y.loc[X.index] # Keep y aligned with X
+        # 3. Handling Categorical Data
+        # One-hot encode categorical features
+        X = pd.get_dummies(X, drop_first=True)
         
-        if X.empty:
-            return JSONResponse(status_code=400, content={"error": "Dataset is empty after dropping missing values. Please preprocess your data first."})
+        # Determine task type
+        model_info = ML_HYPERPARAMETERS.get(experiment.algorithm)
+        
+        # Label encode classification targets if they are non-numeric
+        if model_info["task"] == "classification" and (y.dtype == 'object' or y.dtype.name == 'category'):
+            from sklearn.preprocessing import LabelEncoder
+            le = LabelEncoder()
+            y = le.fit_transform(y)
 
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     

@@ -147,7 +147,7 @@ ML_HYPERPARAMETERS = {
         }
     },
 
-    "KnnClassifier": {
+    "KNeighborsClassifier": {
         "model_class": "sklearn.neighbors.KNeighborsClassifier",
         "task": "classification",
         "hyperparameters": {
@@ -184,7 +184,7 @@ ML_HYPERPARAMETERS = {
         }
     },
 
-    "KnnRegressor": {
+    "KNeighborsRegressor": {
         "model_class": "sklearn.neighbors.KNeighborsRegressor",
         "task": "regression",
         "hyperparameters": {

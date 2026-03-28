@@ -176,9 +176,8 @@
         </div>
     </div>
 </div>
-
 <script>
-    let currentExperimentId = {{ experiment_id }};
+    const currentExperimentId = Number("{{ experiment_id }}");
 
     async function downloadModel() {
         try {
