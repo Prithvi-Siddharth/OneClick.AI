@@ -205,17 +205,66 @@
                 {% endfor %}
             </div>
 
-            <div style="margin-top: 3rem; display: flex; justify-content: center;">
+            <div style="margin-top: 3rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
                 <button type="submit" class="btn btn-primary"
-                    style="padding: 1rem 3rem; font-size: 1.1rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
-                    <i class="fas fa-magic" style="margin-right: 10px;"></i> Start Model Training
+                    style="padding: 1rem 2.5rem; font-size: 1rem; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="fas fa-rocket"></i> Start Manual Training
                 </button>
+                <div class="tooltip-container" style="position: relative; display: inline-block;">
+                    <button type="button" onclick="startAutoTune()"
+                        style="padding: 1rem 2.5rem; font-size: 1rem; background: linear-gradient(135deg, #7c3aed, #4f46e5); color: white; border: none; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.6rem; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35); transition: opacity 0.2s;"
+                        onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+                        <i class="fas fa-magic"></i> Auto-Tune with OptiClick
+                    </button>
+                    <div class="custom-tooltip">
+                        Use our very own AI powered auto-tune feature to efficiently tune the model with just one click
+                    </div>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
 <style>
+    /* Tooltip styles */
+    .tooltip-container .custom-tooltip {
+        visibility: hidden;
+        width: 280px;
+        background-color: rgba(0, 0, 0, 0.85);
+        color: #fff;
+        text-align: center;
+        border-radius: 8px;
+        padding: 12px;
+        position: absolute;
+        z-index: 100;
+        bottom: 120%;
+        left: 50%;
+        transform: translateX(-50%);
+        opacity: 0;
+        transition: opacity 0.3s, transform 0.3s;
+        font-size: 0.85rem;
+        line-height: 1.4;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        pointer-events: none;
+    }
+
+    .tooltip-container .custom-tooltip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -6px;
+        border-width: 6px;
+        border-style: solid;
+        border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+    }
+
+    .tooltip-container:hover .custom-tooltip {
+        visibility: visible;
+        opacity: 1;
+        transform: translateX(-50%) translateY(-5px);
+    }
+
     /* Fancy Toggle Switch for Booleans */
     .switch {
         position: relative;
@@ -330,6 +379,36 @@
             }
         } catch (error) {
             console.error("Submission failed:", error);
+            alert("Failed to connect to the server.");
+        }
+    }
+
+    async function startAutoTune() {
+        const form = document.getElementById('tuning-form');
+        const formData = new FormData(form);
+        const modelName = formData.get('model_name');
+
+        try {
+            // We still hit /tune_hyperparameters to create a placeholder Experiment record in DB.
+            // This is required because /select_target/<> needs a valid experiment ID to load.
+            const response = await fetch('/tune_hyperparameters', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model_name: modelName,
+                    hyperparameters: {} // Empty, we don't care about manual form values
+                })
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                // Redirect to select_target but append mode=auto_tune
+                window.location.href = `/select_target/${result.experiment_id}?mode=auto_tune&model_name=${encodeURIComponent(modelName)}`;
+            } else {
+                alert("❌ Error: " + (result.message || "Something went wrong"));
+            }
+        } catch (error) {
+            console.error("Auto-tune failed:", error);
             alert("Failed to connect to the server.");
         }
     }

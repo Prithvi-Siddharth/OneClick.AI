@@ -33,6 +33,10 @@ ML_HYPERPARAMETERS = {
                 "options": [True, False],
                 "description": "Force coefficients to be positive"
             }
+        },
+        "grid_search_params": {
+            "fit_intercept": [True, False],
+            "positive": [True, False]
         }
     },
 
@@ -70,7 +74,17 @@ ML_HYPERPARAMETERS = {
                 "options": ["auto", "ovr", "multinomial"],
                 "description": "Multi-class strategy"
             }
-        }
+        },
+        # LogisticRegression: penalty and solver have compatibility constraints.
+        # l1  -> only liblinear, saga
+        # l2  -> lbfgs, liblinear, newton-cg, sag, saga
+        # elasticnet -> only saga (also needs l1_ratio)
+        # Using a list of param dicts avoids invalid combinations that cause sklearn errors.
+        "grid_search_params": [
+            {"C": [0.01, 0.1, 1.0, 10.0, 100.0], "penalty": ["l2"],         "solver": ["lbfgs", "liblinear", "newton-cg", "sag"], "max_iter": [100, 500]},
+            {"C": [0.01, 0.1, 1.0, 10.0, 100.0], "penalty": ["l1"],         "solver": ["liblinear", "saga"],                      "max_iter": [100, 500]},
+            {"C": [0.01, 0.1, 1.0, 10.0, 100.0], "penalty": ["elasticnet"], "solver": ["saga"],                                   "max_iter": [100, 500], "l1_ratio": [0.25, 0.5, 0.75]}
+        ]
     },
 
     "DecisionTree": {
@@ -107,6 +121,13 @@ ML_HYPERPARAMETERS = {
                 "options": ["gini", "entropy", "log_loss"],
                 "description": "Split quality measure"
             }
+        },
+        "grid_search_params": {
+            "max_depth": [None, 5, 10, 20],
+            "min_samples_split": [2, 5, 10],
+            "min_samples_leaf": [1, 2, 5],
+            "criterion": ["gini", "entropy"],
+            "max_features": [None, "sqrt", "log2"]
         }
     },
 
@@ -144,6 +165,14 @@ ML_HYPERPARAMETERS = {
                 "options": [True, False],
                 "description": "Whether to use bootstrap samples"
             }
+        },
+        "grid_search_params": {
+            "n_estimators": [50, 100, 200],
+            "max_depth": [None, 5, 10],
+            "min_samples_split": [2, 5, 10],
+            "min_samples_leaf": [1, 2, 5],
+            "max_features": ["sqrt", "log2"],
+            "bootstrap": [True, False]
         }
     },
 
@@ -181,6 +210,13 @@ ML_HYPERPARAMETERS = {
                 "options": ["auto", "ball_tree", "kd_tree", "brute"],
                 "description": "Algorithm for nearest neighbor search"
             }
+        },
+        "grid_search_params": {
+            "n_neighbors": [3, 5, 7, 11, 15],
+            "weights": ["uniform", "distance"],
+            "metric": ["euclidean", "manhattan", "minkowski"],
+            "p": [1, 2],
+            "algorithm": ["auto", "ball_tree", "kd_tree", "brute"]
         }
     },
 
@@ -218,6 +254,13 @@ ML_HYPERPARAMETERS = {
                 "range": [10, 20, 30, 50, 100],
                 "description": "Affects speed of ball_tree/kd_tree"
             }
+        },
+        "grid_search_params": {
+            "n_neighbors": [3, 5, 7, 11, 15],
+            "weights": ["uniform", "distance"],
+            "metric": ["euclidean", "manhattan", "minkowski"],
+            "p": [1, 2],
+            "leaf_size": [10, 20, 30, 50]
         }
     },
 
@@ -292,7 +335,13 @@ ML_HYPERPARAMETERS = {
                 "options": [None, "balanced"],
                 "description": "Handle class imbalance"
             }
-        }
+        },
+        # SVC: degree only matters for kernel="poly"; using a list of dicts
+        # prevents wasting CV folds on degree when kernel != poly.
+        "grid_search_params": [
+            {"C": [0.1, 1.0, 10.0, 100.0], "kernel": ["rbf", "linear", "sigmoid"], "gamma": ["scale", "auto", 0.001, 0.01, 0.1], "class_weight": [None, "balanced"]},
+            {"C": [0.1, 1.0, 10.0, 100.0], "kernel": ["poly"],                     "gamma": ["scale", "auto"],                      "class_weight": [None, "balanced"], "degree": [2, 3, 4]}
+        ]
     },
 
     "SVR": {
@@ -329,7 +378,12 @@ ML_HYPERPARAMETERS = {
                 "range": [2, 3, 4, 5],
                 "description": "Degree for poly kernel only"
             }
-        }
+        },
+        # SVR: same degree/poly split as SVC.
+        "grid_search_params": [
+            {"C": [0.1, 1.0, 10.0, 100.0], "kernel": ["rbf", "linear", "sigmoid"], "epsilon": [0.01, 0.1, 0.5], "gamma": ["scale", "auto"]},
+            {"C": [0.1, 1.0, 10.0, 100.0], "kernel": ["poly"],                     "epsilon": [0.01, 0.1, 0.5], "gamma": ["scale", "auto"], "degree": [2, 3, 4]}
+        ]
     },
 
     "Lasso": {
@@ -366,6 +420,13 @@ ML_HYPERPARAMETERS = {
                 "options": ["cyclic", "random"],
                 "description": "Order of coefficient updates"
             }
+        },
+        "grid_search_params": {
+            "alpha": [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0],
+            "max_iter": [1000, 5000, 10000],
+            "tol": [1e-4, 1e-3, 1e-2],
+            "fit_intercept": [True, False],
+            "selection": ["cyclic", "random"]
         }
     },
 
@@ -403,6 +464,13 @@ ML_HYPERPARAMETERS = {
                 "range": [1e-6, 1e-4, 1e-3, 1e-2],
                 "description": "Precision of solution"
             }
+        },
+        "grid_search_params": {
+            "alpha": [0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0],
+            "fit_intercept": [True, False],
+            "solver": ["auto", "svd", "cholesky", "lsqr"],
+            "max_iter": [None, 100, 500, 1000],
+            "tol": [1e-4, 1e-3, 1e-2]
         }
     }
 }
@@ -422,3 +490,10 @@ def get_hyperparameters(model_name: str):
 def get_default_params(model_name: str):
     params = get_hyperparameters(model_name)
     return {k: v["default"] for k, v in params.items()}
+
+def get_grid_search_params(model_name: str) -> dict:
+    """Returns the param_grid dict for use with GridSearchCV."""
+    model = ML_HYPERPARAMETERS.get(model_name)
+    if not model:
+        raise ValueError(f"Model '{model_name}' not found.")
+    return model.get("grid_search_params", {})

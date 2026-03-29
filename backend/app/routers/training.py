@@ -6,11 +6,11 @@ import os
 from datetime import datetime
 
 from app.db import get_db
-from app.models import Dataset, TemporaryDataset
+from app.models import Dataset, TemporaryDataset, Experiment
 from app.security import get_current_user_id
 from app.services.s3_operations import duplicate_dataset_in_s3
-from app.services.constants import ML_HYPERPARAMETERS, get_hyperparameters
-from app.services.model_factory import create_model_instance
+from app.services.constants import ML_HYPERPARAMETERS, get_hyperparameters, get_grid_search_params
+from app.services.model_factory import create_model_instance, get_base_model
 import json
 import ast
 import traceback
@@ -171,8 +171,117 @@ async def tune_hyperparameters(request: Request, db: Session = Depends(get_db)):
     return {"status": "success", "experiment_id": new_experiment.id}
 
 
+@router.post("/auto_tune")
+async def auto_tune(request: Request, db: Session = Depends(get_db)):
+    """Runs GridSearchCV in a background thread to automatically find best hyperparameters."""
+    import asyncio
+    from sklearn.model_selection import GridSearchCV
+    from sklearn.preprocessing import LabelEncoder
+
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Not authenticated"})
+
+    data = await request.json()
+    model_name = data.get("model_name")
+    target_column = data.get("target_column")
+
+    if not model_name or not target_column:
+        return JSONResponse(status_code=400, content={"error": "Missing model_name or target_column"})
+
+    # 1. Guard: clustering models are not supported by GridSearchCV
+    model_info = ML_HYPERPARAMETERS.get(model_name)
+    if not model_info:
+        return JSONResponse(status_code=400, content={"error": f"Model '{model_name}' is not supported."})
+    if model_info["task"] == "clustering":
+        return JSONResponse(status_code=400, content={"error": f"Auto-Tune is not supported for clustering models like '{model_name}'. GridSearchCV requires a labelled target column."})
+
+    # 2. Load dataset from S3
+    dataset = db.query(TemporaryDataset).filter(
+        TemporaryDataset.user_id == int(user_id)
+    ).order_by(TemporaryDataset.id.desc()).first()
+    if not dataset:
+        return JSONResponse(status_code=404, content={"error": "No temporary dataset found. Please load a dataset first."})
+
+    try:
+        from app.services.s3_operations import load_dataset_as_dataframe
+        df = load_dataset_as_dataframe(dataset.s3_bucket, dataset.s3_key)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Failed to load dataset from S3: {str(e)}"})
+
+    if target_column not in df.columns:
+        return JSONResponse(status_code=400, content={"error": f"Target column '{target_column}' not found in dataset."})
+
+    # 3. Prepare X, y (same logic as /final_train)
+    df = df.dropna()
+    if df.empty:
+        return JSONResponse(status_code=400, content={"error": "Dataset is empty after dropping missing values."})
+
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
+    X = pd.get_dummies(X, drop_first=True)
+
+    if model_info["task"] == "classification" and (y.dtype == "object" or y.dtype.name == "category"):
+        le = LabelEncoder()
+        y = le.fit_transform(y)
+
+    from sklearn.model_selection import train_test_split
+    X_train, _, y_train, _ = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # 4. Build GridSearchCV
+    scoring = "accuracy" if model_info["task"] == "classification" else "r2"
+    param_grid = get_grid_search_params(model_name)
+    base_model = get_base_model(model_name)
+
+    grid_search = GridSearchCV(
+        estimator=base_model,
+        param_grid=param_grid,
+        cv=3,
+        scoring=scoring,
+        n_jobs=-1,
+        refit=False   # We don't need the fitted model, just best_params_
+    )
+
+    # 5. Run GridSearchCV in a thread pool so we don't block the async event loop
+    loop = asyncio.get_event_loop()
+    try:
+        await loop.run_in_executor(None, lambda: grid_search.fit(X_train, y_train))
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": f"GridSearchCV failed: {str(e)}"})
+
+    best_params = grid_search.best_params_
+    best_score = round(grid_search.best_score_, 4)
+    print(f"DEBUG: Auto-tune complete. Best params: {best_params}, Best CV score ({scoring}): {best_score}")
+
+    # 6. Save as a new Experiment record (same format as /tune_hyperparameters)
+    new_experiment = Experiment(
+        user_id=int(user_id),
+        algorithm=model_name,
+        hyperparameters=json.dumps(best_params),
+        status="PENDING"
+    )
+    db.add(new_experiment)
+    db.commit()
+    db.refresh(new_experiment)
+
+    return {
+        "status": "success",
+        "experiment_id": new_experiment.id,
+        "best_params": best_params,
+        "best_cv_score": best_score,
+        "scoring": scoring
+    }
+
+
 @router.get("/select_target/{experiment_id}")
-def select_target_page(experiment_id: int, request: Request, db: Session = Depends(get_db)):
+def select_target_page(
+    experiment_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    mode: str = "manual",       # "manual" or "auto_tune"
+    model_name: str = None      # passed through for auto_tune mode
+):
     user_id = get_current_user_id(request)
     if not user_id:
         return RedirectResponse(url="/login")
@@ -214,7 +323,9 @@ def select_target_page(experiment_id: int, request: Request, db: Session = Depen
     return templates.TemplateResponse("select_target.html", {
         "request": request,
         "experiment_id": experiment_id,
-        "columns": columns
+        "columns": columns,
+        "mode": mode,
+        "model_name": model_name or experiment.algorithm
     })
 
 from sklearn.model_selection import train_test_split

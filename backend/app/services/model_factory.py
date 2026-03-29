@@ -16,6 +16,21 @@ def create_model_instance(model_name: str, hyperparameters: dict):
 
     return model_instance
 
+def get_base_model(model_name: str):
+    """Returns an unfitted model instance with default parameters, for use as the estimator in GridSearchCV."""
+    model_config = ML_HYPERPARAMETERS.get(model_name)
+    if not model_config:
+        raise ValueError(f"Model '{model_name}' is not supported.")
+
+    class_path = model_config["model_class"]
+    module_path, class_name = class_path.rsplit(".", 1)
+
+    module = importlib.import_module(module_path)
+    model_class = getattr(module, class_name)
+
+    # Return with no args — GridSearchCV will set params via param_grid
+    return model_class()
+
 from sklearn import metrics
 
 def get_model_stats(task_type: str, y_true, y_pred):
