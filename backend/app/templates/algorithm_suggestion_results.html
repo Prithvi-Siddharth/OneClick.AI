@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Recommendations - OneClick.AI{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 900px;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <h1 style="color: #1a202c; font-size: 2.5rem; margin-bottom: 0.5rem;">Recommended Models</h1>
+        <p style="color: var(--text-secondary); font-size: 1.1rem;">Based on your inputs, these are the top 3 most suitable algorithms for your problem.</p>
+    </div>
+
+    <div class="grid-3" style="gap: 2rem; margin-bottom: 3rem;">
+        {% for algo in recommended_algorithms %}
+        <div class="card" style="padding: 2.5rem; text-align: center; border-bottom: 6px solid var(--primary-color); display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1.5rem;">
+                {% if algo.mapped_name == "LinearRegression" %} <i class="fas fa-chart-line"></i>
+                {% elif algo.mapped_name == "LogisticRegression" %} <i class="fas fa-toggle-on"></i>
+                {% elif algo.mapped_name == "DecisionTree" %} <i class="fas fa-tree"></i>
+                {% elif algo.mapped_name == "RandomForest" %} <i class="fas fa-mountain"></i>
+                {% elif algo.mapped_name == "KNeighborsClassifier" or algo.mapped_name == "KNeighborsRegressor" %} <i class="fas fa-users"></i>
+                {% elif algo.mapped_name == "SVC" or algo.mapped_name == "SVR" %} <i class="fas fa-vector-square"></i>
+                {% elif algo.mapped_name == "KMeans" %} <i class="fas fa-cubes"></i>
+                {% elif algo.mapped_name == "Lasso" %} <i class="fas fa-filter"></i>
+                {% elif algo.mapped_name == "Ridge" %} <i class="fas fa-layer-group"></i>
+                {% else %} <i class="fas fa-brain"></i>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #2d3748;">{{ algo.display_name }}</h3>
+                <span class="badge" style="background: rgba(49, 130, 206, 0.1); color: var(--primary-color); font-size: 0.8rem; text-transform: uppercase;">{{ algo.task }}</span>
+            </div>
+
+            <a href="/models?dataset_id={{ dataset_id }}&model={{ algo.mapped_name }}" class="btn btn-primary" style="padding: 0.8rem 1.5rem; font-weight: 600; width: 100%;">
+                Start Training <i class="fas fa-chevron-right" style="margin-left: 8px;"></i>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div style="text-align: center; background: #f8fafc; border-radius: 12px; padding: 2rem; border: 1px dashed #cbd5e0;">
+        <h3 style="color: #4a5568; margin-bottom: 0.5rem;">Not satisfied with these recommendations?</h3>
+        <p style="color: #718096; margin-bottom: 1.5rem;">You can refine your requirements or select manually from all algorithms.</p>
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <a href="/suggest_algorithm?dataset_id={{ dataset_id }}" class="btn btn-secondary">
+                <i class="fas fa-sync-alt"></i> Re-calculate
+            </a>
+            <a href="/training?dataset_id={{ dataset_id }}" class="btn btn-outline">
+                See All Algorithms
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

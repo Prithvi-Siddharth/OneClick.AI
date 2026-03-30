@@ -50,6 +50,9 @@
                         data-id="{{ active_dataset.id }}">
                         <i class="fas fa-eye"></i> View Preview
                     </button>
+                    <a href="/suggest_algorithm?dataset_id={{ active_dataset.id }}" class="btn btn-sm btn-accent" style="text-decoration: none;">
+                        <i class="fas fa-magic"></i> Suggest Best Model
+                    </a>
                 </div>
             </div>
             {% else %}

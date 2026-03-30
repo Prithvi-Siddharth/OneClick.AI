@@ -11,12 +11,27 @@ from app.security import get_current_user_id
 from app.services.s3_operations import duplicate_dataset_in_s3
 from app.services.constants import ML_HYPERPARAMETERS, get_hyperparameters, get_grid_search_params
 from app.services.model_factory import create_model_instance, get_base_model
+from app.services.learning_algorithm_selector import recommend_algorithms_scoring
 import json
 import ast
 import traceback
 import joblib
 import pandas as pd
 from io import BytesIO
+
+ALGO_MAPPING = {
+    "Linear Regression": "LinearRegression",
+    "Ridge (L2)": "Ridge",
+    "Lasso (L1)": "Lasso",
+    "SVR": "SVR",
+    "KNN Regressor": "KNeighborsRegressor",
+    "Logistic Regression": "LogisticRegression",
+    "SVC": "SVC",
+    "KNN Classifier": "KNeighborsClassifier",
+    "Decision Tree": "DecisionTree",
+    "Random Forest": "RandomForest",
+    "KMeans Clustering": "KMeans"
+}
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
@@ -459,3 +474,66 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+
+@router.get("/suggest_algorithm")
+def suggest_algorithm_page(request: Request, db: Session = Depends(get_db), dataset_id: int = None):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login")
+    
+    return templates.TemplateResponse("algorithm_suggestion_form.html", {
+        "request": request,
+        "dataset_id": dataset_id
+    })
+
+@router.post("/suggest_algorithm")
+async def suggest_algorithm_results(request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login")
+    
+    form_data = await request.form()
+    
+    # Extract form values with defaults from the service function signiture
+    problem_type = form_data.get("problem_type", "classification")
+    dataset_size = form_data.get("dataset_size", "medium")
+    feature_type = form_data.get("feature_type", "numerical")
+    noise_level = form_data.get("noise_level", "medium")
+    need_interpretability = form_data.get("need_interpretability") == "true"
+    linearity = form_data.get("linearity", "unknown")
+    class_balance = form_data.get("class_balance", "balanced")
+    speed_requirement = form_data.get("speed_requirement", "moderate")
+    n_features = form_data.get("n_features", "medium")
+    dataset_id = form_data.get("dataset_id")
+
+    # Call the suggestion logic
+    top_3_raw = recommend_algorithms_scoring(
+        problem_type=problem_type,
+        dataset_size=dataset_size,
+        feature_type=feature_type,
+        noise_level=noise_level,
+        need_interpretability=need_interpretability,
+        linearity=linearity,
+        class_balance=class_balance,
+        speed_requirement=speed_requirement,
+        n_features=n_features
+    )
+
+    # Use ML_HYPERPARAMETERS for descriptions
+    from app.services.constants import ML_HYPERPARAMETERS
+    
+    recommended_algos = []
+    for raw_name in top_3_raw:
+        mapped_name = ALGO_MAPPING.get(raw_name, raw_name)
+        info = ML_HYPERPARAMETERS.get(mapped_name, {})
+        recommended_algos.append({
+            "display_name": raw_name,
+            "mapped_name": mapped_name,
+            "task": info.get("task", "unknown"),
+        })
+
+    return templates.TemplateResponse("algorithm_suggestion_results.html", {
+        "request": request,
+        "recommended_algorithms": recommended_algos,
+        "dataset_id": dataset_id
+    })

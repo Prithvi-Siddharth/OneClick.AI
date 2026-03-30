@@ -17,7 +17,12 @@
             <strong>Size:</strong> {{ (dataset.file_size / 1024)|round(2) }} KB</p>
     </div>
 
-    <h2 style="margin-bottom: 1.5rem;">Select an Algorithm</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2 style="margin: 0;">Select an Algorithm</h2>
+        <a href="/suggest_algorithm?dataset_id={{ dataset.id }}" class="btn btn-accent">
+            <i class="fas fa-magic"></i> Suggest Best Model
+        </a>
+    </div>
 
     <div class="grid-3">
         <!-- Linear Regression -->

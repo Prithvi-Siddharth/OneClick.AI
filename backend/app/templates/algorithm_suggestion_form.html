@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Suggest Best Model - OneClick.AI{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <div style="text-align: center; margin-bottom: 2.5rem;">
+        <h1 style="color: #1a202c; font-size: 2.5rem; margin-bottom: 0.5rem;">Smart Algorithm Advisor</h1>
+        <p style="color: var(--text-secondary); font-size: 1.1rem;">Tell us about your data, and we'll recommend the best machine learning models for your goal.</p>
+    </div>
+
+    <form action="/suggest_algorithm" method="POST" class="card" style="padding: 2.5rem; border-top: 5px solid var(--accent-color);">
+        <input type="hidden" name="dataset_id" value="{{ dataset_id }}">
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <!-- Problem Type -->
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-bullseye"></i> Problem Type</label>
+                <select name="problem_type" class="form-control">
+                    <option value="classification">Classification (Labels/Categories)</option>
+                    <option value="regression">Regression (Continuous values)</option>
+                    <option value="clustering">Clustering (Group similar items)</option>
+                </select>
+                <p style="font-size: 0.8rem; color: #718096; margin-top: 0.3rem;">What is your target goal?</p>
+            </div>
+
+            <!-- Dataset Size -->
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-expand-arrows-alt"></i> Dataset Size</label>
+                <select name="dataset_size" class="form-control">
+                    <option value="small">Small (< 10k rows)</option>
+                    <option value="medium" selected>Medium (10k - 100k rows)</option>
+                    <option value="large">Large (> 100k rows)</option>
+                </select>
+            </div>
+
+            <!-- Feature Type -->
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-list-ul"></i> Main Feature Type</label>
+                <select name="feature_type" class="form-control">
+                    <option value="numerical">Strictly Numerical</option>
+                    <option value="categorical">Strictly Categorical</option>
+                    <option value="mixed" selected>Mixed (Numbers and Text)</option>
+                </select>
+            </div>
+
+            <!-- Noise Level -->
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-random"></i> Data Noise Level</label>
+                <select name="noise_level" class="form-control">
+                    <option value="low">Low (Clean data)</option>
+                    <option value="medium" selected>Medium (Some missing/outliers)</option>
+                    <option value="high">High (Messy data)</option>
+                </select>
+            </div>
+
+            <!-- Linearity -->
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-wave-square"></i> Linearity</label>
+                <select name="linearity" class="form-control">
+                    <option value="linear">Mostly Linear</option>
+                    <option value="non-linear">Complex Non-linear</option>
+                    <option value="unknown" selected>I'm not sure</option>
+                </select>
+            </div>
+
+            <!-- Number of Features -->
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-columns"></i> Feature Count</label>
+                <select name="n_features" class="form-control">
+                    <option value="low">Low (< 10 features)</option>
+                    <option value="medium" selected>Medium (10 - 50 features)</option>
+                    <option value="high">High (> 50 features)</option>
+                </select>
+            </div>
+
+            <!-- Speed Requirement -->
+            <div class="form-group">
+                <label class="form-label"><i class="fas fa-bolt"></i> Training Speed</label>
+                <select name="speed_requirement" class="form-control">
+                    <option value="fast">Fast (Instant results)</option>
+                    <option value="moderate" selected>Moderate (Quality over speed)</option>
+                    <option value="no_constraint">No Constraint (Max accuracy)</option>
+                </select>
+            </div>
+
+             <!-- Interpretability -->
+             <div class="form-group">
+                <label class="form-label"><i class="fas fa-search-plus"></i> Interpretability</label>
+                <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="need_interpretability" value="true" style="margin-right: 0.5rem;"> Yes
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="need_interpretability" value="false" checked style="margin-right: 0.5rem;"> No
+                    </label>
+                </div>
+                <p style="font-size: 0.8rem; color: #718096; margin-top: 0.3rem;">Do you need to explain 'why' a prediction was made?</p>
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem; border-top: 1px solid #edf2f7; padding-top: 2rem; text-align: center;">
+            <button type="submit" class="btn btn-primary" style="padding: 1rem 3rem; font-size: 1.2rem;">
+                Get Recommendations <i class="fas fa-arrow-right" style="margin-left: 10px;"></i>
+            </button>
+        </div>
+    </form>
+
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="/training?dataset_id={{ dataset_id }}" style="color: var(--text-secondary); text-decoration: none;">
+            <i class="fas fa-chevron-left"></i> Skip and choose manually
+        </a>
+    </div>
+</div>
+{% endblock %}
