@@ -40,7 +40,7 @@ def get_user_models(db: Session, user_id: int, limit: int = None):
     """
     query = db.query(Experiment).filter(
         Experiment.user_id == user_id, 
-        Experiment.status == "COMPLETED"
+        Experiment.status.in_(["COMPLETED", "DEPLOYED"])
     ).order_by(Experiment.id.desc())
     
     if limit:

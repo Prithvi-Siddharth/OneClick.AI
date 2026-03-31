@@ -7,8 +7,17 @@
     <title>{% block title %}OneClick.AI{% endblock %}</title>
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    <!-- Custom CSS (Versioned to force refresh) -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}?v={{ range(1, 1000) | random }}">
+    <script>
+        // Prevent FOUC (Flash of Unstyled Content) by applying theme before body renders
+        (function() {
+            const savedTheme = localStorage.getItem('oneclick-theme') || 'standard';
+            if (savedTheme !== 'standard') {
+                document.documentElement.classList.add('theme-' + savedTheme);
+            }
+        })();
+    </script>
     {% block head %}{% endblock %}
 </head>
 
@@ -33,6 +42,18 @@
                     <a href="/about_developers">Developers</a>
                     <a href="/about_techstack">Tech Stack</a>
                     <a href="/about_guide">User Guide</a>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button class="nav-link" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-palette"></i> Theme
+                </button>
+                <div class="dropdown-content">
+                    <a href="javascript:void(0)" onclick="setTheme('standard')"><i class="fas fa-sun" style="width: 20px;"></i> Standard</a>
+                    <a href="javascript:void(0)" onclick="setTheme('dark')"><i class="fas fa-moon" style="width: 20px;"></i> Dark Mode</a>
+                    <a href="javascript:void(0)" onclick="setTheme('low-color')"><i class="fas fa-eye-slash" style="width: 20px;"></i> Low Color</a>
+                    <a href="javascript:void(0)" onclick="setTheme('high-color')"><i class="fas fa-bolt" style="width: 20px;"></i> High Color</a>
+                    <a href="javascript:void(0)" onclick="setTheme('oceanic')"><i class="fas fa-water" style="width: 20px;"></i> Oceanic</a>
                 </div>
             </div>
         </div>
@@ -66,7 +87,7 @@
                         <polyline points="16 17 21 12 16 7" />
                         <line x1="21" y1="12" x2="9" y2="12" />
                     </svg>
-                    <span style="color: #d8f30c; font-size: 13px;">Logout</span>
+                    <span style="font-size: 13px;">Logout</span>
                 </a>
 
             </div>
@@ -86,9 +107,20 @@
                     <a href="/about_guide">User Guide</a>
                 </div>
             </div>
-            <a href="/login" class="nav-link" style="color: rgba(255,255,255,0.85);">Login</a>
-            <a href="/register" class="btn btn-sm btn-primary" style="color: white; text-decoration: none;">Get
-                Started</a>
+            <a href="/login" class="nav-link">Login</a>
+            <a href="/register" class="btn btn-sm btn-primary" style="color: white; text-decoration: none;">Get Started</a>
+            <div class="dropdown">
+                <button class="nav-link" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-palette"></i>
+                </button>
+                <div class="dropdown-content">
+                    <a href="javascript:void(0)" onclick="setTheme('standard')"><i class="fas fa-sun" style="width: 20px;"></i> Standard</a>
+                    <a href="javascript:void(0)" onclick="setTheme('dark')"><i class="fas fa-moon" style="width: 20px;"></i> Dark Mode</a>
+                    <a href="javascript:void(0)" onclick="setTheme('low-color')"><i class="fas fa-eye-slash" style="width: 20px;"></i> Low Color</a>
+                    <a href="javascript:void(0)" onclick="setTheme('high-color')"><i class="fas fa-bolt" style="width: 20px;"></i> High Color</a>
+                    <a href="javascript:void(0)" onclick="setTheme('oceanic')"><i class="fas fa-water" style="width: 20px;"></i> Oceanic</a>
+                </div>
+            </div>
         </div>
     </nav>
     {% endif %}
@@ -648,6 +680,20 @@
     </script>
     {% endif %}
 
+    <script>
+        function setTheme(theme) {
+            // Remove all possible theme classes
+            document.documentElement.classList.remove('theme-dark', 'theme-low-color', 'theme-high-color', 'theme-oceanic');
+            
+            // Add new theme class if not standard
+            if (theme !== 'standard') {
+                document.documentElement.classList.add('theme-' + theme);
+            }
+            
+            // Save preference
+            localStorage.setItem('oneclick-theme', theme);
+        }
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 

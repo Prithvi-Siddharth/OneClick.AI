@@ -213,14 +213,14 @@
                     <pre style="margin: 0; line-height: 1.6; color: #94a3b8;">
 <span style="color: #f472b6;">import</span> requests
 
-api_url = <span style="color: #2dd4bf;">"https://api.oneclick.ai/v1/predict"</span>
+# 1. Select the full URL for Postman
+api_url = f"{window.location.protocol}//{window.location.host}/v1/predict/current_selected_id"
 payload = {
-    <span style="color: #fbbf24;">"model_id"</span>: <span style="color: #6366f1;">"current_selected_id"</span>,
-    <span style="color: #fbbf24;">"features"</span>: { ... }
+    <span style="color: var(--accent);">"features"</span>: { ... }
 }
 
-response = requests.post(api_url, json=payload)
-<span style="color: #f472b6;">print</span>(response.json())</pre>
+resp = requests.post(api_url, json=payload)
+<span style="color: var(--primary);">print</span>(resp.json())</pre>
                 </div>
             </div>
         </div>

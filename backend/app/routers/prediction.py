@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import joblib
 import pandas as pd
@@ -66,16 +67,23 @@ async def predict(model_id: int, request: Request, db: Session = Depends(get_db)
         }
     except Exception as e:
         print(f"ERROR: Prediction failed for model {model_id}: {str(e)}")
-        # Check if error is due to missing columns
-        missing_cols = []
-        try:
-            # Try to identify missing columns if it's a value error
-            if "feature names seen at fit time" in str(e):
-                return JSONResponse(status_code=400, content={
-                    "error": "Input data schema mismatch",
-                    "details": str(e)
-                })
-        except:
-            pass
-            
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
+        
+        # Determine error details and provide a 'Hint' for Postman/External users
+        status_code = 500
+        error_detail = str(e)
+        hint = "Ensure your JSON keys match the column names used during training."
+
+        if "feature names seen at fit time" in str(e):
+            status_code = 400
+            error_detail = "Input data schema mismatch"
+            hint = f"The model expects these exact features: {str(e).split('feature names seen at fit time: ')[-1]}"
+
+        return JSONResponse(
+            status_code=status_code,
+            content={
+                "status": "error",
+                "error": error_detail,
+                "hint": hint,
+                "model_id": model_id
+            }
+        )

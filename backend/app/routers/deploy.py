@@ -24,7 +24,7 @@ async def deploy_page(request: Request, db: Session = Depends(get_db)):
     # Fetch only completed (saved) models for this user
     user_models = db.query(Experiment).filter(
         Experiment.user_id == int(user_id),
-        Experiment.status == "COMPLETED"
+        Experiment.status.in_(["COMPLETED", "DEPLOYED"])
     ).order_by(Experiment.id.desc()).all()
 
     return templates.TemplateResponse("deploy.html", {

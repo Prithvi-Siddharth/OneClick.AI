@@ -395,9 +395,7 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
         X = df.drop(columns=[target_column])
         y = df[target_column]
         
-        # 3. Handling Categorical Data
-        # One-hot encode categorical features
-        X = pd.get_dummies(X, drop_first=True)
+        # 3. Model Configuration & Pipeline Setup
         
         # Determine task type
         model_info = ML_HYPERPARAMETERS.get(experiment.algorithm)
@@ -407,23 +405,25 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
             from sklearn.preprocessing import LabelEncoder
             le = LabelEncoder()
             y = le.fit_transform(y)
-
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-        # 4. Initialize and Train Model
-        hyperparams = json.loads(experiment.hyperparameters) if experiment.hyperparameters else {}
-        model = create_model_instance(experiment.algorithm, hyperparams)
-        
-        print(f"DEBUG: Training model {experiment.algorithm}...")
-        model.fit(X_train, y_train)
-    
-        experiment.model_artifact_path = model_s3_key
-        experiment.name = model_filename
+        # 4. Prepare S3 & Model Metadata
+        from app.services.s3_operations import get_s3_client
+        s3 = get_s3_client()
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+        if not bucket_name:
+            return JSONResponse(status_code=500, content={"error": "S3_BUCKET_NAME not configured"})
 
-        # --- NEW: Build a full Pipeline for Inference ---
-        numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns
-        categorical_features = X_train.select_dtypes(include=['object', 'category']).columns
+        # Generate standard filename and key
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        model_filename = f"model_{experiment.algorithm}_{timestamp}.joblib"
+        model_s3_key = f"{user_id}/models/{model_filename}"
 
+        # 5. Define Feature Groups (Preprocessing Automation)
+        # We handle this inside the Pipeline to avoid training-serving skew
+        numeric_features = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
+        categorical_features = X.select_dtypes(include=['object', 'category']).columns.tolist()
+
+        # Define Transformers
         numeric_transformer = Pipeline(steps=[
             ('imputer', SimpleImputer(strategy='median')),
             ('scaler', StandardScaler())
@@ -440,7 +440,7 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
                 ('cat', categorical_transformer, categorical_features)
             ])
 
-        # Recalculate hyperparams for the pipeline model step
+        # 6. Initialize Model and Build Pipeline
         hyperparams = json.loads(experiment.hyperparameters) if experiment.hyperparameters else {}
         model_instance = create_model_instance(experiment.algorithm, hyperparams)
 
@@ -449,16 +449,23 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
             ('model', model_instance)
         ])
 
+        # 7. Train and Save Test Split
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
         print(f"DEBUG: Training full inference pipeline for {experiment.algorithm}...")
         pipeline.fit(X_train, y_train)
 
-        # Serialize and Save the PIPELINE instead of just the model
+        # 8. Serialize and Save to S3
         print(f"DEBUG: Saving full pipeline to S3...")
         pipeline_buffer = BytesIO()
         joblib.dump(pipeline, pipeline_buffer)
         pipeline_buffer.seek(0)
         
         s3.put_object(Bucket=bucket_name, Key=model_s3_key, Body=pipeline_buffer.getvalue())
+
+        # Update experiment record
+        experiment.model_artifact_path = model_s3_key
+        experiment.name = model_filename
 
         # 5. Predict using the pipeline and Calculate Metrics
         predictions = pipeline.predict(X_test)
