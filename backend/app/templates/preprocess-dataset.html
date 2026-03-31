@@ -403,7 +403,8 @@
                 <button class="btn btn-primary" onclick="saveTargetColumn()">
                     <i class="fas fa-check" style="margin-right: 6px;"></i>Save Target Column
                 </button>
-                <span id="target-column-status" style="font-size: 0.85rem; color: #64748b;">No target selected yet.</span>
+                <span id="target-column-status" style="font-size: 0.85rem; color: #64748b;">No target selected
+                    yet.</span>
             </div>
         </div>
     </div>
@@ -887,15 +888,25 @@
     </div>
 
     <div class="action-buttons">
-        <button class="btn btn-primary" onclick="saveDatasetToCatalog()">
-            <i class="fas fa-save"></i> Save to Catalog
-        </button>
-        <button class="btn btn-secondary" onclick="downloadDataset('{{ dataset_id }}')">
-            <i class="fas fa-download"></i> Download Dataset
-        </button>
-        <button class="btn btn-danger" onclick="window.location.href='/train_model'">
-            <i class="fas fa-save"></i> Start Training
-        </button>
+        <div class="action-buttons"
+            style="display: flex; gap: 1rem; align-items: center; margin-top: 2rem; padding: 1.5rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <div style="flex: 1; display: flex; gap: 0.75rem;">
+                <input type="text" id="custom-dataset-name" placeholder="Name your preprocessed dataset..."
+                    style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1;">
+                <button class="btn btn-primary" onclick="saveDatasetToCatalog()">
+                    <i class="fas fa-save"></i> Save to Catalog
+                </button>
+            </div>
+            <button class="btn btn-secondary" onclick="downloadDataset('{{ dataset_id }}')">
+                <i class="fas fa-download"></i> Download
+            </button>
+        </div>
+
+        <div style="display: flex; justify-content: center; margin-top: 1rem;">
+            <button class="btn btn-danger" onclick="window.location.href='/train_model'">
+                <i class="fas fa-save"></i> Start Training
+            </button>
+        </div>
     </div>
 
     <!-- Overlay backdrop -->

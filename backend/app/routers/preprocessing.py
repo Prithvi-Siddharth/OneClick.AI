@@ -248,57 +248,6 @@ def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
     })
 
 # this route is used to save the preprocessed dataset to the data catalog
-@router.post("/save_preprocessed_dataset")
-def save_preprocessed_dataset(request: Request, db: Session = Depends(get_db)):
-    user_id = get_current_user_id(request)
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    # 1. Fetch latest active temporary dataset for this user
-    temp_dataset = db.query(TemporaryDataset).filter(
-        TemporaryDataset.user_id == int(user_id)
-    ).order_by(TemporaryDataset.id.desc()).first()
-
-    if not temp_dataset:
-        raise HTTPException(status_code=404, detail="No active preprocessed dataset found")
-    
-    try:
-        bucket_name = os.getenv("S3_BUCKET_NAME")
-        if not bucket_name:
-            raise ValueError("S3_BUCKET_NAME not configured in environment variables")
-
-        # 2. Promote to Dataset Catalog
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        permanent_key = f"{user_id}/datasets/{timestamp}_processed.csv"
-        
-        # 3. Server-side copy in S3
-        s3 = get_s3_client()
-        s3.copy_object(
-            Bucket=bucket_name,
-            CopySource={'Bucket': bucket_name, 'Key': temp_dataset.s3_key},
-            Key=permanent_key
-        )
-
-        # 4. Create record in the main Dataset table
-        dataset = Dataset(
-            user_id=int(user_id),
-            filename=f"Processed_{timestamp}.csv",
-            s3_key=permanent_key,
-            s3_bucket=bucket_name,
-            file_size=temp_dataset.file_size,
-            row_count=temp_dataset.row_count,
-            description="Preprocessed via Studio",
-            feature_schema=temp_dataset.feature_schema
-        )
-
-        db.add(dataset)
-        db.commit()
-        db.refresh(dataset)
-        
-        return JSONResponse(content={"message": "Dataset saved to catalog successfully!"})
-        
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 #websocket route for preprocessing the dataset
 @router.websocket("/preprocess-dataset/ws")
@@ -484,3 +433,71 @@ def download_preprocessed_dataset(dataset_id: int, request: Request, db: Session
         raise HTTPException(status_code=500, detail="Failed to generate download URL")
         
     return JSONResponse(content={"download_url": url})
+
+
+@router.post("/save_preprocessed_dataset")
+async def save_preprocessed_dataset(request: Request, db: Session = Depends(get_db)):
+    # 1. Authentication Check
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return JSONResponse(status_code=401, content={"error": "Not authenticated"})
+    
+    # 2. Get the custom name from the request body
+    try:
+        data = await request.json()
+    except:
+        return JSONResponse(status_code=400, content={"error": "Invalid request body"})
+        
+    custom_name = data.get("custom_name", "Processed_Dataset")
+
+    # Ensure it has a .csv extension
+    if not custom_name.lower().endswith('.csv'):
+        custom_name += ".csv"
+
+    # 3. Fetch the latest temporary dataset for this user
+    temp_dataset = db.query(TemporaryDataset).filter(
+        TemporaryDataset.user_id == int(user_id)
+    ).order_by(TemporaryDataset.id.desc()).first()
+
+    if not temp_dataset:
+        return JSONResponse(status_code=404, content={"error": "No preprocessed data found to save"})
+
+    try:
+        bucket_name = temp_dataset.s3_bucket
+        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+        
+        # Create a unique path in S3 using your custom name
+        permanent_key = f"{user_id}/datasets/{timestamp}_{custom_name}"
+        
+        # 4. Perform the Server-side copy in S3
+        s3 = get_s3_client()
+        s3.copy_object(
+            Bucket=bucket_name,
+            CopySource={'Bucket': bucket_name, 'Key': temp_dataset.s3_key},
+            Key=permanent_key
+        )
+
+        # 5. Create the permanent record in the Dataset table
+        new_dataset = Dataset(
+            user_id=int(user_id),
+            filename=custom_name, # Your chosen name
+            s3_key=permanent_key,
+            s3_bucket=bucket_name,
+            file_size=temp_dataset.file_size,
+            row_count=temp_dataset.row_count,
+            description="Preprocessed via Studio",
+            feature_schema=temp_dataset.feature_schema
+        )
+
+        db.add(new_dataset)
+        db.commit()
+        db.refresh(new_dataset)
+        
+        return JSONResponse(content={
+            "message": f"Successfully saved '{custom_name}' to your Data Catalog!",
+            "dataset_id": new_dataset.id
+        })
+        
+    except Exception as e:
+        print(f"Error saving dataset: {str(e)}")
+        return JSONResponse(status_code=500, content={"error": "Failed to save dataset: " + str(e)})

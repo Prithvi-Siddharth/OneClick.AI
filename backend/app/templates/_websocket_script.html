@@ -178,16 +178,16 @@
 
         // Client-side Validation: Check if target-dependent operations are selected without a target column
         const targetDependentOps = {
-            'encoding':         ['target'],
+            'encoding': ['target'],
             'feature_selection': ['kbest'],
-            'data_reduction':   ['lda'],
-            'imbalanced_data':  ['smote', 'class_weights']
+            'data_reduction': ['lda'],
+            'imbalanced_data': ['smote', 'class_weights']
         };
         const targetOpNames = {
-            'target':        'Target Encoding',
-            'kbest':         'Select k-best',
-            'lda':           'LDA',
-            'smote':         'SMOTE',
+            'target': 'Target Encoding',
+            'kbest': 'Select k-best',
+            'lda': 'LDA',
+            'smote': 'SMOTE',
             'class_weights': 'Class Weights'
         };
 
@@ -230,7 +230,7 @@
             target_column: selectedTargetColumn  // Send the selected target column
         }));
 
-        addLogEntry(selectedOps, attributes); 
+        addLogEntry(selectedOps, attributes);
         resetRadioButtons();
     }
 
@@ -426,5 +426,37 @@
             </div>
         `).join('');
     }
+
+    async function saveDatasetToCatalog() {
+        const customName = document.getElementById('custom-dataset-name').value;
+
+        if (!customName) {
+            alert("Please enter a name for your dataset first!");
+            return;
+        }
+
+        document.getElementById("preview-loading").style.display = "block";
+        try {
+            const response = await fetch('/save_preprocessed_dataset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ custom_name: customName }) // Send the name to backend
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                alert("✅ " + data.message);
+                window.location.href = "/view_datasets"; // Go to Data Catalog
+            } else {
+                alert("❌ Error: " + data.error);
+            }
+        } catch (error) {
+            console.error("Save failed:", error);
+            alert("Failed to save dataset.");
+        } finally {
+            document.getElementById("preview-loading").style.display = "none";
+        }
+    }
+
 
 </script>

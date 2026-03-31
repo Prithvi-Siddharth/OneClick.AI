@@ -38,7 +38,10 @@ def get_user_models(db: Session, user_id: int, limit: int = None):
     """
     Retrieves the list of models trained by the user, ordered by most recent first.
     """
-    query = db.query(Experiment).filter(Experiment.user_id == user_id).order_by(Experiment.id.desc())
+    query = db.query(Experiment).filter(
+        Experiment.user_id == user_id, 
+        Experiment.status == "COMPLETED"
+    ).order_by(Experiment.id.desc())
     
     if limit:
         query = query.limit(limit)

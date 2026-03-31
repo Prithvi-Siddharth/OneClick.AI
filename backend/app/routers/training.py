@@ -18,6 +18,10 @@ import traceback
 import joblib
 import pandas as pd
 from io import BytesIO
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
+from sklearn.impute import SimpleImputer
 
 ALGO_MAPPING = {
     "Linear Regression": "LinearRegression",
@@ -413,26 +417,51 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
         print(f"DEBUG: Training model {experiment.algorithm}...")
         model.fit(X_train, y_train)
     
-        # 4.5. Serialize and Save Model to S3
-        print(f"DEBUG: Serializing and saving model...")
-        model_buffer = BytesIO()
-        joblib.dump(model, model_buffer)
-        model_buffer.seek(0)
-        
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        model_filename = f"{experiment.algorithm}_{timestamp}.joblib"
-        model_s3_key = f"{user_id}/models/{model_filename}"
-        
-        from app.services.s3_operations import get_s3_client
-        s3 = get_s3_client()
-        bucket_name = os.getenv("S3_BUCKET_NAME")
-        s3.put_object(Bucket=bucket_name, Key=model_s3_key, Body=model_buffer.getvalue())
-        
         experiment.model_artifact_path = model_s3_key
         experiment.name = model_filename
 
-        # 5. Predict and Calculate Metrics
-        predictions = model.predict(X_test)
+        # --- NEW: Build a full Pipeline for Inference ---
+        numeric_features = X_train.select_dtypes(include=['int64', 'float64']).columns
+        categorical_features = X_train.select_dtypes(include=['object', 'category']).columns
+
+        numeric_transformer = Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler())
+        ])
+
+        categorical_transformer = Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
+            ('onehot', OneHotEncoder(handle_unknown='ignore'))
+        ])
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', numeric_transformer, numeric_features),
+                ('cat', categorical_transformer, categorical_features)
+            ])
+
+        # Recalculate hyperparams for the pipeline model step
+        hyperparams = json.loads(experiment.hyperparameters) if experiment.hyperparameters else {}
+        model_instance = create_model_instance(experiment.algorithm, hyperparams)
+
+        pipeline = Pipeline(steps=[
+            ('preprocessor', preprocessor),
+            ('model', model_instance)
+        ])
+
+        print(f"DEBUG: Training full inference pipeline for {experiment.algorithm}...")
+        pipeline.fit(X_train, y_train)
+
+        # Serialize and Save the PIPELINE instead of just the model
+        print(f"DEBUG: Saving full pipeline to S3...")
+        pipeline_buffer = BytesIO()
+        joblib.dump(pipeline, pipeline_buffer)
+        pipeline_buffer.seek(0)
+        
+        s3.put_object(Bucket=bucket_name, Key=model_s3_key, Body=pipeline_buffer.getvalue())
+
+        # 5. Predict using the pipeline and Calculate Metrics
+        predictions = pipeline.predict(X_test)
         
         results = {}
         # Check task type from your constants.py
@@ -466,7 +495,7 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
     
         print(f"DEBUG: Training complete. Metrics: {results['metrics']}")
         return {
-            "status": "success",
+            "status": "trained_pending_save",
             "metrics": results["metrics"],
             "comparison": comparison
         }
@@ -537,3 +566,20 @@ async def suggest_algorithm_results(request: Request, db: Session = Depends(get_
         "recommended_algorithms": recommended_algos,
         "dataset_id": dataset_id
     })
+
+@router.post("/save_to_catalog")
+async def save_to_catalog(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    experiment_id = data.get("experiment_id")
+    custom_name = data.get("custom_name")
+
+    experiment = db.query(Experiment).filter(Experiment.id == experiment_id).first()
+
+    if not custom_name.endswith('.joblib'):
+        custom_name += ".joblib"
+        
+    experiment.name = custom_name
+    experiment.status = "COMPLETED"
+    db.commit()
+    
+    return {"status": "success", "message": "Model saved to catalog as " + custom_name}

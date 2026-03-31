@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+
+{% block title %}Deploy Model - OneClick.AI{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        --glass-bg: rgba(255, 255, 255, 0.03);
+        --glass-border: rgba(255, 255, 255, 0.1);
+    }
+
+    .deploy-container {
+        padding: 2rem 0;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .deploy-header {
+        margin-bottom: 3rem;
+        text-align: left;
+    }
+
+    /* Model Selection Card */
+    .selection-section {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2.5rem;
+    }
+
+    /* Strategy Cards */
+    .strategy-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .strategy-card {
+        padding: 1.5rem;
+        border-radius: 16px;
+        border: 2px solid #f1f5f9;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .strategy-card:hover {
+        border-color: #6366f1;
+        background: #f8fbff;
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(99, 102, 241, 0.1);
+    }
+
+    .strategy-card.active {
+        border-color: #6366f1;
+        background: #f0f7ff;
+    }
+
+    .strategy-card .icon-box {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        font-size: 1.25rem;
+    }
+
+    /* Code Snippet Box */
+    .code-window {
+        background: #1e293b;
+        border-radius: 12px;
+        padding: 1.5rem;
+        color: #f8fafc;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.9rem;
+        position: relative;
+    }
+
+    .code-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .copy-btn {
+        padding: 4px 12px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: white;
+        font-size: 0.75rem;
+        cursor: pointer;
+    }
+
+    /* Pulsing Success Icon */
+    .pulse-success {
+        width: 12px;
+        height: 12px;
+        background: #22c55e;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+        box-shadow: 0 0 0 rgba(34, 197, 94, 0.4);
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="deploy-container">
+    <div class="deploy-header">
+        <h1>Model Deployment Center</h1>
+        <p style="color: #64748b;">Convert your trained brain into an active cloud production endpoint.</p>
+    </div>
+
+    <!-- Step 1: Select Model -->
+    <div class="selection-section">
+        <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-brain"
+                style="color: #6366f1; margin-right: 12px;"></i>Select Model to Deploy</h3>
+        <select id="model-select"
+            style="width: 100%; padding: 1rem; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 1rem; background: #fff;">
+            <option value="" disabled selected>Choose a model from your catalog...</option>
+            {% for model in models %}
+            <option value="{{ model.id }}">{{ model.name }} ({{ model.created_at.strftime('%Y-%m-%d') }})</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Step 2: Choose Strategy -->
+    <h3 style="margin-bottom: 1.5rem; padding-left: 0.5rem;">Choose Deployment Strategy</h3>
+    <div class="strategy-grid">
+        <!-- Real-time API -->
+        <div class="strategy-card active" onclick="selectStrategy('api')">
+            <div class="icon-box" style="background: #eef2ff; color: #6366f1;">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <h4>Real-time API</h4>
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem;">Deploy a high-concurrency REST endpoint
+                for instant predictions (latency < 50ms).</p>
+        </div>
+
+        <!-- Batch Job -->
+        <div class="strategy-card" onclick="selectStrategy('batch')">
+            <div class="icon-box" style="background: #f0fdf4; color: #22c55e;">
+                <i class="fas fa-layer-group"></i>
+            </div>
+            <h4>Batch Processing</h4>
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem;">Run predictions on thousands of rows at
+                once via file upload or scheduled trigger.</p>
+        </div>
+
+        <!-- Export -->
+        <div class="strategy-card" onclick="selectStrategy('export')">
+            <div class="icon-box" style="background: #fff7ed; color: #f59e0b;">
+                <i class="fas fa-file-export"></i>
+            </div>
+            <h4>Edge / Local Export</h4>
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem;">Download as an optimized .joblib or ONNX
+                file for on-device inference.</p>
+        </div>
+    </div>
+
+    <!-- Step 3: Deployment Preview -->
+    <div id="deployment-preview" style="margin-top: 3rem; display: block;">
+        <h3 style="margin-bottom: 1.5rem; padding-left: 0.5rem;">Configuration & Preview</h3>
+        <div
+            style="background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
+            <div style="padding: 2rem;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+                    <div>
+                        <span class="pulse-success"></span>
+                        <span style="font-weight: 600; color: #475569;">Ready for Provisioning</span>
+                        <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">Standard Tier • Serverless
+                            Inference</div>
+                    </div>
+                    <button class="btn btn-primary" onclick="startDeployment()" id="deploy-btn"
+                        style="padding: 0.75rem 2.5rem; border-radius: 99px;">
+                        Deploy Now
+                    </button>
+                </div>
+
+                <!-- Fake Code Snippet -->
+                <div class="code-window">
+                    <div class="code-header">
+                        <span>Python Client Preview</span>
+                        <button class="copy-btn">Copy</button>
+                    </div>
+                    <pre style="margin: 0; line-height: 1.6; color: #94a3b8;">
+<span style="color: #f472b6;">import</span> requests
+
+api_url = <span style="color: #2dd4bf;">"https://api.oneclick.ai/v1/predict"</span>
+payload = {
+    <span style="color: #fbbf24;">"model_id"</span>: <span style="color: #6366f1;">"current_selected_id"</span>,
+    <span style="color: #fbbf24;">"features"</span>: { ... }
+}
+
+response = requests.post(api_url, json=payload)
+<span style="color: #f472b6;">print</span>(response.json())</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 4: Live Test Interface -->
+    <div id="test-interface" style="margin-top: 3rem; display: none;">
+        <h3 style="margin-bottom: 1.5rem; padding-left: 0.5rem;">Live Prediction Tester</h3>
+        <div
+            style="background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); padding: 2rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <!-- Input side -->
+                <div>
+                    <label style="display: block; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">Input JSON
+                        Data</label>
+                    <textarea id="test-input"
+                        style="width: 100%; height: 150px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 1rem; font-family: 'Fira Code', monospace; font-size: 0.85rem;"
+                        placeholder='{ "feature1": 10.5, "feature2": "category_a" }'></textarea>
+                    <button class="btn btn-secondary" id="test-btn" onclick="testPrediction()"
+                        style="margin-top: 1rem; width: 100%; border-radius: 99px;">Run Test Prediction</button>
+                </div>
+                <!-- Output side -->
+                <div>
+                    <label style="display: block; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">Execution
+                        Result</label>
+                    <div id="test-output"
+                        style="width: 100%; height: 150px; background: #1e293b; color: #f8fafc; border-radius: 12px; padding: 1rem; font-family: 'Fira Code', monospace; font-size: 0.85rem; overflow-y: auto;">
+                        <span style="color: #94a3b8;">// Awaiting test run...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modelSelect = document.getElementById('model-select');
+        const deployBtn = document.getElementById('deploy-btn');
+        const testInterface = document.getElementById('test-interface');
+        // Reset button when model selection changes
+        modelSelect.addEventListener('change', function () {
+            // 1. Reset Button Appearance
+            deployBtn.innerHTML = 'Deploy Now';
+            deployBtn.disabled = false;
+            deployBtn.style.background = ''; // Resets to original CSS
+            deployBtn.style.borderColor = '';
+            // 2. Hide Test Interface (until the NEW model is deployed)
+            testInterface.style.display = 'none';
+
+            // 3. Clear the active model ID
+            activeModelId = null;
+
+            console.log("Model selection changed. UI Reset.");
+        });
+    });
+    // ── Global State ────────────────────────────────────────────────────────
+    let selectedStrategy = 'api'; // Default selection
+    let activeModelId = null;
+
+    /**
+     * Updates the UI when a deployment strategy card is clicked
+     */
+    function selectStrategy(type) {
+        selectedStrategy = type;
+        // Remove active class from all strategy cards
+        document.querySelectorAll('.strategy-card').forEach(card => card.classList.remove('active'));
+
+        // Add active class to the one that was clicked
+        // Note: we use event.currentTarget to ensure we get the card even if an icon was clicked
+        event.currentTarget.classList.add('active');
+        console.log("Selected deployment strategy:", selectedStrategy);
+    }
+
+    /**
+     * Triggers the actual backend deployment
+     */
+    async function startDeployment() {
+        const btn = document.getElementById('deploy-btn');
+        const modelId = document.getElementById('model-select').value;
+        activeModelId = modelId;
+
+        // 1. Validation
+        if (!modelId) {
+            alert("⚠️ Please select a model from the dropdown first!");
+            return;
+        }
+
+        // 2. Visual Feedback
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> Provisioning...';
+        btn.disabled = true;
+
+        try {
+            // 3. Call the Backend API
+            const response = await fetch('/deploy_model', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model_id: Number(modelId),
+                    strategy: selectedStrategy
+                })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // 4. Success State
+                alert("🚀 Success! " + result.message);
+                btn.innerHTML = '<i class="fas fa-check" style="margin-right: 8px;"></i> Deployed Live';
+                btn.style.background = '#22c55e';
+                btn.style.borderColor = '#22c55e';
+
+                // Show the testing interface
+                document.getElementById('test-interface').style.display = 'block';
+
+                // Update the code snippet with real model ID
+                const codeBlock = document.querySelector('.code-window pre');
+                if (codeBlock) {
+                    codeBlock.innerHTML = codeBlock.innerHTML.replace("current_selected_id", modelId);
+                }
+
+                // You can now find the live endpoint in result.endpoint
+                console.log("Model is live at:", result.endpoint);
+            } else {
+                throw new Error(result.error || "Deployment failed");
+            }
+
+        } catch (error) {
+            // 5. Error Handling
+            console.error("Deployment Error:", error);
+            alert("❌ Error: " + error.message);
+            btn.innerHTML = 'Deploy Now';
+            btn.disabled = false;
+        }
+    }
+
+    /**
+     * Tests the live prediction API
+     */
+    async function testPrediction() {
+        const inputArea = document.getElementById('test-input');
+        const outputArea = document.getElementById('test-output');
+        const testBtn = document.getElementById('test-btn');
+
+        // 1. Parse JSON
+        let jsonData;
+        try {
+            jsonData = JSON.parse(inputArea.value);
+        } catch (e) {
+            alert("❌ Invalid JSON format in input!");
+            return;
+        }
+
+        // 2. Update UI
+        testBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> Computing...';
+        testBtn.disabled = true;
+        outputArea.innerHTML = '<span style="color: #6366f1;">// Sending request to production...</span>';
+
+        try {
+            // 3. Call the Predict API
+            const response = await fetch(`/v1/predict/${activeModelId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(jsonData)
+            });
+
+            const result = await response.json();
+
+            // 4. Display Result
+            if (response.ok) {
+                outputArea.innerHTML = `<span style="color: #2dd4bf;">// Result:</span><br><pre style="color: #fff; margin-top: 10px;">${JSON.stringify(result, null, 2)}</pre>`;
+            } else {
+                outputArea.innerHTML = `<span style="color: #f472b6;">// Error:</span><br><div style="color: #fca5a5; margin-top: 10px;">${result.detail || result.error || "Failed to get prediction"}</div>`;
+            }
+        } catch (error) {
+            outputArea.innerHTML = `<span style="color: #f472b6;">// Network Error:</span><br><div style="color: #fca5a5; margin-top: 10px;">${error.message}</div>`;
+        } finally {
+            testBtn.innerHTML = 'Run Test Prediction';
+            testBtn.disabled = false;
+        }
+    }
+</script>
+
+{% endblock %}
