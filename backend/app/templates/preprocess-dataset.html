@@ -16,10 +16,10 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        background: #ffffff;
+        background: var(--card-bg);
         padding: 12px 16px;
         border-radius: 10px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border);
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         cursor: pointer;
         min-width: 180px;
@@ -28,7 +28,7 @@
 
     .preprocess-card:hover {
         border-color: var(--primary-color);
-        background: #f8fbff;
+        background: var(--bg-secondary);
         transform: translateY(-2px);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     }
@@ -51,7 +51,7 @@
     .preprocess-card h3 {
         font-size: 0.95rem;
         margin: 0;
-        color: #1e293b;
+        color: var(--text-primary);
         font-weight: 600;
         white-space: nowrap;
         overflow: hidden;
@@ -62,14 +62,14 @@
     .preprocess-card p {
         font-size: 0.75rem;
         margin: 0;
-        color: #64748b;
+        color: var(--text-muted);
         font-family: 'Courier New', Courier, monospace;
     }
 
     /* Active state for selected cards */
     .preprocess-card:has(input:checked) {
         border-color: var(--primary-color);
-        background: #f0f7ff;
+        background: var(--bg-secondary);
         border-width: 2px;
         padding: 11px 15px;
         /* Adjust for border width change */
@@ -125,17 +125,17 @@
     /* Accordion Styles */
     .accordion-section {
         margin-bottom: 1rem;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border);
         border-radius: 12px;
         overflow: hidden;
-        background: #fff;
+        background: var(--card-bg);
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
     .accordion-header {
         padding: 1.25rem 1.5rem;
-        background: #1e293b;
-        color: #f8fafc;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -167,7 +167,7 @@
         max-height: 0;
         overflow: hidden;
         transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.4s;
-        background: #fff;
+        background: var(--card-bg);
     }
 
     .accordion-section.active .accordion-content {
@@ -209,45 +209,7 @@
         transform: translateX(-50%) translateY(0);
     }
 
-    /* Interactive Preview Table (Pandas Style) */
-    .interactive-preview {
-        width: 100%;
-        border-collapse: collapse;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-        font-size: 0.85rem;
-        background-color: #ffffff;
-        border: 1px solid #e5e5e5;
-    }
 
-    .interactive-preview thead th {
-        position: sticky;
-        top: 0;
-        background-color: #ffffff;
-        color: #000000;
-        font-weight: 600;
-        padding: 10px 12px;
-        border: 1px solid #e5e5e5;
-        text-align: left;
-        z-index: 20;
-        white-space: nowrap;
-    }
-
-    .interactive-preview tbody td {
-        padding: 8px 12px;
-        border: 1px solid #e5e5e5;
-        color: #333333;
-        transition: background-color 0.1s ease;
-    }
-
-    .interactive-preview tbody tr:hover {
-        background-color: #f5f5f5;
-    }
-
-    .interactive-preview tbody td:hover {
-        background-color: #dae8ff !important;
-        color: #000000 !important;
-        cursor: cell;
-    }
 
     /* Activity Log Sidebar */
     .activity-log-sidebar {
@@ -889,10 +851,10 @@
 
     <div class="action-buttons">
         <div class="action-buttons"
-            style="display: flex; gap: 1rem; align-items: center; margin-top: 2rem; padding: 1.5rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+            style="display: flex; gap: 1rem; align-items: center; margin-top: 2rem; padding: 1.5rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border);">
             <div style="flex: 1; display: flex; gap: 0.75rem;">
                 <input type="text" id="custom-dataset-name" placeholder="Name your preprocessed dataset..."
-                    style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
                 <button class="btn btn-primary" onclick="saveDatasetToCatalog()">
                     <i class="fas fa-save"></i> Save to Catalog
                 </button>

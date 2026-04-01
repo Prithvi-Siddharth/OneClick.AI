@@ -13,10 +13,10 @@
     }
 
     .card-premium {
-        background: #ffffff;
+        background: var(--card-bg);
         border-radius: 16px;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border);
         padding: 2.5rem;
         transition: all 0.3s ease;
     }
@@ -29,11 +29,11 @@
     }
 
     .metric-card {
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        background: var(--bg-secondary);
         padding: 1.5rem;
         border-radius: 12px;
         text-align: center;
-        border: 1px solid #e2e8f0;
+        border: 1px solid var(--border);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
     }
 
@@ -53,8 +53,8 @@
     }
 
     .chart-container {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
         border-radius: 12px;
         padding: 1.5rem;
         margin-top: 1.5rem;
@@ -131,14 +131,14 @@
                         <i class="fas fa-magic" style="margin-right: 4px;"></i> Auto-Tune Mode
                     </span>
                 </div>
-                <h2 style="font-size: 1.875rem; font-weight: 800; color: #1e293b; margin-bottom: 0.5rem;">One Last Step
+                <h2 style="font-size: 1.875rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.5rem;">One Last Step
                 </h2>
-                <p style="color: #64748b;">Pick your target variable. We'll run <strong>OptiClick</strong> to find the
+                <p style="color: var(--text-muted);">Pick your target variable. We'll run <strong>OptiClick</strong> to find the
                     best hyperparameters for <strong>{{ model_name }}</strong> automatically.</p>
                 {% else %}
-                <h2 style="font-size: 1.875rem; font-weight: 800; color: #1e293b; margin-bottom: 0.5rem;">One Last Step
+                <h2 style="font-size: 1.875rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.5rem;">One Last Step
                 </h2>
-                <p style="color: #64748b;">Choose which variable you want your AI to predict. We'll handle the rest.</p>
+                <p style="color: var(--text-muted);">Choose which variable you want your AI to predict. We'll handle the rest.</p>
                 {% endif %}
             </div>
 
@@ -148,13 +148,13 @@
                 <input type="hidden" name="model_name" value="{{ model_name }}">
 
                 <div style="margin-bottom: 2rem;">
-                    <label style="display: block; font-weight: 600; color: #334155; margin-bottom: 0.75rem;">Target
+                    <label style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem;">Target
                         Variable (Y-Axis)</label>
                     <div style="position: relative;">
                         <i class="fas fa-bullseye"
                             style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--primary-color);"></i>
                         <select name="target_column" class="form-input"
-                            style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border-radius: 10px; border: 2px solid #e2e8f0; appearance: none; cursor: pointer; transition: border-color 0.2s;">
+                            style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border-radius: 10px; border: 2px solid var(--border); appearance: none; cursor: pointer; transition: border-color 0.2s; background: var(--bg-primary); color: var(--text-primary);">
                             {% for col in columns %}
                             <option value="{{ col }}">{{ col }}</option>
                             {% endfor %}
@@ -181,8 +181,8 @@
         <!-- Loading Phase -->
         <div id="loading-phase" class="loading-overlay">
             <span class="pulse-loader"></span>
-            <h3 id="loading-title" style="margin-top: 2rem; color: #1e293b;">Training Your Model...</h3>
-            <p id="loading-subtitle" style="color: #64748b; text-align: center;">This usually takes 5-20 seconds
+            <h3 id="loading-title" style="margin-top: 2rem; color: var(--text-primary);">Training Your Model...</h3>
+            <p id="loading-subtitle" style="color: var(--text-muted); text-align: center;">This usually takes 5-20 seconds
                 depending on dataset size.</p>
         </div>
 
@@ -193,8 +193,8 @@
                     style="width: 60px; height: 60px; background: #dcfce7; color: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem;">
                     <i class="fas fa-check-circle"></i>
                 </div>
-                <h2 style="font-size: 1.875rem; font-weight: 800; color: #1e293b;">Training Successful!</h2>
-                <p style="color: #64748b;">Your model has been trained and evaluated.</p>
+                <h2 style="font-size: 1.875rem; font-weight: 800; color: var(--text-primary);">Training Successful!</h2>
+                <p style="color: var(--text-muted);">Your model has been trained and evaluated.</p>
             </div>
 
             <!-- Best Params badge (only shown after auto_tune) -->
@@ -249,11 +249,11 @@
             </div>
 
             <div id="save-section"
-                style="margin-top: 2rem; padding: 1.5rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;">
+                style="margin-top: 2rem; padding: 1.5rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border);">
                 <h4 style="margin-bottom: 1rem;">Save to Catalog</h4>
                 <div style="display: flex; gap: 1rem;">
                     <input type="text" id="custom-model-name" placeholder="Enter model name (e.g., Sales_Predictor_v1)"
-                        style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid #cbd5e1;">
+                        style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
                     <button onclick="saveToCatalog()" class="btn btn-primary">Save to Catalog</button>
                 </div>
             </div>

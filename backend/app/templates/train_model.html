@@ -6,7 +6,7 @@
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <div>
-            <h1 style="color: #1a202c; margin: 0;">Train your Model</h1>
+            <h1 style="color: var(--text-primary); margin: 0;">Train your Model</h1>
             <p style="color: var(--text-secondary);">Train your model with ease</p>
         </div>
     </div>
@@ -25,8 +25,8 @@
 
         <!-- Active Dataset Section -->
         <div id="activeDatasetSection"
-            style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #2d3748;">Loaded Dataset</h3>
+            style="background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
+            <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--text-primary);">Loaded Dataset</h3>
             {% if active_dataset %}
             <div id="activeDatasetInfo">
                 <div
@@ -338,7 +338,7 @@
                     return `<div style="margin-top:1rem;"><strong>${title}:</strong> ${items.join(', ')}</div>`;
                 }
 
-                let extraStatsHtml = `<div class="card" style="margin-top: 1rem; background-color: #f8fafc;">`;
+                let extraStatsHtml = `<div class="card" style="margin-top: 1rem; background-color: var(--bg-secondary);">`;
                 extraStatsHtml += renderList("Numeric Variables", stats.numeric_variables);
                 extraStatsHtml += renderList("Categorical Variables", stats.categorical_variables);
                 extraStatsHtml += `</div>`;

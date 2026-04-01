@@ -146,23 +146,23 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 2rem;">
                 {% for param_name, meta in hyperparameters.items() %}
                 <div class="param-group"
-                    style="display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; transition: transform 0.2s, box-shadow 0.2s;">
+                    style="display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border); transition: transform 0.2s, box-shadow 0.2s;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <label for="param_{{ param_name }}"
-                            style="font-weight: 600; color: #1e293b; font-size: 0.95rem;">
+                            style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">
                             {{ param_name | replace('_', ' ') | title }}
                         </label>
                         <span
-                            style="font-size: 0.75rem; color: #64748b; background: #e2e8f0; padding: 2px 8px; border-radius: 12px; text-transform: uppercase;">{{
+                            style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-primary); border: 1px solid var(--border); padding: 2px 8px; border-radius: 12px; text-transform: uppercase;">{{
                             meta.type }}</span>
                     </div>
 
-                    <p style="font-size: 0.8rem; color: #64748b; margin: 0 0 0.5rem 0; line-height: 1.4;">{{
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 0.5rem 0; line-height: 1.4;">{{
                         meta.description }}</p>
 
                     {% if meta.options %}
                     <select id="param_{{ param_name }}" name="{{ param_name }}" class="form-input"
-                        style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; background: white;">
+                        style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
                         {% for opt in meta.options %}
                         <option value="{{ opt }}" {% if opt==meta.default %}selected{% endif %}>{{ opt }}</option>
                         {% endfor %}
@@ -174,22 +174,22 @@
                                 meta.default %}checked{% endif %}>
                             <span class="slider round"></span>
                         </label>
-                        <span style="font-size: 0.85rem; color: #475569;">Enable</span>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);">Enable</span>
                     </div>
                     {% elif meta.type == 'int' or meta.type == 'float' %}
                     <input type="number" id="param_{{ param_name }}" name="{{ param_name }}" value="{{ meta.default }}"
                         step="{% if meta.type == 'float' %}0.01{% else %}1{% endif %}" class="form-input"
-                        style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; background: white;"
+                        style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);"
                         {% if meta.range and meta.range[0] !=None %} min="{{ meta.range[0] }}" {% endif %}>
 
                     {% if meta.range %}
                     <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem;">
-                        <span style="font-size: 0.7rem; color: #94a3b8; width: 100%;">Suggested values:</span>
+                        <span style="font-size: 0.7rem; color: var(--text-muted); width: 100%;">Suggested values:</span>
                         {% for r_val in meta.range %}
                         {% if r_val != None %}
                         <button type="button"
                             onclick="document.getElementById('param_{{ param_name }}').value = '{{ r_val }}'"
-                            style="font-size: 0.75rem; padding: 2px 8px; border: 1px solid #e2e8f0; border-radius: 4px; background: white; cursor: pointer; color: var(--primary-color);">
+                            style="font-size: 0.75rem; padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-primary); cursor: pointer; color: var(--text-primary);">
                             {{ r_val }}
                         </button>
                         {% endif %}
@@ -199,7 +199,7 @@
                     {% else %}
                     <input type="text" id="param_{{ param_name }}" name="{{ param_name }}" value="{{ meta.default }}"
                         class="form-input"
-                        style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; background: white;">
+                        style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
                     {% endif %}
                 </div>
                 {% endfor %}
