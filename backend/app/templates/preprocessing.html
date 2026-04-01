@@ -2,33 +2,6 @@
 
 {% block title %}Preprocess - OneClick.AI{% endblock %}
 
-{% block head %}
-<style>
-    .stats-card {
-        background: #fff;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 1rem;
-    }
-
-    .stat-item {
-        background: #f8f9fa;
-        padding: 0.75rem;
-        border-radius: 4px;
-        border-left: 3px solid transparent;
-    }
-
-
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="container">
     <div style="text-align: center; margin-bottom: 3rem;">
@@ -277,8 +250,8 @@
                     <div class="stats-card">
                         <h3>Dataset Health Overview</h3>
                         <div style="display: flex; gap: 2rem; margin-bottom: 1rem;">
-                            <div><strong>Total Rows:</strong> ${stats.total_rows}</div>
-                            <div><strong>Duplicate Rows:</strong> ${stats.duplicate_rows}</div>
+                            <div style="margin-bottom: 1.5rem; padding: 12px; background: var(--bg-secondary); color: var(--text-primary); border-radius: 6px; border-left: 4px solid var(--accent); display: inline-block;"><strong>Total Rows:</strong> ${stats.total_rows}</div>
+                            <div style="margin-bottom: 1.5rem; padding: 12px; background: var(--bg-secondary); color: #e74c3c; border-radius: 6px; border-left: 4px solid #e74c3c; display: inline-block;"><strong>Duplicate Rows:</strong> ${stats.duplicate_rows}</div>
                         </div>
 
                         <h4>Missing Values per Column</h4>
@@ -304,7 +277,7 @@
                     return `<div style="margin-bottom: 1.5rem;">
                                 <h4 style="margin-bottom: 0.5rem;"><i class="fas fa-${icon || 'list'}"></i> ${title}</h4>
                                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
-                                    ${items.map(i => `<span style="background: #edf2f7; padding: 2px 8px; border-radius: 4px; font-size: 0.9em;">${i}</span>`).join('')}
+                                    ${items.map(i => `<span style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px; font-size: 0.85em; font-weight: 500;">${i}</span>`).join('')}
                                 </div>
                             </div>`;
                 }
@@ -358,7 +331,7 @@
                             let bg = "";
                             if (v !== undefined) {
                                 const val = Math.abs(v);
-                                if (val > 0.7) bg = "background-color: #e6fffa;"; // Highlight strong correlations
+                                if (val > 0.7) bg = "background-color: var(--accent); color: white;"; // Highlight strong correlations
                             }
                             extraStatsHtml += `<td style="${bg}">${v !== undefined ? v.toFixed(2) : '-'}</td>`;
                         });

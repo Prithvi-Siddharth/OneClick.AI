@@ -300,10 +300,13 @@
 {% block content %}
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1>Preprocessing Studio</h1>
-        <a href="#" class="btn btn-secondary" onclick="showHistory()"><i class="fas fa-history"
-                style="margin-right: 8px;"></i>Activity Log</a>
-        <a href="/preprocessing" class="btn btn-secondary">Back</a>
+        <h1 style="color: var(--text-primary); margin: 0;">Preprocessing Studio</h1>
+        <div style="display: flex; gap: 10px;">
+            <a href="#" class="btn btn-secondary" onclick="showHistory()">
+                <i class="fas fa-history" style="margin-right: 8px;"></i>Activity Log
+            </a>
+            <a href="/preprocessing" class="btn btn-secondary">Back</a>
+        </div>
     </div>
 
     <!-- Data Preview -->

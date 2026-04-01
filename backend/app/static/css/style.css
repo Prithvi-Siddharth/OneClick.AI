@@ -54,7 +54,10 @@ body {
     flex-direction: column;
     min-height: 100vh;
     transition: all 0.4s ease;
-    /* Extra Saturation Boost */
+    /* Extra Saturation Boost - Moved to children to avoid breaking fixed positioning */
+}
+
+.navbar, main, .footer {
     filter: saturate(1.15) contrast(1.02);
 }
 
@@ -305,7 +308,7 @@ a:hover {
 
 .alert-error {
     background: rgba(239, 68, 68, 0.1);
-    color: #f87171;
+    color: var(--error-color);
     border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
@@ -399,8 +402,12 @@ a:hover {
     color: white;
 }
 
-.dropdown-content.show {
+.dropdown:hover .dropdown-content {
     display: block;
+}
+
+.dropdown-content.show {
+    display: block !important;
 }
 
 /* Interactive Preview Table (Pandas Style) */
@@ -420,7 +427,7 @@ a:hover {
     position: sticky;
     top: 0;
     background: var(--bg-secondary);
-    color: var(--text-secondary);
+    color: var(--text-primary);
     font-weight: 700;
     padding: 12px 16px;
     border-bottom: 1px solid var(--border);
@@ -442,11 +449,120 @@ a:hover {
 }
 
 .interactive-preview tbody tr:hover {
-    background: rgba(99, 102, 241, 0.05);
+    background: var(--bg-secondary);
+}
+
+/* Statistics Components */
+.stats-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.stat-item {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--accent);
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
 }
 
 .interactive-preview tbody td:hover {
     background: var(--accent) !important;
     color: white !important;
     cursor: cell;
+}
+
+/* --- Theme Switch / Slide Bar --- */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 22px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border);
+    transition: .4s;
+    border-radius: 34px;
+    border: 1px solid var(--border);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .slider {
+    background-color: var(--accent);
+    border-color: var(--accent);
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+/* --- Accordion Header Theme Overrides --- */
+/* Light Mode (Standard) -> Request: Black background, White text */
+.accordion-header {
+    background: #1a202c !important;
+    color: #ffffff !important;
+    transition: all 0.3s ease;
+}
+
+.accordion-header:hover {
+    background: #2d3748 !important;
+}
+
+/* Dark Mode (.theme-dark) -> Request: White background, Black text */
+.theme-dark .accordion-header {
+    background: #ffffff !important;
+    color: #1a202c !important;
+}
+
+.theme-dark .accordion-header:hover {
+    background: #f8fafc !important;
+}
+
+.theme-dark .accordion-header h2 {
+    color: #1a202c !important;
+}
+
+.accordion-header h2 {
+    color: #ffffff !important;
 }
