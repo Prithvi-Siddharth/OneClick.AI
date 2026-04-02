@@ -1,8 +1,8 @@
 :root {
     /* Light Mode (Reference Match) */
     --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
-    --bg-gradient: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    --bg-secondary: #ffffff;
+    --bg-gradient: #ffffff;
     --card-bg: #ffffff;
     --text-primary: #1e293b;
     --text-secondary: #475569;
@@ -11,7 +11,7 @@
     --accent-hover: #2563eb;
     --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
     --border: #e2e8f0;
-    --nav-bg: #ffffff;
+    --nav-bg: #f8fafc;
     --glass-blur: none;
     --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     
@@ -115,7 +115,7 @@ a:hover {
 }
 
 .nav-link {
-    color: var(--text-secondary);
+    color: var(--text-primary);
     font-weight: 600;
     font-size: 0.95rem;
     transition: color 0.2s;
@@ -509,10 +509,10 @@ a:hover {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: var(--border);
+    background-color: var(--text-muted);
     transition: .4s;
     border-radius: 34px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--text-muted);
 }
 
 .slider:before {
@@ -566,3 +566,186 @@ input:checked + .slider:before {
 .accordion-header h2 {
     color: #ffffff !important;
 }
+
+/* Landing Page Specific Styles */
+.hero-section {
+    padding: 8rem 2rem;
+    text-align: center;
+    background: none;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Dark Mode Overrides for Hero */
+.theme-dark .hero-section {
+    background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.15), transparent),
+                radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.1), transparent);
+}
+
+.hero-title {
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    font-weight: 900;
+    color: var(--text-primary);
+}
+
+.accent-text {
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    max-width: 700px;
+    margin: 0 auto 3rem;
+}
+
+.hero-cta {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 4rem;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2.5rem;
+    padding: 4rem 0;
+}
+
+.feature-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    padding: 3rem 2rem;
+    border-radius: 32px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.feature-card:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-color: var(--accent);
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+}
+
+.feature-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.feature-description {
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 4rem 1rem;
+    }
+    .hero-cta {
+        flex-direction: column;
+    }
+}
+
+/* Catalog Modernization Utilities */
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.table-header {
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid var(--border);
+    padding: 1rem;
+}
+
+.table tr {
+    transition: background 0.2s ease;
+}
+
+.table tr:hover {
+    background: rgba(99, 102, 241, 0.03);
+}
+
+.theme-dark .table tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.status-pill {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-completed { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+.status-deployed { background: rgba(99, 102, 241, 0.1); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.2); }
+.status-failed { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+.action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+

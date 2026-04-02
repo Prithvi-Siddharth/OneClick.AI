@@ -1,135 +1,71 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - OneClick.AI</title>
-    <!-- Font Awesome for Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
-</head>
+{% block title %}Login - OneClick.AI{% endblock %}
 
-<body>
+{% block content %}
+<div class="auth-wrapper">
+    <div class="card auth-card">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="font-size: 3rem; color: var(--accent); margin-bottom: 1rem;">
+                <i class="fas fa-project-diagram"></i>
+            </div>
+            <h2 style="font-size: 1.75rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">Login to Your Account</h2>
+            <p style="color: var(--text-secondary);">Welcome back to OneClick.AI</p>
+        </div>
 
-    <!-- Navigation Bar -->
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">
-            <i class="fas fa-project-diagram"></i>
-            OneClick.AI
-        </a>
-        <div class="navbar-nav" style="margin-left: auto;">
-            <div class="dropdown">
-                <a href="#" class="nav-link">About <i class="fas fa-chevron-down" style="font-size: 0.8em;"></i></a>
-                <div class="dropdown-content">
-                    <a href="/about_mission">Our Mission</a>
-                    <a href="/about_developers">Developers</a>
-                    <a href="/about_techstack">Tech Stack</a>
-                    <a href="/about_guide">User Guide</a>
+        <form method="post" action="/login">
+            <div class="form-group" style="text-align: left;">
+                <label for="email" class="form-label">Email Address</label>
+                <div style="position: relative;">
+                    <i class="fas fa-user" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);"></i>
+                    <input type="email" id="email" name="email" class="form-control" placeholder="name@company.com"
+                        style="padding-left: 42px;" required>
                 </div>
             </div>
-        </div>
-    </nav>
 
-    <!-- Flash Messages -->
-    <div class="container" style="padding-bottom: 0;">
-        {% if message %}
-        <div class="alert alert-success">
-            {{ message }}
-        </div>
-        {% endif %}
+            <div class="form-group" style="text-align: left;">
+                <label for="password" class="form-label">Password</label>
+                <div style="position: relative;">
+                    <i class="fas fa-lock" style="position: absolute; left: 14px; top: 14px; color: var(--text-muted);"></i>
+                    <input type="password" id="password" name="password" class="form-control"
+                        placeholder="••••••••" style="padding-left: 42px; padding-right: 42px;" required>
+                    <i class="fas fa-eye" id="togglePassword"
+                        style="position: absolute; right: 14px; top: 14px; color: var(--text-muted); cursor: pointer; transition: color 0.2s;"></i>
+                </div>
+            </div>
 
-        {# Check query params for redirects #}
-        {% if request.query_params.get('error') %}
-        <div class="alert alert-danger">
-            {{ request.query_params.get('error') | replace('_', ' ') | capitalize }}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; font-size: 0.9rem;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-secondary);">
+                    <input type="checkbox" name="remember" style="width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--border);"> 
+                    Remember me
+                </label>
+                <a href="#" style="color: var(--accent);">Forgot password?</a>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.8rem;">Login</button>
+            </div>
+        </form>
+
+        <div style="text-align: center; margin-top: 2rem; font-size: 0.95rem; color: var(--text-secondary);">
+            New to OneClick.AI? <a href="/register" style="color: var(--accent); font-weight: 600;">Sign Up</a>
         </div>
-        {% endif %}
-        {% if request.query_params.get('message') %}
-        <div class="alert alert-success">
-            {{ request.query_params.get('message') | replace('_', ' ') | capitalize }}
-        </div>
-        {% endif %}
     </div>
+</div>
+{% endblock %}
 
-    <!-- Main Content -->
-    <main>
-        <div class="auth-wrapper">
-            <div class="auth-card">
-                <div class="auth-header">
-                    <div class="auth-logo">
-                        <i class="fas fa-project-diagram"></i>
-                        OneClick.AI
-                    </div>
-                    <h3>Login to Your Account</h3>
-                </div>
+{% block scripts %}
+<script>
+    const togglePassword = document.querySelector('#togglePassword');
+    const password = document.querySelector('#password');
 
-                <form method="post" action="/login">
-                    <div class="form-group" style="text-align: left;">
-                        <label for="email" class="form-label">Email Address</label>
-                        <div style="position: relative;">
-                            <i class="fas fa-user" style="position: absolute; left: 10px; top: 12px; color: #aaa;"></i>
-                            <input type="email" id="email" name="email" class="form-control" placeholder="Enter your email"
-                                style="padding-left: 35px;" required>
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="text-align: left;">
-                        <label for="password" class="form-label">Password</label>
-                        <div style="position: relative;">
-                            <i class="fas fa-lock" style="position: absolute; left: 10px; top: 12px; color: #aaa;"></i>
-                            <input type="password" id="password" name="password" class="form-control"
-                                placeholder="Enter your password" style="padding-left: 35px; padding-right: 40px;" required>
-                            <i class="fas fa-eye" id="togglePassword"
-                                style="position: absolute; right: 10px; top: 12px; color: #aaa; cursor: pointer;"></i>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
-                    </div>
-                </form>
-
-                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-top: 10px;">
-                    <label>
-                        <input type="checkbox" name="remember"> Remember me
-                    </label>
-                    <a href="#">Forgot password?</a>
-                </div>
-
-                <div style="margin-top: 20px; font-size: 0.9rem;">
-                    New to OneClick.AI? <a href="/register">Sign Up</a>
-                </div>
-
-                {% if error %}
-                <div class="alert alert-error" style="margin-top: 20px;">
-                    {{ error }}
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer">
-        <p>&copy; 2026 OneClick.AI. All rights reserved.</p>
-    </footer>
-
-    <script>
-        const togglePassword = document.querySelector('#togglePassword');
-        const password = document.querySelector('#password');
-
-        if (togglePassword && password) {
-            togglePassword.addEventListener('click', function (e) {
-                // toggle the type attribute
-                const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
-                password.setAttribute('type', type);
-                // toggle the eye slash icon
-                this.classList.toggle('fa-eye-slash');
-            });
-        }
-    </script>
-</body>
-
-</html>
+    if (togglePassword && password) {
+        togglePassword.addEventListener('click', function (e) {
+            const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+            password.setAttribute('type', type);
+            this.classList.toggle('fa-eye-slash');
+            this.style.color = this.classList.contains('fa-eye-slash') ? 'var(--accent)' : 'var(--text-muted)';
+        });
+    }
+</script>
+{% endblock %}
