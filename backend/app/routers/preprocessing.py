@@ -168,11 +168,13 @@ def connect_dataset(
             user_id=int(user_id),
             bucket_name=bucket_name,
             source_key=dataset.s3_key,
-            destination_key=f"{dataset.user_id}/temporary_datasets/{timestamp}{source_ext}",
+            filename=dataset.filename,
             row_count=dataset.row_count,
             feature_schema=dataset.feature_schema,
             file_size=dataset.file_size
         )
+
+
         
         # Return success response
         return JSONResponse(
@@ -305,12 +307,13 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
             auth_error = f"Token validation failed: {str(e)}"
 
     if not user_id:
-        await websocket.send_text(json.dumps({"type": "status", "message": f"❌ Authentication failed: {auth_error}. Please log in."}))
+        await websocket.send_text(json.dumps({"type": "status", "message": f"Authentication failed: {auth_error}. Please log in."}))
         await websocket.close()
         return
 
-    try:
-        while True:
+    
+    while True:
+        try:
             data = await websocket.receive_text()
             message = json.loads(data)
             action = message.get("action")
@@ -321,45 +324,45 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
             ).order_by(TemporaryDataset.id.desc()).first()
 
             if not active_dataset:
-                await send_status("❌ No active dataset found. Please upload one first.")
+                await send_status("No active dataset found. Please upload one first.")
                 continue
 
             if action == "get_preview":
-                await send_status("📋 Fetching initial preview...")
+                await send_status("Fetching initial preview...")
                 df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
                 await send_preview(df)
                 await send_history(active_dataset.id)
-                await send_status("✅ Preview loaded.")
-            
+                await send_status("Preview loaded.")
+                
             elif action == "apply_preprocessing":
-                await send_progress(5, "📡 Backend received request...")
+                await send_progress(5, "Backend received request...")
                 ops = message.get("operations", {})
                 attributes = message.get("attributes", [])
                 target_column = message.get("target_column", None)  # Target column for target-aware steps
-                await send_progress(10, f"⏳ Loading dataset for {len(attributes)} attributes...")
-                
+                await send_progress(10, f"Loading dataset for {len(attributes)} attributes...")
+                    
                 # 2. Load from S3
                 df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
 
                 # 3. Apply preprocessing
-                await send_progress(30, "⚙️ Applying transformations...")
+                await send_progress(30, "Applying transformations...")
                 processed_df = apply_preprocessing(df, ops, attributes, target_column)
 
                 if isinstance(processed_df, dict) and "error" in processed_df:
-                    await send_progress(0, f"❌ Error: {processed_df['error']}")
+                    await send_progress(0, f"Error: {processed_df['error']}")
                     continue
 
                 # 4. Save result back to S3
-                await send_progress(60, "💾 Generating processed file...")
+                await send_progress(60, "Generating processed file...")
                 csv_buffer = BytesIO()
                 processed_df.to_csv(csv_buffer, index=False)
                 csv_buffer.seek(0)
-                
-                await send_progress(80, "☁️ Uploading changes to S3...")
+                    
+                await send_progress(80, "Uploading changes to S3...")
                 s3 = get_s3_client()
                 file_content = csv_buffer.getvalue()
                 s3.put_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key, Body=file_content)
-                
+                    
                 # Update DB record with new schema and stats
                 new_schema = {col: str(dtype) for col, dtype in processed_df.dtypes.items()}
                 active_dataset.feature_schema = json.dumps(new_schema)
@@ -367,9 +370,9 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 active_dataset.file_size = len(file_content)
                 db.commit()
                 db.refresh(active_dataset)
-                
+                        
                 # 5. Send updated preview
-                await send_progress(95, "📋 Refreshing data preview...")
+                await send_progress(95, "Refreshing data preview...")
                 await send_preview(processed_df)
 
                 # 6. Log operations and send log update
@@ -392,21 +395,21 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                         })
                 db.commit()
                 await websocket.send_text(json.dumps({"type": "log_update", "data": new_logs}))
+                    
+                await send_progress(100, "Preprocessing complete!")
                 
-                await send_progress(100, "🚀 Preprocessing complete!")
-                
-    except WebSocketDisconnect:
-        print(f"WebSocket disconnected for user {user_id}")
-    except HTTPException as e:
-        try:
-            await websocket.send_text(json.dumps({"type": "error", "message": e.detail}))
-        except:
-            pass
-    except Exception as e:
-        try:
-            await websocket.send_text(json.dumps({"type": "status", "message": f"❌ Critical Error: {str(e)}"}))
-        except:
-            pass
+        except WebSocketDisconnect:
+            print(f"WebSocket disconnected for user {user_id}")
+        except HTTPException as e:
+            try:
+                await websocket.send_text(json.dumps({"type": "error", "message": e.detail}))
+            except:
+                pass
+        except Exception as e:
+            try:
+                await websocket.send_text(json.dumps({"type": "status", "message": f"Critical Error: {str(e)}"}))
+            except:
+                pass
 
 @router.get("/download_preprocessed_dataset/{dataset_id}")
 def download_preprocessed_dataset(dataset_id: int, request: Request, db: Session = Depends(get_db)):

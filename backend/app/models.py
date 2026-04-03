@@ -44,7 +44,7 @@ class Experiment(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class TemporaryDataset(Base):
-    __tablename__ = "temporary_datasets"
+    __tablename__ = "temp"
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False)
@@ -54,6 +54,7 @@ class TemporaryDataset(Base):
     row_count = Column(Integer, nullable=True)
     upload_date = Column(DateTime, default=datetime.utcnow)
     feature_schema = Column(String(4096), nullable=True)
+    filename = Column(String(255), nullable=False)
 
 class PreprocessingLog(Base):
     __tablename__ = "preprocessing_logs"

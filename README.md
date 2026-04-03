@@ -84,6 +84,25 @@ Once the server is running, you can explore the interactive API documentation at
 *   `backend/app/main.py`: Entry point of the API.
 *   `backend/app/models.py`: Database models (User, Dataset, Experiment).
 *   `backend/app/services/s3_operations.py`: Core logic for S3 uploads and reading.
+*   `backend/app/services/cleanup_tasks.py`: Background maintenance for purging expired temporary data.
+
+
+## 🧹 Maintenance
+
+### Temporary Data Cleanup
+To prevent S3 storage costs from escalating, a cleanup script is provided to purge temporary datasets older than 24 hours from both S3 and the database.
+
+**Manual Run**:
+```bash
+cd backend
+python -m app.services.cleanup_tasks
+```
+
+**Automated (Cron)**:
+Add the following to your `crontab` to run the cleanup every hour:
+```bash
+0 * * * * cd /path/to/OneClick.AI/backend && source venv/bin/activate && python -m app.services.cleanup_tasks
+```
 
 
 ## Development team

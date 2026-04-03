@@ -241,23 +241,10 @@ def process_and_save_dataset_temporary(
     file_obj,
     bucket_name: str
 ) -> TemporaryDataset:
-    """
-    Orchestrator function to:
-    1. Generate a unique S3 key.
-    2. Extract metadata.
-    3. Upload file to S3.
-    4. Save record to TiDB.
-    """
     
-    # 1. Generate Unique Key
-    # Organization: {user_id}/datasets/{timestamp}
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-    s3_key = f"{user_id}/temporary_datasets/{timestamp}"
-    
-    # 2. Calculate Metadata & Size (BEFORE upload to avoid closed file issues)
-    # Use the underlying file object if this is a FastAPI UploadFile
+    # 1. First, calculate Metadata & Size (Must be done first so we have the values)
     actual_file = getattr(file_obj, "file", file_obj)
-
+    
     # Get Size
     actual_file.seek(0, os.SEEK_END)
     file_size = actual_file.tell()
@@ -265,59 +252,74 @@ def process_and_save_dataset_temporary(
     
     # Get Schema and Rows
     row_count, schema_dict = inspect_temporary_dataset_metadata(file_obj)
+    actual_file.seek(0) # Always reset stream for upload
 
-    # Reset stream for upload
-    actual_file.seek(0)
-    
-    # 3. Upload to S3
-    success = upload_file_to_s3(file_obj, bucket_name, s3_key)
-    if not success:
-        raise Exception("Failed to upload file to S3")
-    
-    # 4. Save to DB
+    # 2. Get the filename
+    filename = getattr(file_obj, 'filename', 'dataset.csv')
+
+    # 3. Phase A: Create DB Record with Placeholder (Now we have file_size, etc.)
     new_dataset = TemporaryDataset(
         user_id=user_id,
-        s3_key=s3_key,
+        s3_key="PENDING",  
         s3_bucket=bucket_name,
         file_size=file_size,
         row_count=row_count,
+        filename=filename, 
         feature_schema=json.dumps(schema_dict) 
     )
-
     db.add(new_dataset)
+    db.commit()
+    db.refresh(new_dataset) # Now we have new_dataset.id
+
+    # 4. Phase B: Generate and Upload with Final Key
+    final_s3_key = get_user_temp_path(user_id, new_dataset.id, filename)
+    
+    success = upload_file_to_s3(file_obj, bucket_name, final_s3_key)
+    if not success:
+        raise Exception("Failed to upload file to S3")
+
+    # 5. Final Update
+    new_dataset.s3_key = final_s3_key
     db.commit()
     db.refresh(new_dataset)
     
     return new_dataset
-
 
 def duplicate_dataset_in_s3(
     db: Session,
     user_id: int,
     bucket_name: str,
     source_key: str,
-    destination_key: str,
+    filename: str,  # We now need filename passed in
     row_count: int,
     feature_schema: str,
     file_size: int
 ) -> TemporaryDataset:
-    # 1. Trigger the S3 Copy (Server-to-Server)
-    s3_client = get_s3_client()
-    copy_source = {'Bucket': bucket_name, 'Key': source_key}
-    s3_client.copy_object(Bucket=bucket_name, CopySource=copy_source, Key=destination_key)
-
-    # 2. Create the TemporaryDataset record using existing metadata
+    
+    # 1. Create the DB record first to get the ID
     new_dataset = TemporaryDataset(
         user_id=user_id,
-        s3_key=destination_key,
+        s3_key="PENDING",
         s3_bucket=bucket_name,
         file_size=file_size,
         row_count=row_count,
+        filename=filename,
         feature_schema=feature_schema
     )
     db.add(new_dataset)
     db.commit()
     db.refresh(new_dataset)
+    # 2. Generate the dynamic destination key using the new ID
+    destination_key = get_user_temp_path(user_id, new_dataset.id, filename)
+    # 3. Trigger the S3 Copy (Server-to-Server)
+    s3_client = get_s3_client()
+    copy_source = {'Bucket': bucket_name, 'Key': source_key}
+    s3_client.copy_object(Bucket=bucket_name, CopySource=copy_source, Key=destination_key)
+    # 4. Final DB Update
+    new_dataset.s3_key = destination_key
+    db.commit()
+    db.refresh(new_dataset)
+    
     return new_dataset
 
 def inspect_temporary_dataset_metadata(file_obj):
@@ -485,3 +487,7 @@ def load_dataset_as_dataframe(bucket_name: str, s3_key: str):
         return pd.read_excel(BytesIO(content))
     
     return pd.read_csv(BytesIO(content))
+
+
+def get_user_temp_path(user_id, dataset_id, filename):
+    return f"temp/{user_id}/{dataset_id}_{filename}"

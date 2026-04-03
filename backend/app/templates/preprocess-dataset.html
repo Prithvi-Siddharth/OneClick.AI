@@ -56,7 +56,7 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 140px;
+        max-width: 200px;
     }
 
     .preprocess-card p {
@@ -410,7 +410,7 @@
                     <input type="radio" name="drop_columns" id="drop_attr" />
                     <label for="drop_attr">
                         <h3>Drop by attribute</h3>
-                        <p>Convert categorical features into binary vectors.</p>
+
                     </label>
                     <div class="info-tooltip">Removes specific columns from the dataset that you don't need for
                         analysis.</div>
@@ -420,7 +420,7 @@
                     <input type="radio" name="drop_columns" id="remove_duplicates" />
                     <label for="remove_duplicates">
                         <h3>Remove Duplicates</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Identifies and removes identical rows to prevent skewed results and
                         overfitting.</div>
@@ -442,7 +442,6 @@
                     <input type="radio" name="missing_values" id="mean" />
                     <label for="mean">
                         <h3>Mean</h3>
-                        <p>Convert categorical features into binary vectors.</p>
                     </label>
                     <div class="info-tooltip">Fills missing values with the average of the column. Best for normally
                         distributed data.</div>
@@ -452,7 +451,6 @@
                     <input type="radio" name="missing_values" id="median" />
                     <label for="median">
                         <h3>Median</h3>
-                        <p>Convert categorical labels into numeric form.</p>
                     </label>
                     <div class="info-tooltip">Fills missing values with the middle value of the sorted column. Robust to
                         outliers.</div>
@@ -462,7 +460,6 @@
                     <input type="radio" name="missing_values" id="mode" />
                     <label for="mode">
                         <h3>Mode</h3>
-                        <p>Convert categorical labels into numeric form.</p>
                     </label>
                     <div class="info-tooltip">Fills missing values with the most frequent value. Good for categorical
                         data.</div>
@@ -472,7 +469,7 @@
                     <input type="radio" name="missing_values" id="drop_rows" />
                     <label for="drop_rows">
                         <h3>Drop rows</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Removes any row that contains at least one missing value. Use when data is
                         abundant.</div>
@@ -482,7 +479,7 @@
                     <input type="radio" name="missing_values" id="knn" />
                     <label for="knn">
                         <h3>KNN Imputer</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Predicts missing values using the K-Nearest Neighbors algorithm based on
                         other features.</div>
@@ -503,7 +500,7 @@
                     <input type="radio" name="outliers" id="iqr" />
                     <label for="iqr">
                         <h3>IQR Method</h3>
-                        <p>Convert categorical features into binary vectors.</p>
+
                     </label>
                     <div class="info-tooltip">Detects outliers using the Interquartile Range (IQR=Q3 - Q1).</div>
                 </div>
@@ -512,7 +509,7 @@
                     <input type="radio" name="outliers" id="zscore" />
                     <label for="zscore">
                         <h3>Z-score</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Detects outliers based on how many standard deviations they are from the
                         mean.</div>
@@ -522,7 +519,7 @@
                     <input type="radio" name="outliers" id="replace_mean" />
                     <label for="replace_mean">
                         <h3>Replace with mean</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Replaces outlier values with the mean of the column.</div>
                 </div>
@@ -531,7 +528,7 @@
                     <input type="radio" name="outliers" id="replace_median" />
                     <label for="replace_median">
                         <h3>Replace with median</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Replaces outlier values with the median of the column.</div>
                 </div>
@@ -551,7 +548,7 @@
                     <input type="radio" name="encoding" id="onehot" />
                     <label for="onehot">
                         <h3>One-Hot Encoding</h3>
-                        <p>Convert categorical features into binary vectors.</p>
+
                     </label>
                     <div class="info-tooltip">Creates binary columns for each category. Best for non-ordinal categorical
                         data.</div>
@@ -561,7 +558,7 @@
                     <input type="radio" name="encoding" id="label" />
                     <label for="label">
                         <h3>Label Encoding</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Assigns a unique integer to each category. Suitable for ordinal data or
                         tree-based models.</div>
@@ -571,7 +568,7 @@
                     <input type="radio" name="encoding" id="target" />
                     <label for="target">
                         <h3>Target Encoding</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Replaces categories with the mean of the target variable for that
                         category.</div>
@@ -581,7 +578,7 @@
                     <input type="radio" name="encoding" id="freq" />
                     <label for="freq">
                         <h3>Frequency Encoding</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Replaces categories with their count or frequency in the dataset.</div>
                 </div>
@@ -590,7 +587,7 @@
                     <input type="radio" name="encoding" id="ordinal" />
                     <label for="ordinal">
                         <h3>Ordinal Encoding</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Similar to label encoding but allows specifying the order of categories.
                     </div>
@@ -611,7 +608,7 @@
                     <input type="radio" name="scaling" id="minmax" />
                     <label for="minmax">
                         <h3>Min-Max Scaling</h3>
-                        <p>Convert categorical features into binary vectors.</p>
+
                     </label>
                     <div class="info-tooltip">Rescales features to a range of [0, 1] or [-1, 1]. Sensitive to outliers.
                     </div>
@@ -621,7 +618,7 @@
                     <input type="radio" name="scaling" id="zscore_scale" />
                     <label for="zscore_scale">
                         <h3>Z-score Scaling</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Standardizes features by removing the mean and scaling to unit variance.
                     </div>
@@ -631,7 +628,7 @@
                     <input type="radio" name="scaling" id="robust" />
                     <label for="robust">
                         <h3>Robust Scaling</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Scales features using statistics that are robust to outliers (IQR).</div>
                 </div>
@@ -639,7 +636,7 @@
                     <input type="radio" name="scaling" id="maxabs" />
                     <label for="maxabs">
                         <h3>Max Abs Scaling</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Scales each feature by its maximum absolute value. Good for sparse data.
                     </div>
@@ -661,7 +658,7 @@
                     <input type="radio" name="transformations" id="log" />
                     <label for="log">
                         <h3>Log Transform</h3>
-                        <p>Convert categorical features into binary vectors.</p>
+
                     </label>
                     <div class="info-tooltip">Applies the natural log to features. Helps handle skewed data.</div>
                 </div>
@@ -670,7 +667,7 @@
                     <input type="radio" name="transformations" id="sqrt" />
                     <label for="sqrt">
                         <h3>Square Root Transform</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Applies the square root function to the data.</div>
                 </div>
@@ -679,7 +676,7 @@
                     <input type="radio" name="transformations" id="reciprocal" />
                     <label for="reciprocal">
                         <h3>Reciprocal Transform</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Applies 1/x to the data. Use only for non-zero values.</div>
                 </div>
@@ -688,7 +685,7 @@
                     <input type="radio" name="transformations" id="boxcox" />
                     <label for="boxcox">
                         <h3>Box-Cox Transform</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Finds the optimal power transformation to normalize data. Works only for
                         positive data.</div>
@@ -698,7 +695,7 @@
                     <input type="radio" name="transformations" id="yeojohnson" />
                     <label for="yeojohnson">
                         <h3>Yeo-Johnson Transform</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">A power transformation that works for both positive and negative data.
                     </div>
@@ -708,7 +705,7 @@
                     <input type="radio" name="transformations" id="binning" />
                     <label for="binning">
                         <h3>Binning</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Converts continuous numerical data into discrete categories or bins.</div>
                 </div>
@@ -729,7 +726,7 @@
                     <input type="radio" name="feature_selection" id="low_variance" />
                     <label for="low_variance">
                         <h3>Remove low variance</h3>
-                        <p>Convert categorical features into binary vectors.</p>
+
                     </label>
                     <div class="info-tooltip">Filters out features with variance below a certain threshold (e.g.,
                         constant columns).</div>
@@ -739,7 +736,7 @@
                     <input type="radio" name="feature_selection" id="kbest" />
                     <label for="kbest">
                         <h3>Select k-best attributes</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Selects the top K features that have the strongest relationship with the
                         target variable.</div>
@@ -749,7 +746,7 @@
                     <input type="radio" name="feature_selection" id="tree_importance" />
                     <label for="tree_importance">
                         <h3>Tree based importance</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Uses decision trees (e.g., Random Forest) to rank features by their
                         importance.</div>
@@ -759,7 +756,7 @@
                     <input type="radio" name="feature_selection" id="correlation_threshold" />
                     <label for="correlation_threshold">
                         <h3>Correlation threshold</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Removes features that have a correlation coefficient below a certain
                         threshold with the target variable.</div>
@@ -769,7 +766,7 @@
                     <input type="radio" name="feature_selection" id="chi2" />
                     <label for="chi2">
                         <h3>Chi-squared</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Tests the independence of categorical features with the target variable
                         using the chi-squared test.</div>
@@ -791,7 +788,7 @@
                     <input type="radio" name="data_reduction" id="pca" />
                     <label for="pca">
                         <h3>PCA</h3>
-                        <p>Convert categorical features into binary vectors.</p>
+
                     </label>
                     <div class="info-tooltip">Principal Component Analysis: Linear dimensionality reduction using
                         singular value decomposition.</div>
@@ -801,7 +798,7 @@
                     <input type="radio" name="data_reduction" id="lda" />
                     <label for="lda">
                         <h3>LDA</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Linear Discriminant Analysis: Finds directions that maximize class
                         separation.</div>
@@ -811,7 +808,7 @@
                     <input type="radio" name="data_reduction" id="ica" />
                     <label for="ica">
                         <h3>ICA</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Independent Component Analysis: Separates a multivariable signal into
                         additive subcomponents.</div>
@@ -833,7 +830,7 @@
                     <input type="radio" name="imbalanced_data" id="smote" />
                     <label for="smote">
                         <h3>SMOTE</h3>
-                        <p>Convert categorical features into binary vectors.</p>
+
                     </label>
                     <div class="info-tooltip">Synthetic Minority Over-sampling Technique: Generates synthetic samples
                         for the minority class.</div>
@@ -843,7 +840,7 @@
                     <input type="radio" name="imbalanced_data" id="class_weights" />
                     <label for="class_weights">
                         <h3>Class weights</h3>
-                        <p>Convert categorical labels into numeric form.</p>
+
                     </label>
                     <div class="info-tooltip">Assigns higher penalties to errors in the minority class during model
                         training.</div>

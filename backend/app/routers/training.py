@@ -95,11 +95,12 @@ def connect_dataset_train(
             user_id=int(user_id),
             bucket_name=bucket_name,
             source_key=dataset.s3_key,
-            destination_key=f"{dataset.user_id}/temporary_datasets/{timestamp}{source_ext}",
+            filename=dataset.filename, # ADD THIS
             row_count=dataset.row_count,
             feature_schema=dataset.feature_schema,
             file_size=dataset.file_size
         )
+
         
         # Return success response
         return JSONResponse(

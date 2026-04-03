@@ -4,7 +4,7 @@
     const socket = new WebSocket(`${protocol}//${window.location.host}/preprocess-dataset/ws`);
 
     socket.onopen = () => {
-        console.log("✅ WebSocket connected");
+        console.log("WebSocket connected");
         // Request initial preview immediately upon connection
         socket.send(JSON.stringify({ action: "get_preview" }));
     };
@@ -33,9 +33,11 @@
                 if (data.message && (data.message.includes("is not numeric") || data.message.includes("is not categorical"))) {
                     alert("Did your data school forget to teach variable types? Stick to counting colors—maybe you'll get that kindergarten diploma.");
                 } else {
-                    alert("❌ Error: " + data.message);
+                    alert("Error: " + data.message);
                 }
                 document.getElementById("preview-loading").style.display = "none";
+                document.getElementById("status-display").style.display = "none";
+                document.getElementById("progress-wrapper").style.display = "none";
             }
         } catch (e) {
             console.error("Error parsing message:", e);
@@ -61,7 +63,7 @@
     };
 
     socket.onclose = () => {
-        console.log("❌ WebSocket closed");
+        console.log("WebSocket closed");
     };
 
     function toggleAccordion(id) {
@@ -205,7 +207,7 @@
 
         if (missingTargetOp && !selectedTargetColumn) {
             alert(
-                `⚠️ "${missingTargetOp}" requires a target column.\n\n` +
+                `"${missingTargetOp}" requires a target column.\n\n` +
                 `Please open Section 0 (Select Target Column), pick the column your model should predict, ` +
                 `and click "Save Target Column" before applying this step.`
             );
@@ -334,10 +336,10 @@
 
             const data = await response.json();
             if (response.ok) {
-                alert("✅ " + data.message);
+                alert(data.message);
                 window.location.href = "/view_datasets";
             } else {
-                alert("❌ Error: " + data.error);
+                alert("Error: " + data.error);
             }
         } catch (error) {
             console.error("Save failed:", error);
@@ -445,10 +447,10 @@
 
             const data = await response.json();
             if (response.ok) {
-                alert("✅ " + data.message);
+                alert(data.message);
                 window.location.href = "/view_datasets"; // Go to Data Catalog
             } else {
-                alert("❌ Error: " + data.error);
+                alert("Error: " + data.error);
             }
         } catch (error) {
             console.error("Save failed:", error);
