@@ -1,48 +1,76 @@
 <script>
     // Detect the current protocol (ws or wss) and host automatically
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${protocol}//${window.location.host}/preprocess-dataset/ws`);
+    let socket;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
 
-    socket.onopen = () => {
-        console.log("WebSocket connected");
-        // Request initial preview immediately upon connection
-        socket.send(JSON.stringify({ action: "get_preview" }));
-    };
+    function connectWebSocket() {
+        console.log("Connecting to WebSocket...");
+        socket = new WebSocket(`${protocol}//${window.location.host}/preprocess-dataset/ws`);
 
-    socket.onmessage = (event) => {
-        try {
-            const data = JSON.parse(event.data);
+        socket.onopen = () => {
+            console.log("WebSocket connected");
+            reconnectAttempts = 0;
+            // Request initial preview immediately upon connection
+            socket.send(JSON.stringify({ action: "get_preview" }));
+        };
 
-            if (data.type === "status") {
-                document.getElementById("status-text").textContent = data.message;
-            } else if (data.type === "progress") {
-                updateProgress(data.percentage, data.message);
-            } else if (data.type === "preview") {
-                renderPreview(data.data_preview);
-                if (data.columns) {
-                    renderAttributePanel(data.columns);
-                }
-                document.getElementById("preview-loading").style.display = "none";
-                // Optionally hide progress after some delay
-                setTimeout(() => {
-                    if (document.getElementById("progress-percentage").textContent === "100%") {
-                        // document.getElementById("progress-wrapper").style.display = "none";
+        socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.type === "status") {
+                    document.getElementById("status-text").textContent = data.message;
+                } else if (data.type === "progress") {
+                    updateProgress(data.percentage, data.message);
+                } else if (data.type === "preview") {
+                    renderPreview(data.data_preview);
+                    if (data.columns) {
+                        renderAttributePanel(data.columns);
                     }
-                }, 3000);
-            } else if (data.type === "error") {
-                if (data.message && (data.message.includes("is not numeric") || data.message.includes("is not categorical"))) {
-                    alert("Did your data school forget to teach variable types? Stick to counting colors—maybe you'll get that kindergarten diploma.");
-                } else {
-                    alert("Error: " + data.message);
+                    document.getElementById("preview-loading").style.display = "none";
+                    setTimeout(() => {
+                        if (document.getElementById("progress-percentage").textContent === "100%") {
+                            // document.getElementById("progress-wrapper").style.display = "none";
+                        }
+                    }, 3000);
+                } else if (data.type === "error") {
+                    if (data.message && (data.message.includes("is not numeric") || data.message.includes("is not categorical"))) {
+                        alert("Did your data school forget to teach variable types? Stick to counting colors—maybe you'll get that kindergarten diploma.");
+                    } else {
+                        alert("Error: " + data.message);
+                    }
+                    document.getElementById("preview-loading").style.display = "none";
+                    document.getElementById("status-display").style.display = "none";
+                    document.getElementById("progress-wrapper").style.display = "none";
                 }
-                document.getElementById("preview-loading").style.display = "none";
-                document.getElementById("status-display").style.display = "none";
-                document.getElementById("progress-wrapper").style.display = "none";
+            } catch (e) {
+                console.error("Error parsing message:", e);
             }
-        } catch (e) {
-            console.error("Error parsing message:", e);
-        }
-    };
+        };
+
+        socket.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        };
+
+        socket.onclose = () => {
+            console.log("WebSocket closed");
+            if (reconnectAttempts < maxReconnectAttempts) {
+                const delay = Math.pow(2, reconnectAttempts) * 1000;
+                console.log(`Reconnecting in ${delay}ms... (Attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+                setTimeout(connectWebSocket, delay);
+                reconnectAttempts++;
+            } else {
+                console.error("Max reconnection attempts reached.");
+                alert("Connection lost. Please refresh the page.");
+            }
+        };
+    }
+
+    // Initial connection
+    connectWebSocket();
+
 
     function updateProgress(percent, message) {
         const wrapper = document.getElementById("progress-wrapper");
@@ -58,13 +86,6 @@
         }
     }
 
-    socket.onerror = (error) => {
-        console.error("WebSocket error:", error);
-    };
-
-    socket.onclose = () => {
-        console.log("WebSocket closed");
-    };
 
     function toggleAccordion(id) {
         const item = document.getElementById(id);

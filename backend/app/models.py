@@ -13,6 +13,7 @@ class User(Base):
     username = Column(String(50), unique=True, nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
+    profile_pic_url = Column(String(1024), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Dataset(Base):

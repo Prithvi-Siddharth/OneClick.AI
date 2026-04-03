@@ -15,7 +15,7 @@ from fastapi import Depends
 from app.security import get_current_user_id
 
 # Import all routers
-from app.routers import auth, dashboard, data_catalog, model_catalog, preprocessing, training, notes, deploy, prediction
+from app.routers import auth, dashboard, data_catalog, model_catalog, preprocessing, training, notes, deploy, prediction, profile
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
@@ -43,7 +43,7 @@ app.include_router(preprocessing.router)
 app.include_router(training.router)
 app.include_router(notes.router)
 app.include_router(deploy.router)
-app.include_router(prediction.router)
+app.include_router(profile.router)
 
 
 

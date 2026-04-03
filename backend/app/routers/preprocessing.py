@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect, File, UploadFile, Form, HTTPException, status
 from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.concurrency import run_in_threadpool
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 import os, json, pandas as pd
@@ -329,7 +330,8 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
 
             if action == "get_preview":
                 await send_status("Fetching initial preview...")
-                df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
+                # Offload blocking S3 read to a threadpool
+                df = await run_in_threadpool(read_df_from_s3, active_dataset.s3_bucket, active_dataset.s3_key)
                 await send_preview(df)
                 await send_history(active_dataset.id)
                 await send_status("Preview loaded.")
@@ -338,30 +340,31 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 await send_progress(5, "Backend received request...")
                 ops = message.get("operations", {})
                 attributes = message.get("attributes", [])
-                target_column = message.get("target_column", None)  # Target column for target-aware steps
+                target_column = message.get("target_column", None)
                 await send_progress(10, f"Loading dataset for {len(attributes)} attributes...")
                     
-                # 2. Load from S3
-                df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
+                # Offload blocking S3 read to a threadpool
+                df = await run_in_threadpool(read_df_from_s3, active_dataset.s3_bucket, active_dataset.s3_key)
 
-                # 3. Apply preprocessing
+                # Offload blocking preprocessing application to a threadpool
                 await send_progress(30, "Applying transformations...")
-                processed_df = apply_preprocessing(df, ops, attributes, target_column)
+                processed_df = await run_in_threadpool(apply_preprocessing, df, ops, attributes, target_column)
 
                 if isinstance(processed_df, dict) and "error" in processed_df:
                     await send_progress(0, f"Error: {processed_df['error']}")
                     continue
 
-                # 4. Save result back to S3
+                # Offload blocking to_csv to a threadpool
                 await send_progress(60, "Generating processed file...")
                 csv_buffer = BytesIO()
-                processed_df.to_csv(csv_buffer, index=False)
+                await run_in_threadpool(processed_df.to_csv, csv_buffer, index=False)
                 csv_buffer.seek(0)
                     
                 await send_progress(80, "Uploading changes to S3...")
                 s3 = get_s3_client()
                 file_content = csv_buffer.getvalue()
-                s3.put_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key, Body=file_content)
+                # Consider offloading s3.put_object if it's slow/blocking
+                await run_in_threadpool(s3.put_object, Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key, Body=file_content)
                     
                 # Update DB record with new schema and stats
                 new_schema = {col: str(dtype) for col, dtype in processed_df.dtypes.items()}
@@ -400,16 +403,18 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 
         except WebSocketDisconnect:
             print(f"WebSocket disconnected for user {user_id}")
+            break
         except HTTPException as e:
             try:
                 await websocket.send_text(json.dumps({"type": "error", "message": e.detail}))
             except:
-                pass
+                break
         except Exception as e:
+            print(f"WebSocket execution error: {str(e)}")
             try:
                 await websocket.send_text(json.dumps({"type": "status", "message": f"Critical Error: {str(e)}"}))
             except:
-                pass
+                break
 
 @router.get("/download_preprocessed_dataset/{dataset_id}")
 def download_preprocessed_dataset(dataset_id: int, request: Request, db: Session = Depends(get_db)):
