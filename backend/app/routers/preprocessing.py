@@ -379,6 +379,28 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 await send_status("No active dataset found. Please upload one first.")
                 continue
 
+            if action == "get_visualization":
+                col1 = message.get("col1", "")
+                col2 = message.get("col2") or None
+                plot_type = message.get("plot_type", "histogram")
+
+                if not col1:
+                    await websocket.send_text(json.dumps({"type": "error", "message": "No column specified for visualization."}))
+                    continue
+
+                from app.services.visualization_service import calculate_eda_stats, get_plot_data
+
+                df = await run_in_threadpool(read_df_from_s3, active_dataset.s3_bucket, active_dataset.s3_key)
+                eda_stats = await run_in_threadpool(calculate_eda_stats, df, col1)
+                plot_data = await run_in_threadpool(get_plot_data, df, col1, col2, plot_type)
+
+                await websocket.send_text(json.dumps({
+                    "type": "visualization_result",
+                    "eda_stats": eda_stats,
+                    "plot_data": plot_data,
+                }))
+                continue
+
             if action == "run_sql":
                 query = message.get("query", "")
                 try:

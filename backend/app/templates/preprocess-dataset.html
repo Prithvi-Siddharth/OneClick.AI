@@ -3,6 +3,7 @@
 {% block title %}Preprocessing Studio - OneClick.AI{% endblock %}
 
 {% block head %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 <style>
     :root {
         --primary-color: #6366f1;
@@ -472,6 +473,200 @@
         color: var(--error-color);
     }
 
+    /* Visualization Panel */
+    .visualize-panel {
+        position: fixed;
+        top: 100vh;
+        left: 5vw;
+        width: 90vw;
+        height: 85vh;
+        z-index: 2000;
+        transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+        display: flex;
+        flex-direction: column;
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        visibility: hidden;
+
+        --panel-bg: #fdfbf7;
+        --panel-header: #f7f5f0;
+        --panel-content: #faf9f6;
+        --panel-card: #ffffff;
+
+        background: var(--panel-bg);
+        color: var(--text-primary);
+    }
+
+    .theme-dark .visualize-panel {
+        --panel-bg: var(--card-bg);
+        --panel-header: var(--bg-secondary);
+        --panel-content: var(--bg-primary);
+        --panel-card: var(--card-bg);
+    }
+
+    .visualize-panel.open {
+        top: 10vh;
+        visibility: visible;
+    }
+
+    .visualize-panel-header {
+        padding: 1rem 2rem;
+        background: var(--panel-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        border-radius: 24px 24px 0 0;
+    }
+
+    .visualize-panel-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .visualize-panel-body {
+        flex: 1;
+        display: flex;
+        gap: 0;
+        overflow: hidden;
+        border-radius: 0 0 24px 24px;
+    }
+
+    .visualize-sidebar {
+        width: 260px;
+        min-width: 260px;
+        background: var(--panel-header);
+        border-right: 1px solid var(--border);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        overflow-y: auto;
+    }
+
+    .visualize-sidebar label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .visualize-sidebar select {
+        width: 100%;
+        padding: 0.6rem 0.8rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--panel-card);
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+
+    .visualize-sidebar select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    }
+
+    .visualize-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        padding: 1.5rem;
+        background: var(--panel-content);
+        overflow-y: auto;
+        border-radius: 0 0 24px 0;
+    }
+
+    .viz-chart-container {
+        flex: 1;
+        background: var(--panel-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem;
+        min-height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #viz-plotly-chart {
+        width: 100%;
+        height: 100%;
+        min-height: 280px;
+    }
+
+    .viz-stats-card {
+        background: var(--panel-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .viz-stats-card h4 {
+        margin: 0 0 1rem 0;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .viz-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .viz-stat-item {
+        background: var(--panel-header);
+        border-radius: 8px;
+        padding: 10px 14px;
+    }
+
+    .viz-stat-item .stat-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .viz-stat-item .stat-value {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-top: 2px;
+        word-break: break-all;
+    }
+
+    .viz-observation {
+        margin-top: 0.75rem;
+        padding: 10px 14px;
+        background: rgba(99, 102, 241, 0.07);
+        border-left: 3px solid var(--primary-color);
+        border-radius: 0 8px 8px 0;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-style: italic;
+    }
+
+    .attr2-row {
+        transition: opacity 0.2s;
+    }
+
+    .attr2-row.hidden {
+        opacity: 0.3;
+        pointer-events: none;
+    }
+
 </style>
 {% endblock %}
 
@@ -480,6 +675,9 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h1 style="color: var(--text-primary); margin: 0;">Preprocessing Studio</h1>
         <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" onclick="showVisualization()">
+                <i class="fas fa-chart-bar" style="margin-right: 8px;"></i>Visualization
+            </button>
             <button class="btn btn-secondary" onclick="showQueryTool()">
                 <i class="fas fa-terminal" style="margin-right: 8px;"></i>Query Tool
             </button>
@@ -1092,6 +1290,66 @@
         <div id="activity-log-content" class="activity-log-content">
             <div id="log-list">
                 <p style="color: #64748b; text-align: center; margin-top: 2rem;">No preprocessing steps applied yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visualization Panel -->
+    <div id="visualize-panel" class="visualize-panel">
+        <div class="visualize-panel-header">
+            <h2><i class="fas fa-chart-bar"></i> Visualization</h2>
+            <button class="close-panel-btn" onclick="hideVisualization()">&times;</button>
+        </div>
+        <div class="visualize-panel-body">
+            <!-- Sidebar Controls -->
+            <div class="visualize-sidebar">
+                <div>
+                    <label for="viz-attr1">Attribute 1</label>
+                    <select id="viz-attr1">
+                        <option value="">— select column —</option>
+                        {% for col in dataset.columns %}
+                        <option value="{{ col }}">{{ col }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="viz-chart-type">Chart Type</label>
+                    <select id="viz-chart-type" onchange="onChartTypeChange()">
+                        <option value="histogram">Histogram</option>
+                        <option value="box">Box Plot</option>
+                        <option value="scatter">Scatter Plot</option>
+                        <option value="bar">Bar Chart</option>
+                    </select>
+                </div>
+                <div class="attr2-row hidden" id="viz-attr2-row">
+                    <label for="viz-attr2">Attribute 2 <span style="font-size:0.7rem;">(Scatter only)</span></label>
+                    <select id="viz-attr2">
+                        <option value="">— select column —</option>
+                        {% for col in dataset.columns %}
+                        <option value="{{ col }}">{{ col }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button class="btn btn-primary" onclick="generatePlot()" id="viz-generate-btn" style="width:100%; margin-top: auto;">
+                    <i class="fas fa-play" style="margin-right:8px;"></i>Generate
+                </button>
+                <button class="btn btn-secondary" id="viz-export-btn" onclick="exportChart()" style="width:100%; display:none;">
+                    <i class="fas fa-image" style="margin-right:8px;"></i>Save as Image
+                </button>
+            </div>
+
+            <!-- Main Display -->
+            <div class="visualize-main">
+                <div class="viz-chart-container" id="viz-chart-container">
+                    <div id="viz-plotly-chart">
+                        <p style="color: var(--text-muted); text-align: center;">Select a column and chart type, then click Generate.</p>
+                    </div>
+                </div>
+                <div class="viz-stats-card" id="viz-stats-card" style="display:none;">
+                    <h4><i class="fas fa-table" style="margin-right:8px; color: var(--primary-color);"></i>EDA Statistics</h4>
+                    <div class="viz-stats-grid" id="viz-stats-grid"></div>
+                    <div class="viz-observation" id="viz-observation" style="display:none;"></div>
+                </div>
             </div>
         </div>
     </div>

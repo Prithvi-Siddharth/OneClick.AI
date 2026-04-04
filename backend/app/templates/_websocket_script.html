@@ -40,6 +40,18 @@
                             // document.getElementById("progress-wrapper").style.display = "none";
                         }
                     }, 3000);
+                } else if (data.type === "visualization_result") {
+                    document.getElementById('viz-generate-btn').disabled = false;
+                    document.getElementById('viz-generate-btn').innerHTML = '<i class="fas fa-play" style="margin-right:8px;"></i>Generate';
+                    if (data.plot_data && data.plot_data.error) {
+                        alert("Visualization Error: " + data.plot_data.error);
+                    } else if (data.eda_stats && data.eda_stats.error) {
+                        alert("EDA Error: " + data.eda_stats.error);
+                    } else {
+                        renderPlotlyChart(data.plot_data);
+                        displayEDAStats(data.eda_stats);
+                        document.getElementById('viz-export-btn').style.display = 'block';
+                    }
                 } else if (data.type === "error") {
                     // Check if error is from Query Tool
                     const queryLoading = document.getElementById('query-results-loading');
@@ -537,6 +549,201 @@
         }));
     }
 
+    // ── Visualization Tool Logic ──────────────────────────────────────────────
+
+    function showVisualization() {
+        document.getElementById('visualize-panel').classList.add('open');
+        document.getElementById('sidebar-overlay').style.display = 'block';
+    }
+
+    function hideVisualization() {
+        document.getElementById('visualize-panel').classList.remove('open');
+        document.getElementById('sidebar-overlay').style.display = 'none';
+    }
+
+    function onChartTypeChange() {
+        const chartType = document.getElementById('viz-chart-type').value;
+        const attr2Row = document.getElementById('viz-attr2-row');
+        if (chartType === 'scatter') {
+            attr2Row.classList.remove('hidden');
+        } else {
+            attr2Row.classList.add('hidden');
+        }
+    }
+
+    function generatePlot() {
+        const col1 = document.getElementById('viz-attr1').value;
+        const col2 = document.getElementById('viz-attr2').value;
+        const plotType = document.getElementById('viz-chart-type').value;
+
+        if (!col1) {
+            alert("Please select Attribute 1.");
+            return;
+        }
+        if (plotType === 'scatter' && !col2) {
+            alert("Scatter plot requires Attribute 2.");
+            return;
+        }
+
+        const btn = document.getElementById('viz-generate-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Generating...';
+
+        document.getElementById('viz-stats-card').style.display = 'none';
+        document.getElementById('viz-export-btn').style.display = 'none';
+
+        socket.send(JSON.stringify({
+            action: "get_visualization",
+            col1: col1,
+            col2: col2 || null,
+            plot_type: plotType,
+        }));
+    }
+
+    function renderPlotlyChart(plotData) {
+        const container = document.getElementById('viz-plotly-chart');
+        const isDark = document.documentElement.classList.contains('theme-dark') ||
+                       document.body.classList.contains('theme-dark');
+
+        const paperBg = isDark ? '#1e2030' : '#ffffff';
+        const plotBg  = isDark ? '#1e2030' : '#ffffff';
+        const fontColor = isDark ? '#cdd6f4' : '#1e293b';
+        const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+        const accentColor = '#6366f1';
+
+        const layout = {
+            paper_bgcolor: paperBg,
+            plot_bgcolor: plotBg,
+            font: { color: fontColor, family: 'Inter, sans-serif', size: 12 },
+            margin: { t: 40, r: 20, b: 50, l: 55 },
+            xaxis: { gridcolor: gridColor, zerolinecolor: gridColor, title: plotData.col1 },
+            yaxis: { gridcolor: gridColor, zerolinecolor: gridColor },
+            showlegend: false,
+        };
+
+        const config = { displayModeBar: false, responsive: true };
+
+        let traces = [];
+
+        if (plotData.plot_type === 'histogram') {
+            traces = [{
+                x: plotData.x,
+                y: plotData.y,
+                type: 'bar',
+                marker: { color: accentColor, opacity: 0.85 },
+                name: plotData.col1,
+            }];
+            layout.yaxis.title = 'Count';
+        } else if (plotData.plot_type === 'box') {
+            // Reconstruct box from pre-computed stats
+            traces = [{
+                type: 'box',
+                name: plotData.col1,
+                q1: [plotData.q1],
+                median: [plotData.median],
+                q3: [plotData.q3],
+                lowerfence: [plotData.lower_fence],
+                upperfence: [plotData.upper_fence],
+                y: plotData.outliers,
+                marker: { color: accentColor },
+                boxpoints: plotData.outliers.length > 0 ? 'outliers' : false,
+            }];
+        } else if (plotData.plot_type === 'scatter') {
+            traces = [{
+                x: plotData.x,
+                y: plotData.y,
+                mode: 'markers',
+                type: 'scatter',
+                marker: { color: accentColor, opacity: 0.6, size: 5 },
+                name: `${plotData.col1} vs ${plotData.col2}`,
+            }];
+            layout.xaxis.title = plotData.col1;
+            layout.yaxis.title = plotData.col2;
+        } else if (plotData.plot_type === 'bar') {
+            traces = [{
+                x: plotData.x,
+                y: plotData.y,
+                type: 'bar',
+                marker: { color: accentColor, opacity: 0.85 },
+                name: plotData.col1,
+            }];
+            layout.yaxis.title = 'Count';
+        }
+
+        Plotly.react(container, traces, layout, config);
+    }
+
+    function displayEDAStats(stats) {
+        if (!stats || stats.error) return;
+
+        const card = document.getElementById('viz-stats-card');
+        const grid = document.getElementById('viz-stats-grid');
+        const obs  = document.getElementById('viz-observation');
+
+        const statsToShow = [];
+
+        statsToShow.push({ label: 'Total Rows', value: stats.total_count });
+        statsToShow.push({ label: 'Null Count', value: `${stats.null_count} (${stats.null_percent}%)` });
+
+        if (stats.is_numeric) {
+            statsToShow.push({ label: 'Mean',     value: stats.mean });
+            statsToShow.push({ label: 'Median',   value: stats.median });
+            statsToShow.push({ label: 'Mode',     value: stats.mode ?? 'N/A' });
+            statsToShow.push({ label: 'Std Dev',  value: stats.std });
+            statsToShow.push({ label: 'Min',      value: stats.min });
+            statsToShow.push({ label: 'Max',      value: stats.max });
+            statsToShow.push({ label: 'Skewness', value: stats.skewness });
+            statsToShow.push({ label: 'Kurtosis', value: stats.kurtosis });
+            statsToShow.push({ label: 'IQR',      value: stats.iqr });
+            statsToShow.push({ label: 'Outliers (IQR)', value: stats.outlier_count });
+
+            // Suggested Insight
+            let insight = '';
+            if (Math.abs(stats.skewness) > 1) {
+                insight = `This data is highly skewed ${stats.skewness > 0 ? 'to the right (positive skew)' : 'to the left (negative skew)'}. Consider a log or Box-Cox transform.`;
+            } else if (Math.abs(stats.skewness) > 0.5) {
+                insight = `This data is moderately skewed. It may still benefit from a power transformation.`;
+            } else {
+                insight = `This data appears roughly symmetric (skewness ≈ ${stats.skewness}).`;
+            }
+            if (stats.null_percent > 10) {
+                insight += ` ⚠️ ${stats.null_percent}% of values are null — consider imputation.`;
+            }
+            if (stats.outlier_count > 0) {
+                insight += ` ${stats.outlier_count} IQR-based outlier(s) detected.`;
+            }
+
+            obs.textContent = insight;
+            obs.style.display = 'block';
+        } else {
+            statsToShow.push({ label: 'Unique Values', value: stats.unique_count });
+            statsToShow.push({ label: 'Top Value',     value: stats.top_value ?? 'N/A' });
+            statsToShow.push({ label: 'Top Count',     value: stats.top_count });
+            obs.style.display = 'none';
+        }
+
+        grid.innerHTML = statsToShow.map(s => `
+            <div class="viz-stat-item">
+                <div class="stat-label">${s.label}</div>
+                <div class="stat-value">${s.value}</div>
+            </div>
+        `).join('');
+
+        card.style.display = 'block';
+    }
+
+    function exportChart() {
+        const container = document.getElementById('viz-plotly-chart');
+        const col1 = document.getElementById('viz-attr1').value || 'chart';
+        Plotly.downloadImage(container, {
+            format: 'png',
+            filename: `viz_${col1}`,
+            width: 1200,
+            height: 600,
+        });
+    }
+
+    // ── Query Tool Logic ──────────────────────────────────────────────
     function renderQueryResults(data) {
         const thead = document.getElementById('query-results-thead');
         const tbody = document.getElementById('query-results-tbody');
