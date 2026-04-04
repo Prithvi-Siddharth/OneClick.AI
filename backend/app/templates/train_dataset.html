@@ -375,7 +375,7 @@
             if (response.ok) {
                 window.location.href = `/select_target/${result.experiment_id}`;
             } else {
-                alert("❌ Error: " + (result.message || "Something went wrong"));
+                alert(" Error: " + (result.message || "Something went wrong"));
             }
         } catch (error) {
             console.error("Submission failed:", error);
@@ -405,7 +405,7 @@
                 // Redirect to select_target but append mode=auto_tune
                 window.location.href = `/select_target/${result.experiment_id}?mode=auto_tune&model_name=${encodeURIComponent(modelName)}`;
             } else {
-                alert("❌ Error: " + (result.message || "Something went wrong"));
+                alert(" Error: " + (result.message || "Something went wrong"));
             }
         } catch (error) {
             console.error("Auto-tune failed:", error);

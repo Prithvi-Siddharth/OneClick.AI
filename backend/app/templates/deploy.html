@@ -352,10 +352,10 @@
 <!-- Coming Soon Overlay -->
 <div class="coming-soon-overlay" aria-hidden="true">
     <div class="tape-strip tape-strip-1">
-        <span class="tape-text">⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠</span>
+        <span class="tape-text"> COMING SOON  COMING SOON  COMING SOON  COMING SOON  COMING SOON  COMING SOON  COMING SOON  COMING SOON </span>
     </div>
     <div class="tape-strip tape-strip-2">
-        <span class="tape-text">⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠</span>
+        <span class="tape-text"> COMING SOON  COMING SOON  COMING SOON  COMING SOON  COMING SOON  COMING SOON  COMING SOON  COMING SOON </span>
     </div>
 </div>
 
@@ -500,7 +500,7 @@ resp = requests.post(api_url, json=payload)
         activeModelId = modelId;
 
         if (!modelId) {
-            alert("⚠️ Please select a model from the dropdown first!");
+            alert(" Please select a model from the dropdown first!");
             return;
         }
 
@@ -517,7 +517,7 @@ resp = requests.post(api_url, json=payload)
             const result = await response.json();
 
             if (response.ok) {
-                alert("🚀 Success! " + result.message);
+                alert(" Success! " + result.message);
                 btn.innerHTML = '<i class="fas fa-check" style="margin-right: 8px;"></i> Deployed Live';
                 btn.style.background = '#22c55e';
                 btn.style.borderColor = '#22c55e';
@@ -535,7 +535,7 @@ resp = requests.post(api_url, json=payload)
             }
         } catch (error) {
             console.error("Deployment Error:", error);
-            alert("❌ Error: " + error.message);
+            alert(" Error: " + error.message);
             btn.innerHTML = 'Deploy Now';
             btn.disabled = false;
         }
@@ -550,7 +550,7 @@ resp = requests.post(api_url, json=payload)
         try {
             jsonData = JSON.parse(inputArea.value);
         } catch (e) {
-            alert("❌ Invalid JSON format in input!");
+            alert(" Invalid JSON format in input!");
             return;
         }
 

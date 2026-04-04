@@ -78,7 +78,11 @@
                         <td>{{ dataset.row_count }}</td>
                         <td>{{ dataset.upload_date.strftime('%Y-%m-%d') }}</td>
                         <td>
-                            <a href="#" style="color: var(--primary-color);">Details</a>
+                            <a href="#" style="color: var(--primary-color);"
+                               onclick="showDatasetDetails(this); return false;"
+                               data-name="{{ dataset.filename }}"
+                               data-rows="{{ dataset.row_count or 'N/A' }}"
+                               data-schema="{{ dataset.feature_schema | e if dataset.feature_schema else '{}' }}">Details</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -128,7 +132,12 @@
                             </span>
                         </td>
                         <td>
-                            <a href="#" style="color: var(--primary-color);">Details</a>
+                            <a href="#" style="color: var(--primary-color);"
+                               onclick="showModelDetails(this); return false;"
+                               data-name="{{ model.name or 'Unnamed' }}"
+                               data-algorithm="{{ model.algorithm or 'N/A' }}"
+                               data-target="{{ model.target_column or 'N/A' }}"
+                               data-metrics="{{ model.metrics | e if model.metrics else '{}' }}">Details</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -142,6 +151,75 @@
         </div>
     </section>
 
+</div>
+
+<!-- Dataset Details Modal -->
+<div id="datasetDetailsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:2rem; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+                <div style="width:40px; height:40px; border-radius:10px; background:rgba(59,130,246,0.12); display:flex; align-items:center; justify-content:center;">
+                    <i class="fas fa-database" style="color:var(--primary-color);"></i>
+                </div>
+                <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-primary);">Dataset Details</h3>
+            </div>
+            <button onclick="document.getElementById('datasetDetailsModal').style.display='none'"
+                style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1.2rem; line-height:1;">&times;</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+            <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border);">
+                <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">Name</span>
+                <span id="dd-name" style="font-size:0.9rem; font-weight:600; color:var(--text-primary); text-align:right; max-width:60%; word-break:break-all;"></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border);">
+                <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">Number of Rows</span>
+                <span id="dd-rows" style="font-size:0.9rem; font-weight:600; color:var(--text-primary);"></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border);">
+                <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">Number of Columns</span>
+                <span id="dd-cols" style="font-size:0.9rem; font-weight:600; color:var(--text-primary);"></span>
+            </div>
+        </div>
+        <button onclick="document.getElementById('datasetDetailsModal').style.display='none'"
+            style="margin-top:1.5rem; width:100%; padding:0.65rem; border-radius:8px; border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-primary); font-weight:600; cursor:pointer;">
+            Close
+        </button>
+    </div>
+</div>
+
+<!-- Model Details Modal -->
+<div id="modelDetailsModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--card-bg); border:1px solid var(--border); border-radius:16px; padding:2rem; max-width:420px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+                <div style="width:40px; height:40px; border-radius:10px; background:rgba(16,185,129,0.12); display:flex; align-items:center; justify-content:center;">
+                    <i class="fas fa-cube" style="color:var(--success-color);"></i>
+                </div>
+                <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:var(--text-primary);">Model Details</h3>
+            </div>
+            <button onclick="document.getElementById('modelDetailsModal').style.display='none'"
+                style="background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1.2rem; line-height:1;">&times;</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:1rem;">
+            <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border);">
+                <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">Model Name</span>
+                <span id="md-name" style="font-size:0.9rem; font-weight:600; color:var(--text-primary); text-align:right; max-width:60%; word-break:break-all;"></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border);">
+                <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">ML Algorithm</span>
+                <span id="md-algorithm" style="font-size:0.9rem; font-weight:600; color:var(--text-primary);"></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border);">
+                <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">Target Column</span>
+                <span id="md-target" style="font-size:0.9rem; font-weight:600; color:var(--text-primary);"></span>
+            </div>
+            <div id="md-metrics-container" style="display:flex; flex-direction:column; gap:0.5rem;"></div>
+        </div>
+        <button onclick="document.getElementById('modelDetailsModal').style.display='none'"
+            style="margin-top:1.5rem; width:100%; padding:0.65rem; border-radius:8px; border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-primary); font-weight:600; cursor:pointer;">
+            Close
+        </button>
+    </div>
 </div>
 
 <!-- Upload Dataset Modal -->
@@ -267,6 +345,60 @@
         } catch (error) {
             statusText.innerHTML = `<span style="color: var(--error-color)">Error uploading file.</span>`;
         }
+    });
+
+    // --- Dataset Details ---
+    function showDatasetDetails(el) {
+        document.getElementById('dd-name').textContent = el.dataset.name;
+        document.getElementById('dd-rows').textContent = el.dataset.rows;
+        try {
+            const schema = JSON.parse(el.dataset.schema);
+            document.getElementById('dd-cols').textContent = Object.keys(schema).length;
+        } catch (e) {
+            document.getElementById('dd-cols').textContent = 'N/A';
+        }
+        document.getElementById('datasetDetailsModal').style.display = 'flex';
+    }
+    document.getElementById('datasetDetailsModal').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+
+    // --- Model Details ---
+    const METRIC_LABELS = {
+        accuracy: 'Accuracy',
+        f1_score: 'F1 Score',
+        r2_score: 'R² Score',
+        mae: 'Mean Absolute Error',
+        silhouette_score: 'Silhouette Score',
+        calinski_harabasz: 'Calinski-Harabasz',
+        davies_bouldin: 'Davies-Bouldin',
+        inertia: 'Inertia',
+        n_clusters: 'Clusters'
+    };
+    function showModelDetails(el) {
+        document.getElementById('md-name').textContent = el.dataset.name;
+        document.getElementById('md-algorithm').textContent = el.dataset.algorithm;
+        document.getElementById('md-target').textContent = el.dataset.target;
+        const container = document.getElementById('md-metrics-container');
+        container.innerHTML = '';
+        try {
+            const metrics = JSON.parse(el.dataset.metrics);
+            for (const [key, value] of Object.entries(metrics)) {
+                const label = METRIC_LABELS[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                const formatted = typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(4)) : value;
+                container.innerHTML += `
+                <div style="display:flex; justify-content:space-between; padding:0.75rem 1rem; background:var(--bg-secondary); border-radius:10px; border:1px solid var(--border);">
+                    <span style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">${label}</span>
+                    <span style="font-size:0.9rem; font-weight:700; color:var(--primary-color);">${formatted}</span>
+                </div>`;
+            }
+        } catch (e) {
+            container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">No metrics available.</p>';
+        }
+        document.getElementById('modelDetailsModal').style.display = 'flex';
+    }
+    document.getElementById('modelDetailsModal').addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
     });
 
     // --- Model Upload Logic ---

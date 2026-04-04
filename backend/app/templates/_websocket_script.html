@@ -282,7 +282,7 @@
         // Only show loading and progress AFTER validation
         document.getElementById("preview-loading").style.display = "block";
         document.getElementById("status-display").style.display = "block";
-        updateProgress(0, "📡 Sending request...");
+        updateProgress(0, " Sending request...");
 
         socket.send(JSON.stringify({
             action: "apply_preprocessing",
@@ -438,7 +438,7 @@
         }
         selectedTargetColumn = selected.value;
         const statusEl = document.getElementById('target-column-status');
-        statusEl.textContent = `✅ Target column set to: "${selectedTargetColumn}"`;
+        statusEl.textContent = ` Target column set to: "${selectedTargetColumn}"`;
         statusEl.style.color = 'var(--primary-color)';
         statusEl.style.fontWeight = '600';
     }
@@ -712,7 +712,7 @@
                 insight = `This data appears roughly symmetric (skewness ≈ ${stats.skewness}).`;
             }
             if (stats.null_percent > 10) {
-                insight += ` ⚠️ ${stats.null_percent}% of values are null — consider imputation.`;
+                insight += `  ${stats.null_percent}% of values are null — consider imputation.`;
             }
             if (stats.outlier_count > 0) {
                 insight += ` ${stats.outlier_count} IQR-based outlier(s) detected.`;

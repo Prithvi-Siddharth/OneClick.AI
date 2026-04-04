@@ -66,7 +66,7 @@ app.include_router(profile.router)
 # rendering of home.html page
 @app.get("/")
 def read_root(request: Request, response_class=HTMLResponse):
-    return templates.TemplateResponse("home.html", {"request": request})
+    return templates.TemplateResponse("home.html", {"request": request, "hide_user_nav": True})
     
 
 

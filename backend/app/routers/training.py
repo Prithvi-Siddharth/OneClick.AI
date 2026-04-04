@@ -340,16 +340,23 @@ def select_target_page(
         except Exception:
             columns = []
 
+    model_task = ML_HYPERPARAMETERS.get(experiment.algorithm, {}).get("task", "unknown")
+
     return templates.TemplateResponse("select_target.html", {
         "request": request,
         "experiment_id": experiment_id,
         "columns": columns,
         "mode": mode,
-        "model_name": model_name or experiment.algorithm
+        "model_name": model_name or experiment.algorithm,
+        "model_task": model_task
     })
 
+import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_absolute_error, accuracy_score, f1_score
+from sklearn.metrics import (
+    r2_score, mean_absolute_error, accuracy_score, f1_score,
+    silhouette_score, calinski_harabasz_score, davies_bouldin_score
+)
 from app.services.s3_operations import load_dataset_as_dataframe
 
 @router.post("/final_train")
@@ -358,90 +365,89 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
         user_id = get_current_user_id(request)
         if not user_id:
             return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Not authenticated"})
-            
+
         data = await request.json()
         experiment_id_raw = data.get("experiment_id")
-        target_column = data.get("target_column")
-        
-        print(f"DEBUG: Starting final_train for experiment {experiment_id_raw}, target {target_column}")
+        target_column = data.get("target_column")  # None for clustering
 
-        if not experiment_id_raw or not target_column:
-            return JSONResponse(status_code=400, content={"error": "Missing experiment_id or target_column"})
+        if not experiment_id_raw:
+            return JSONResponse(status_code=400, content={"error": "Missing experiment_id"})
 
         experiment_id = int(experiment_id_raw)
-        
+
         # 1. Fetch Experiment and Dataset info
         experiment = db.query(Experiment).filter(Experiment.id == experiment_id, Experiment.user_id == int(user_id)).first()
         if not experiment:
-             return JSONResponse(status_code=404, content={"error": "Experiment not found for this user"})
-             
+            return JSONResponse(status_code=404, content={"error": "Experiment not found for this user"})
+
+        model_info = ML_HYPERPARAMETERS.get(experiment.algorithm)
+        if not model_info:
+            return JSONResponse(status_code=400, content={"error": f"Unknown algorithm: {experiment.algorithm}"})
+
+        is_clustering = model_info["task"] == "clustering"
+
+        if not is_clustering and not target_column:
+            return JSONResponse(status_code=400, content={"error": "Missing target_column"})
+
         # Use the newest temporary dataset for this user
         dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
         if not dataset:
-             return JSONResponse(status_code=404, content={"error": "No temporary dataset found"})
-        
-        print(f"DEBUG: Data found. Bucket: {dataset.s3_bucket}, Key: {dataset.s3_key}")
-        
-        # 2. Load the actual data from S3 into a Pandas DataFrame
-        df = load_dataset_as_dataframe(dataset.s3_bucket, dataset.s3_key) 
-        
-        if target_column not in df.columns:
-            return JSONResponse(status_code=400, content={"error": f"Target column '{target_column}' not found in dataset columns: {df.columns.tolist()}"})
+            return JSONResponse(status_code=404, content={"error": "No temporary dataset found"})
 
-        # Basic cleanup: drop any remaining rows with NaNs
+        print(f"DEBUG: Starting final_train for experiment {experiment_id_raw}, algorithm {experiment.algorithm}, target {target_column}")
+
+        # 2. Load data from S3
+        df = load_dataset_as_dataframe(dataset.s3_bucket, dataset.s3_key)
+
+        # Basic cleanup
         df = df.dropna()
         if df.empty:
             return JSONResponse(status_code=400, content={"error": "Dataset is empty after dropping missing values."})
 
-        X = df.drop(columns=[target_column])
-        y = df[target_column]
-        
-        # 3. Model Configuration & Pipeline Setup
-        
-        # Determine task type
-        model_info = ML_HYPERPARAMETERS.get(experiment.algorithm)
-        
-        # Label encode classification targets if they are non-numeric
-        if model_info["task"] == "classification" and (y.dtype == 'object' or y.dtype.name == 'category'):
-            from sklearn.preprocessing import LabelEncoder
-            le = LabelEncoder()
-            y = le.fit_transform(y)
-    
-        # 4. Prepare S3 & Model Metadata
+        # 3. Split features / target
+        if is_clustering:
+            X = df
+        else:
+            if target_column not in df.columns:
+                return JSONResponse(status_code=400, content={"error": f"Target column '{target_column}' not found in dataset columns: {df.columns.tolist()}"})
+            X = df.drop(columns=[target_column])
+            y = df[target_column]
+            if model_info["task"] == "classification" and (y.dtype == 'object' or y.dtype.name == 'category'):
+                le = LabelEncoder()
+                y = le.fit_transform(y)
+
+        # 4. Prepare S3 metadata
         from app.services.s3_operations import get_s3_client
         s3 = get_s3_client()
         bucket_name = os.getenv("S3_BUCKET_NAME")
         if not bucket_name:
             return JSONResponse(status_code=500, content={"error": "S3_BUCKET_NAME not configured"})
 
-        # Generate standard filename and key
         timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
         model_filename = f"model_{experiment.algorithm}_{timestamp}.joblib"
         model_s3_key = f"{user_id}/models/{model_filename}"
 
-        # 5. Define Feature Groups (Preprocessing Automation)
-        # We handle this inside the Pipeline to avoid training-serving skew
+        # 5. Build preprocessing pipeline
         numeric_features = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
         categorical_features = X.select_dtypes(include=['object', 'category']).columns.tolist()
 
-        # Define Transformers
         numeric_transformer = Pipeline(steps=[
             ('imputer', SimpleImputer(strategy='median')),
             ('scaler', StandardScaler())
         ])
-
         categorical_transformer = Pipeline(steps=[
             ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
             ('onehot', OneHotEncoder(handle_unknown='ignore'))
         ])
-
         preprocessor = ColumnTransformer(
             transformers=[
                 ('num', numeric_transformer, numeric_features),
                 ('cat', categorical_transformer, categorical_features)
-            ])
+            ],
+            sparse_threshold=0.0 if is_clustering else 0.3
+        )
 
-        # 6. Initialize Model and Build Pipeline
+        # 6. Build full pipeline
         hyperparams = json.loads(experiment.hyperparameters) if experiment.hyperparameters else {}
         model_instance = create_model_instance(experiment.algorithm, hyperparams)
 
@@ -450,62 +456,83 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
             ('model', model_instance)
         ])
 
-        # 7. Train and Save Test Split
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # 7. Train
+        if is_clustering:
+            X_train, X_test = train_test_split(X, test_size=0.2, random_state=42)
+            print(f"DEBUG: Fitting clustering pipeline for {experiment.algorithm}...")
+            pipeline.fit(X_train)
+        else:
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            print(f"DEBUG: Fitting supervised pipeline for {experiment.algorithm}...")
+            pipeline.fit(X_train, y_train)
 
-        print(f"DEBUG: Training full inference pipeline for {experiment.algorithm}...")
-        pipeline.fit(X_train, y_train)
-
-        # 8. Serialize and Save to S3
-        print(f"DEBUG: Saving full pipeline to S3...")
+        # 8. Save pipeline to S3
+        print(f"DEBUG: Saving pipeline to S3...")
         pipeline_buffer = BytesIO()
         joblib.dump(pipeline, pipeline_buffer)
         pipeline_buffer.seek(0)
-        
         s3.put_object(Bucket=bucket_name, Key=model_s3_key, Body=pipeline_buffer.getvalue())
 
-        # Update experiment record
         experiment.model_artifact_path = model_s3_key
         experiment.name = model_filename
 
-        # 5. Predict using the pipeline and Calculate Metrics
-        predictions = pipeline.predict(X_test)
-        
+        # 9. Evaluate and build result payload
         results = {}
-        # Check task type from your constants.py
-        model_info = ML_HYPERPARAMETERS.get(experiment.algorithm)
-        
-        if model_info["task"] == "regression":
-            results["metrics"] = {
-                "r2_score": r2_score(y_test, predictions),
-                "mae": mean_absolute_error(y_test, predictions)
-            }
-        else:
-            results["metrics"] = {
-                "accuracy": accuracy_score(y_test, predictions),
-                "f1_score": f1_score(y_test, predictions, average='weighted')
-            }
-    
-        # 6. Prepare "Predicted vs Actual" for the chart (first 50 rows)
         comparison = []
-        # Convert to native Python types for JSON serialization
-        for actual, pred in zip(y_test[:10], predictions[:10]):
-            comparison.append({
-                "actual": float(actual) if hasattr(actual, "__float__") else actual, 
-                "predicted": float(pred) if hasattr(pred, "__float__") else pred
-            })
-    
-        # 7. Save to Database and Return
+
+        if is_clustering:
+            labels = pipeline.predict(X_test)
+            X_test_transformed = pipeline.named_steps['preprocessor'].transform(X_test)
+
+            sil = silhouette_score(X_test_transformed, labels)
+            ch = calinski_harabasz_score(X_test_transformed, labels)
+            db_score = davies_bouldin_score(X_test_transformed, labels)
+            inertia = float(pipeline.named_steps['model'].inertia_)
+
+            results["metrics"] = {
+                "silhouette_score": round(sil, 4),
+                "calinski_harabasz": round(ch, 4),
+                "davies_bouldin": round(db_score, 4),
+                "inertia": round(inertia, 2),
+                "n_clusters": int(pipeline.named_steps['model'].n_clusters)
+            }
+
+            # Cluster size distribution for bar chart
+            unique, counts = np.unique(labels, return_counts=True)
+            comparison = [{"cluster": int(c), "count": int(n)} for c, n in zip(unique, counts)]
+
+        else:
+            predictions = pipeline.predict(X_test)
+
+            if model_info["task"] == "regression":
+                results["metrics"] = {
+                    "r2_score": r2_score(y_test, predictions),
+                    "mae": mean_absolute_error(y_test, predictions)
+                }
+            else:
+                results["metrics"] = {
+                    "accuracy": accuracy_score(y_test, predictions),
+                    "f1_score": f1_score(y_test, predictions, average='weighted')
+                }
+
+            for actual, pred in zip(y_test[:10], predictions[:10]):
+                comparison.append({
+                    "actual": float(actual) if hasattr(actual, "__float__") else actual,
+                    "predicted": float(pred) if hasattr(pred, "__float__") else pred
+                })
+
+        # 10. Save to database
         experiment.metrics = json.dumps(results["metrics"])
         experiment.status = "COMPLETED"
-        experiment.target_column = target_column
+        experiment.target_column = target_column  # None for clustering
         db.commit()
-    
+
         print(f"DEBUG: Training complete. Metrics: {results['metrics']}")
         return {
             "status": "trained_pending_save",
             "metrics": results["metrics"],
-            "comparison": comparison
+            "comparison": comparison,
+            "model_task": model_info["task"]
         }
     except Exception as e:
         traceback.print_exc()

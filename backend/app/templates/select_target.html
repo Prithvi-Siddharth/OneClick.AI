@@ -147,7 +147,7 @@
                 <input type="hidden" name="mode" value="{{ mode }}">
                 <input type="hidden" name="model_name" value="{{ model_name }}">
 
-                <div style="margin-bottom: 2rem;">
+                <div id="target-column-section" style="margin-bottom: 2rem;">
                     <label style="display: block; font-weight: 600; color: var(--text-primary); margin-bottom: 0.75rem;">Target
                         Variable (Y-Axis)</label>
                     <div style="position: relative;">
@@ -161,6 +161,17 @@
                         </select>
                         <i class="fas fa-chevron-down"
                             style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none;"></i>
+                    </div>
+                </div>
+
+                <!-- Clustering notice (shown instead of target column picker) -->
+                <div id="clustering-notice" style="display: none; margin-bottom: 2rem; padding: 1.25rem; background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 1px solid #bfdbfe; border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-cubes" style="color: #2563eb; font-size: 1.25rem;"></i>
+                        <div>
+                            <div style="font-weight: 700; color: #1e40af; margin-bottom: 0.25rem;">Unsupervised Learning — No Target Needed</div>
+                            <div style="font-size: 0.875rem; color: #3b82f6;">KMeans will automatically discover patterns and group your data into clusters. All columns will be used as features.</div>
+                        </div>
                     </div>
                 </div>
 
@@ -218,8 +229,8 @@
 
             <div class="chart-container">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">Performance Validation</h3>
-                    <div style="display: flex; gap: 1rem; font-size: 0.75rem;">
+                    <h3 id="chart-title" style="margin: 0; font-size: 1.1rem; font-weight: 700;">Performance Validation</h3>
+                    <div id="chart-legend" style="display: flex; gap: 1rem; font-size: 0.75rem;">
                         <span style="display: flex; align-items: center; gap: 0.4rem;"><span
                                 style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6;"></span>
                             Actual</span>
@@ -264,11 +275,21 @@
 <script>
     const currentExperimentId = Number("{{ experiment_id }}");
     const currentMode = "{{ mode }}";
+    const modelTask = "{{ model_task }}";
 
     // Set mode-aware loading text
     if (currentMode === 'auto_tune') {
         document.getElementById('loading-title').textContent = 'Running OptiClick...';
         document.getElementById('loading-subtitle').textContent = 'Searching for the best hyperparameters. This may take 30–90 seconds.';
+    }
+
+    // Clustering UI adjustments
+    if (modelTask === 'clustering') {
+        document.getElementById('target-column-section').style.display = 'none';
+        document.getElementById('clustering-notice').style.display = 'block';
+        // Update description text
+        const descP = document.querySelector('#selection-phase > div > p');
+        if (descP) descP.textContent = 'No target variable needed. We\'ll group your data into clusters automatically using all available features.';
     }
 
     async function downloadModel() {
@@ -298,7 +319,7 @@
         loadingPhase.style.display = 'flex';
 
         const formData = new FormData(e.target);
-        const targetColumn = formData.get('target_column');
+        const targetColumn = modelTask === 'clustering' ? null : formData.get('target_column');
         const modelName = formData.get('model_name');
         const experimentId = formData.get('experiment_id');
 
@@ -306,8 +327,8 @@
             let tuneResult = null;
             let finalExperimentId = experimentId;
 
-            // ── AUTO-TUNE MODE: first run GridSearchCV ──
-            if (currentMode === 'auto_tune') {
+            // ── AUTO-TUNE MODE: first run GridSearchCV (skip for clustering — unsupervised, no target) ──
+            if (currentMode === 'auto_tune' && modelTask !== 'clustering') {
                 const tuneResponse = await fetch('/auto_tune', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -369,56 +390,107 @@
                     window.predictionChartInstance.destroy();
                 }
 
-                window.predictionChartInstance = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: result.comparison ? result.comparison.map((_, i) => i + 1) : [],
-                        datasets: [
-                            {
-                                label: 'Actual',
-                                data: result.comparison ? result.comparison.map(d => d.actual) : [],
-                                borderColor: '#3b82f6',
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                fill: true,
-                                tension: 0.4,
-                                borderWidth: 2,
-                                pointRadius: 2
-                            },
-                            {
-                                label: 'Predicted',
-                                data: result.comparison ? result.comparison.map(d => d.predicted) : [],
-                                borderColor: '#ef4444',
-                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                                fill: true,
-                                tension: 0.4,
-                                borderWidth: 2,
-                                pointRadius: 2
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
+                const isClustering = (result.model_task === 'clustering');
+
+                if (isClustering) {
+                    // Update chart header for clustering
+                    document.getElementById('chart-title').textContent = 'Cluster Size Distribution';
+                    document.getElementById('chart-legend').style.display = 'none';
+
+                    const clusterLabels = result.comparison ? result.comparison.map(d => `Cluster ${d.cluster}`) : [];
+                    const clusterCounts = result.comparison ? result.comparison.map(d => d.count) : [];
+                    const bgColors = clusterLabels.map((_, i) => {
+                        const palette = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899'];
+                        return palette[i % palette.length];
+                    });
+
+                    window.predictionChartInstance = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: clusterLabels,
+                            datasets: [{
+                                label: 'Points per Cluster',
+                                data: clusterCounts,
+                                backgroundColor: bgColors,
+                                borderRadius: 8,
+                                borderSkipped: false
+                            }]
                         },
-                        scales: {
-                            y: {
-                                grid: { color: '#f1f5f9' },
-                                border: { display: false }
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: ctx => ` ${ctx.parsed.y} data points`
+                                    }
+                                }
                             },
-                            x: {
-                                display: false
+                            scales: {
+                                y: {
+                                    grid: { color: '#f1f5f9' },
+                                    border: { display: false },
+                                    title: { display: true, text: 'Number of Points' }
+                                },
+                                x: {
+                                    grid: { display: false }
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                } else {
+                    window.predictionChartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: result.comparison ? result.comparison.map((_, i) => i + 1) : [],
+                            datasets: [
+                                {
+                                    label: 'Actual',
+                                    data: result.comparison ? result.comparison.map(d => d.actual) : [],
+                                    borderColor: '#3b82f6',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    fill: true,
+                                    tension: 0.4,
+                                    borderWidth: 2,
+                                    pointRadius: 2
+                                },
+                                {
+                                    label: 'Predicted',
+                                    data: result.comparison ? result.comparison.map(d => d.predicted) : [],
+                                    borderColor: '#ef4444',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                    fill: true,
+                                    tension: 0.4,
+                                    borderWidth: 2,
+                                    pointRadius: 2
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    grid: { color: '#f1f5f9' },
+                                    border: { display: false }
+                                },
+                                x: {
+                                    display: false
+                                }
+                            }
+                        }
+                    });
+                }
             } else {
                 throw new Error(result.error || 'Training failed');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('❌ ' + error.message);
+            alert(' ' + error.message);
             loadingPhase.style.display = 'none';
             selectionPhase.style.display = 'block';
         }
@@ -444,7 +516,7 @@
             });
             const result = await response.json();
             if (response.ok) {
-                alert("✅ Success! " + result.message);
+                alert(" Success! " + result.message);
                 // Redirect to the catalog to see the new model
                 window.location.href = "/view_models";
             } else {
@@ -452,7 +524,7 @@
             }
         } catch (error) {
             console.error("Save error:", error);
-            alert("❌ Error: " + error.message);
+            alert(" Error: " + error.message);
         }
     }
 </script>
