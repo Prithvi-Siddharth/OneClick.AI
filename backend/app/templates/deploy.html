@@ -4,12 +4,64 @@
 
 {% block head %}
 <style>
+    /* ── Design Tokens (light) ───────────────────────────────── */
     :root {
+        --primary: #6366f1;
         --primary-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-        --glass-bg: rgba(255, 255, 255, 0.03);
-        --glass-border: rgba(255, 255, 255, 0.1);
+
+        --panel-bg: #ffffff;
+        --panel-border: #e2e8f0;
+        --panel-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+
+        --text-heading: #0f172a;
+        --text-body: #475569;
+        --text-muted: #64748b;
+        --text-dim: #94a3b8;
+
+        --input-bg: #f8fafc;
+        --input-border: #cbd5e1;
+        --input-text: #1e293b;
+        --input-placeholder: #94a3b8;
+
+        --card-bg: #ffffff;
+        --card-border: #f1f5f9;
+        --card-active-bg: #f0f7ff;
+        --card-hover-bg: #f8fbff;
+
+        --icon-indigo-bg: #eef2ff;
+        --icon-green-bg: #f0fdf4;
+        --icon-amber-bg: #fff7ed;
     }
 
+    /* ── Design Tokens (dark) ────────────────────────────────── */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --panel-bg: #1e293b;
+            --panel-border: #334155;
+            --panel-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+
+            --text-heading: #f1f5f9;
+            --text-body: #cbd5e1;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+
+            --input-bg: #0f172a;
+            --input-border: #475569;
+            --input-text: #cbd5e1;
+            --input-placeholder: #475569;
+
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --card-active-bg: #1a2744;
+            --card-hover-bg: #162032;
+
+            --icon-indigo-bg: rgba(99, 102, 241, 0.18);
+            --icon-green-bg: rgba(34, 197, 94, 0.15);
+            --icon-amber-bg: rgba(245, 158, 11, 0.15);
+        }
+    }
+
+    /* ── Layout ──────────────────────────────────────────────── */
     .deploy-container {
         padding: 2rem 0;
         max-width: 1100px;
@@ -21,17 +73,54 @@
         text-align: left;
     }
 
-    /* Model Selection Card */
+    .deploy-header h1 {
+        color: var(--text-heading);
+    }
+
+    .deploy-subtitle {
+        color: var(--text-muted);
+        margin: 0;
+    }
+
+    /* ── Section titles ──────────────────────────────────────── */
+    .section-title {
+        color: var(--text-heading);
+        margin-bottom: 1.5rem;
+    }
+
+    .section-title-padded {
+        color: var(--text-heading);
+        margin-bottom: 1.5rem;
+        padding-left: 0.5rem;
+    }
+
+    /* ── Model Selection Panel ───────────────────────────────── */
     .selection-section {
-        background: white;
+        background: var(--panel-bg);
         border-radius: 20px;
         padding: 2rem;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--panel-border);
+        box-shadow: var(--panel-shadow);
         margin-bottom: 2.5rem;
     }
 
-    /* Strategy Cards */
+    #model-select {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 1px solid var(--input-border);
+        font-size: 1rem;
+        background: var(--input-bg);
+        color: var(--input-text);
+        appearance: auto;
+    }
+
+    #model-select option {
+        background: var(--panel-bg);
+        color: var(--input-text);
+    }
+
+    /* ── Strategy Cards ──────────────────────────────────────── */
     .strategy-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -42,26 +131,39 @@
     .strategy-card {
         padding: 1.5rem;
         border-radius: 16px;
-        border: 2px solid #f1f5f9;
+        background: var(--card-bg);
+        border: 2px solid var(--card-border);
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
     }
 
+    .strategy-card h4 {
+        color: var(--text-heading);
+        margin: 0 0 0.25rem;
+    }
+
     .strategy-card:hover {
-        border-color: #6366f1;
-        background: #f8fbff;
+        border-color: var(--primary);
+        background: var(--card-hover-bg);
         transform: translateY(-5px);
-        box-shadow: 0 10px 25px rgba(99, 102, 241, 0.1);
+        box-shadow: 0 10px 25px rgba(99, 102, 241, 0.15);
     }
 
     .strategy-card.active {
-        border-color: #6366f1;
-        background: #f0f7ff;
+        border-color: var(--primary);
+        background: var(--card-active-bg);
     }
 
-    .strategy-card .icon-box {
+    .card-desc {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+        margin-bottom: 0;
+    }
+
+    .icon-box {
         width: 50px;
         height: 50px;
         border-radius: 12px;
@@ -72,7 +174,42 @@
         font-size: 1.25rem;
     }
 
-    /* Code Snippet Box */
+    .icon-indigo { background: var(--icon-indigo-bg); color: #6366f1; }
+    .icon-green  { background: var(--icon-green-bg);  color: #22c55e; }
+    .icon-amber  { background: var(--icon-amber-bg);  color: #f59e0b; }
+
+    /* ── Generic Panel ───────────────────────────────────────── */
+    .panel {
+        background: var(--panel-bg);
+        border-radius: 20px;
+        border: 1px solid var(--panel-border);
+        overflow: hidden;
+        box-shadow: var(--panel-shadow);
+    }
+
+    .panel-body {
+        padding: 2rem;
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+    }
+
+    .status-label {
+        font-weight: 600;
+        color: var(--text-body);
+    }
+
+    .status-sub {
+        font-size: 0.85rem;
+        color: var(--text-dim);
+        margin-top: 4px;
+    }
+
+    /* ── Code Snippet Box ────────────────────────────────────── */
     .code-window {
         background: #1e293b;
         border-radius: 12px;
@@ -102,7 +239,52 @@
         cursor: pointer;
     }
 
-    /* Pulsing Success Icon */
+    /* ── Live Test Interface ─────────────────────────────────── */
+    .test-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+
+    .field-label {
+        display: block;
+        font-weight: 600;
+        color: var(--text-body);
+        margin-bottom: 0.75rem;
+    }
+
+    #test-input {
+        width: 100%;
+        height: 150px;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 12px;
+        padding: 1rem;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.85rem;
+        color: var(--input-text);
+        resize: vertical;
+        box-sizing: border-box;
+    }
+
+    #test-input::placeholder {
+        color: var(--input-placeholder);
+    }
+
+    #test-output {
+        width: 100%;
+        height: 150px;
+        background: #1e293b;
+        color: #f8fafc;
+        border-radius: 12px;
+        padding: 1rem;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.85rem;
+        overflow-y: auto;
+        box-sizing: border-box;
+    }
+
+    /* ── Pulsing Success Icon ────────────────────────────────── */
     .pulse-success {
         width: 12px;
         height: 12px;
@@ -115,34 +297,80 @@
     }
 
     @keyframes pulse {
-        0% {
-            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
-        }
+        0%   { box-shadow: 0 0 0 0   rgba(34, 197, 94, 0.4); }
+        70%  { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);   }
+        100% { box-shadow: 0 0 0 0   rgba(34, 197, 94, 0);   }
+    }
 
-        70% {
-            box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
-        }
+    /* ── Coming Soon Overlay ─────────────────────────────────── */
+    .coming-soon-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        pointer-events: none;
+        overflow: hidden;
+    }
 
-        100% {
-            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-        }
+    .tape-strip {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 350vw;
+        height: 120px;
+        transform-origin: center center;
+        background: repeating-linear-gradient(
+            90deg,
+            #111111 0px,
+            #111111 55px,
+            #FFD600 55px,
+            #FFD600 110px
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        opacity: 0.88;
+        box-shadow: 0 6px 40px rgba(0, 0, 0, 0.6), 0 -6px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .tape-strip-1 { transform: translate(-50%, -50%) rotate(-42deg); }
+    .tape-strip-2 { transform: translate(-50%, -50%) rotate(42deg); }
+
+    .tape-text {
+        white-space: nowrap;
+        font-size: 1.65rem;
+        font-weight: 900;
+        letter-spacing: 0.3em;
+        color: #fff;
+        text-shadow: 0 0 6px #000, 1px 1px 0 #000, -1px -1px 0 #000;
+        user-select: none;
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Coming Soon Overlay -->
+<div class="coming-soon-overlay" aria-hidden="true">
+    <div class="tape-strip tape-strip-1">
+        <span class="tape-text">⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠</span>
+    </div>
+    <div class="tape-strip tape-strip-2">
+        <span class="tape-text">⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠ COMING SOON ⚠</span>
+    </div>
+</div>
+
 <div class="deploy-container">
     <div class="deploy-header">
         <h1>Model Deployment Center</h1>
-        <p style="color: #64748b;">Convert your trained brain into an active cloud production endpoint.</p>
+        <p class="deploy-subtitle">Convert your trained brain into an active cloud production endpoint.</p>
     </div>
 
     <!-- Step 1: Select Model -->
     <div class="selection-section">
-        <h3 style="margin-bottom: 1.5rem;"><i class="fas fa-brain"
-                style="color: #6366f1; margin-right: 12px;"></i>Select Model to Deploy</h3>
-        <select id="model-select"
-            style="width: 100%; padding: 1rem; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 1rem; background: #fff;">
+        <h3 class="section-title">
+            <i class="fas fa-brain" style="color: #6366f1; margin-right: 12px;"></i>Select Model to Deploy
+        </h3>
+        <select id="model-select">
             <option value="" disabled selected>Choose a model from your catalog...</option>
             {% for model in models %}
             <option value="{{ model.id }}">{{ model.name }} ({{ model.created_at.strftime('%Y-%m-%d') }})</option>
@@ -151,52 +379,40 @@
     </div>
 
     <!-- Step 2: Choose Strategy -->
-    <h3 style="margin-bottom: 1.5rem; padding-left: 0.5rem;">Choose Deployment Strategy</h3>
+    <h3 class="section-title-padded">Choose Deployment Strategy</h3>
     <div class="strategy-grid">
         <!-- Real-time API -->
         <div class="strategy-card active" onclick="selectStrategy('api')">
-            <div class="icon-box" style="background: #eef2ff; color: #6366f1;">
-                <i class="fas fa-bolt"></i>
-            </div>
+            <div class="icon-box icon-indigo"><i class="fas fa-bolt"></i></div>
             <h4>Real-time API</h4>
-            <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem;">Deploy a high-concurrency REST endpoint
-                for instant predictions (latency < 50ms).</p>
+            <p class="card-desc">Deploy a high-concurrency REST endpoint for instant predictions (latency &lt; 50ms).</p>
         </div>
 
         <!-- Batch Job -->
         <div class="strategy-card" onclick="selectStrategy('batch')">
-            <div class="icon-box" style="background: #f0fdf4; color: #22c55e;">
-                <i class="fas fa-layer-group"></i>
-            </div>
+            <div class="icon-box icon-green"><i class="fas fa-layer-group"></i></div>
             <h4>Batch Processing</h4>
-            <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem;">Run predictions on thousands of rows at
-                once via file upload or scheduled trigger.</p>
+            <p class="card-desc">Run predictions on thousands of rows at once via file upload or scheduled trigger.</p>
         </div>
 
         <!-- Export -->
         <div class="strategy-card" onclick="selectStrategy('export')">
-            <div class="icon-box" style="background: #fff7ed; color: #f59e0b;">
-                <i class="fas fa-file-export"></i>
-            </div>
+            <div class="icon-box icon-amber"><i class="fas fa-file-export"></i></div>
             <h4>Edge / Local Export</h4>
-            <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.5rem;">Download as an optimized .joblib or ONNX
-                file for on-device inference.</p>
+            <p class="card-desc">Download as an optimized .joblib or ONNX file for on-device inference.</p>
         </div>
     </div>
 
     <!-- Step 3: Deployment Preview -->
     <div id="deployment-preview" style="margin-top: 3rem; display: block;">
-        <h3 style="margin-bottom: 1.5rem; padding-left: 0.5rem;">Configuration & Preview</h3>
-        <div
-            style="background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);">
-            <div style="padding: 2rem;">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+        <h3 class="section-title-padded">Configuration &amp; Preview</h3>
+        <div class="panel">
+            <div class="panel-body">
+                <div class="panel-header">
                     <div>
                         <span class="pulse-success"></span>
-                        <span style="font-weight: 600; color: #475569;">Ready for Provisioning</span>
-                        <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">Standard Tier • Serverless
-                            Inference</div>
+                        <span class="status-label">Ready for Provisioning</span>
+                        <div class="status-sub">Standard Tier • Serverless Inference</div>
                     </div>
                     <button class="btn btn-primary" onclick="startDeployment()" id="deploy-btn"
                         style="padding: 0.75rem 2.5rem; border-radius: 99px;">
@@ -204,7 +420,7 @@
                     </button>
                 </div>
 
-                <!-- Fake Code Snippet -->
+                <!-- Code Snippet -->
                 <div class="code-window">
                     <div class="code-header">
                         <span>Python Client Preview</span>
@@ -216,11 +432,11 @@
 # 1. Select the full URL for Postman
 api_url = f"{window.location.protocol}//{window.location.host}/v1/predict/current_selected_id"
 payload = {
-    <span style="color: var(--accent);">"features"</span>: { ... }
+    <span style="color: #a5f3fc;">"features"</span>: { ... }
 }
 
 resp = requests.post(api_url, json=payload)
-<span style="color: var(--primary);">print</span>(resp.json())</pre>
+<span style="color: #86efac;">print</span>(resp.json())</pre>
                 </div>
             </div>
         </div>
@@ -228,27 +444,24 @@ resp = requests.post(api_url, json=payload)
 
     <!-- Step 4: Live Test Interface -->
     <div id="test-interface" style="margin-top: 3rem; display: none;">
-        <h3 style="margin-bottom: 1.5rem; padding-left: 0.5rem;">Live Prediction Tester</h3>
-        <div
-            style="background: white; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); padding: 2rem;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                <!-- Input side -->
-                <div>
-                    <label style="display: block; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">Input JSON
-                        Data</label>
-                    <textarea id="test-input"
-                        style="width: 100%; height: 150px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 1rem; font-family: 'Fira Code', monospace; font-size: 0.85rem;"
-                        placeholder='{ "feature1": 10.5, "feature2": "category_a" }'></textarea>
-                    <button class="btn btn-secondary" id="test-btn" onclick="testPrediction()"
-                        style="margin-top: 1rem; width: 100%; border-radius: 99px;">Run Test Prediction</button>
-                </div>
-                <!-- Output side -->
-                <div>
-                    <label style="display: block; font-weight: 600; color: #475569; margin-bottom: 0.75rem;">Execution
-                        Result</label>
-                    <div id="test-output"
-                        style="width: 100%; height: 150px; background: #1e293b; color: #f8fafc; border-radius: 12px; padding: 1rem; font-family: 'Fira Code', monospace; font-size: 0.85rem; overflow-y: auto;">
-                        <span style="color: #94a3b8;">// Awaiting test run...</span>
+        <h3 class="section-title-padded">Live Prediction Tester</h3>
+        <div class="panel">
+            <div class="panel-body">
+                <div class="test-grid">
+                    <!-- Input side -->
+                    <div>
+                        <label class="field-label">Input JSON Data</label>
+                        <textarea id="test-input"
+                            placeholder='{ "feature1": 10.5, "feature2": "category_a" }'></textarea>
+                        <button class="btn btn-secondary" id="test-btn" onclick="testPrediction()"
+                            style="margin-top: 1rem; width: 100%; border-radius: 99px;">Run Test Prediction</button>
+                    </div>
+                    <!-- Output side -->
+                    <div>
+                        <label class="field-label">Execution Result</label>
+                        <div id="test-output">
+                            <span style="color: #94a3b8;">// Awaiting test run...</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -261,95 +474,66 @@ resp = requests.post(api_url, json=payload)
         const modelSelect = document.getElementById('model-select');
         const deployBtn = document.getElementById('deploy-btn');
         const testInterface = document.getElementById('test-interface');
-        // Reset button when model selection changes
+
         modelSelect.addEventListener('change', function () {
-            // 1. Reset Button Appearance
             deployBtn.innerHTML = 'Deploy Now';
             deployBtn.disabled = false;
-            deployBtn.style.background = ''; // Resets to original CSS
+            deployBtn.style.background = '';
             deployBtn.style.borderColor = '';
-            // 2. Hide Test Interface (until the NEW model is deployed)
             testInterface.style.display = 'none';
-
-            // 3. Clear the active model ID
             activeModelId = null;
-
-            console.log("Model selection changed. UI Reset.");
         });
     });
-    // ── Global State ────────────────────────────────────────────────────────
-    let selectedStrategy = 'api'; // Default selection
+
+    let selectedStrategy = 'api';
     let activeModelId = null;
 
-    /**
-     * Updates the UI when a deployment strategy card is clicked
-     */
     function selectStrategy(type) {
         selectedStrategy = type;
-        // Remove active class from all strategy cards
         document.querySelectorAll('.strategy-card').forEach(card => card.classList.remove('active'));
-
-        // Add active class to the one that was clicked
-        // Note: we use event.currentTarget to ensure we get the card even if an icon was clicked
         event.currentTarget.classList.add('active');
-        console.log("Selected deployment strategy:", selectedStrategy);
     }
 
-    /**
-     * Triggers the actual backend deployment
-     */
     async function startDeployment() {
         const btn = document.getElementById('deploy-btn');
         const modelId = document.getElementById('model-select').value;
         activeModelId = modelId;
 
-        // 1. Validation
         if (!modelId) {
             alert("⚠️ Please select a model from the dropdown first!");
             return;
         }
 
-        // 2. Visual Feedback
         btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> Provisioning...';
         btn.disabled = true;
 
         try {
-            // 3. Call the Backend API
             const response = await fetch('/deploy_model', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model_id: Number(modelId),
-                    strategy: selectedStrategy
-                })
+                body: JSON.stringify({ model_id: Number(modelId), strategy: selectedStrategy })
             });
 
             const result = await response.json();
 
             if (response.ok) {
-                // 4. Success State
                 alert("🚀 Success! " + result.message);
                 btn.innerHTML = '<i class="fas fa-check" style="margin-right: 8px;"></i> Deployed Live';
                 btn.style.background = '#22c55e';
                 btn.style.borderColor = '#22c55e';
 
-                // Show the testing interface
                 document.getElementById('test-interface').style.display = 'block';
 
-                // Update the code snippet with real model ID
                 const codeBlock = document.querySelector('.code-window pre');
                 if (codeBlock) {
                     codeBlock.innerHTML = codeBlock.innerHTML.replace("current_selected_id", modelId);
                 }
 
-                // You can now find the live endpoint in result.endpoint
                 console.log("Model is live at:", result.endpoint);
             } else {
                 throw new Error(result.error || "Deployment failed");
             }
-
         } catch (error) {
-            // 5. Error Handling
             console.error("Deployment Error:", error);
             alert("❌ Error: " + error.message);
             btn.innerHTML = 'Deploy Now';
@@ -357,15 +541,11 @@ resp = requests.post(api_url, json=payload)
         }
     }
 
-    /**
-     * Tests the live prediction API
-     */
     async function testPrediction() {
         const inputArea = document.getElementById('test-input');
         const outputArea = document.getElementById('test-output');
         const testBtn = document.getElementById('test-btn');
 
-        // 1. Parse JSON
         let jsonData;
         try {
             jsonData = JSON.parse(inputArea.value);
@@ -374,13 +554,11 @@ resp = requests.post(api_url, json=payload)
             return;
         }
 
-        // 2. Update UI
         testBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 8px;"></i> Computing...';
         testBtn.disabled = true;
         outputArea.innerHTML = '<span style="color: #6366f1;">// Sending request to production...</span>';
 
         try {
-            // 3. Call the Predict API
             const response = await fetch(`/v1/predict/${activeModelId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -389,7 +567,6 @@ resp = requests.post(api_url, json=payload)
 
             const result = await response.json();
 
-            // 4. Display Result
             if (response.ok) {
                 outputArea.innerHTML = `<span style="color: #2dd4bf;">// Result:</span><br><pre style="color: #fff; margin-top: 10px;">${JSON.stringify(result, null, 2)}</pre>`;
             } else {
