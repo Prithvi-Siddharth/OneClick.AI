@@ -16,6 +16,8 @@ from app.security import get_current_user_id
 
 # Import all routers
 from app.routers import auth, dashboard, data_catalog, model_catalog, preprocessing, training, notes, deploy, prediction, profile
+from app.services.cleanup_tasks import cleanup_expired_temp_data
+from apscheduler.schedulers.background import BackgroundScheduler
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
 
@@ -33,6 +35,20 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "t
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 
 Base.metadata.create_all(bind=engine)
+
+# ── Background Scheduler Setup ────────────────────────────────────────────────
+@app.on_event("startup")
+def start_scheduler():
+    scheduler = BackgroundScheduler()
+    # Run the cleanup every 6 hours
+    scheduler.add_job(cleanup_expired_temp_data, 'interval', hours=6, id="cleanup_id")
+    scheduler.start()
+    print("Background Scheduler started: Cleanup task scheduled every 6 hours.")
+
+@app.on_event("shutdown")
+def shutdown_scheduler():
+    # Use a more robust way to shutdown if we want, but for now we'll just let it exit
+    print("Background Scheduler shutting down.")
 
 # ── Register all routers ──────────────────────────────────────────────────────
 app.include_router(auth.router)

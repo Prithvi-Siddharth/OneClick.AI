@@ -245,16 +245,19 @@ def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
 
     # OPTIMIZATION: Use the stored feature schema if available to avoid expensive S3 read on page load
     dataset_metadata = None
-    if active_dataset.feature_schema:
+    if active_dataset.feature_schema and active_dataset.feature_schema.strip():
         try:
             import json
+            # Ensure it's valid JSON
             schema = json.loads(active_dataset.feature_schema)
-            dataset_metadata = {
-                "columns": list(schema.keys()),
-                "dtypes": schema
-            }
+            if isinstance(schema, dict) and schema:
+                dataset_metadata = {
+                    "columns": list(schema.keys()),
+                    "dtypes": schema
+                }
         except Exception as e:
-            print(f"Error parsing feature_schema: {e}")
+            # If schema is invalid, we will fall back to S3 read below
+            pass
 
     # Fallback: If no schema is stored, do a light-weight header-only read from S3
     if not dataset_metadata:

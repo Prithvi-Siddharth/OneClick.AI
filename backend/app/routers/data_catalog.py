@@ -135,17 +135,27 @@ def delete_dataset(dataset_id: int, request: Request, db: Session = Depends(get_
     user_id = get_current_user_id(request)
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    # Delete from S3
-    s3_key = dataset.s3_key
-    s3_bucket = dataset.s3_bucket
-    s3_delete_object(s3_bucket, s3_key)
-    # Delete from database
-    db.delete(dataset)
-    db.commit()
-    return JSONResponse(content={"message": "Dataset deleted successfully"})
+        
+    try:
+        # 1. Attempt to delete from S3 first
+        s3_key = dataset.s3_key
+        s3_bucket = dataset.s3_bucket
+        if s3_key and s3_bucket:
+            s3_delete_object(s3_bucket, s3_key)
+        
+        # 2. Only if S3 is confirmed clean, delete from database
+        db.delete(dataset)
+        db.commit()
+        
+        return JSONResponse(content={"message": "Dataset deleted successfully from S3 and database"})
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR: Deletion failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete dataset: {str(e)}")
 
 # this route is used to download the dataset
 @router.get("/download_dataset/{dataset_id}")

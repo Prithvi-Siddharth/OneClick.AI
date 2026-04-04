@@ -108,7 +108,8 @@
     .progress-bar {
         height: 100%;
         width: 0%;
-        background-color: #4f46e5; /* Fallback solid color */
+        background-color: #4f46e5;
+        /* Fallback solid color */
         background: linear-gradient(90deg, #4f46e5, #8b5cf6, #6366f1);
         box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);
         transition: width 0.4s ease-out;
@@ -314,7 +315,8 @@
     /* Query Tool Panel */
     .query-tool-panel {
         position: fixed;
-        top: 100vh; /* Slide from bottom */
+        top: 100vh;
+        /* Slide from bottom */
         left: 5vw;
         width: 90vw;
         height: 85vh;
@@ -323,7 +325,8 @@
         display: flex;
         flex-direction: column;
         color: var(--text-primary);
-        border-radius: 24px 24px 24px 24px; /* Rounded corners */
+        border-radius: 24px 24px 24px 24px;
+        /* Rounded corners */
         box-shadow: var(--shadow);
         border: 1px solid var(--border);
         visibility: hidden;
@@ -334,7 +337,7 @@
         --panel-content: #faf9f6;
         --panel-card: #ffffff;
         --panel-input: #fcfbf9;
-        
+
         background: var(--panel-bg);
         color: var(--text-primary);
     }
@@ -349,7 +352,8 @@
     }
 
     .query-tool-panel.open {
-        top: 10vh; /* Leave gap at top */
+        top: 10vh;
+        /* Leave gap at top */
         visibility: visible;
     }
 
@@ -666,7 +670,6 @@
         opacity: 0.3;
         pointer-events: none;
     }
-
 </style>
 {% endblock %}
 
@@ -760,6 +763,9 @@
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+                <button class="btn btn-secondary" onclick="clearAttributeSelections()">Clear Selection</button>
+            </div>
             <div class="preprocess-grid">
                 {% for attribute in dataset.columns %}
                 <div class="preprocess-card">
@@ -784,7 +790,8 @@
         <div class="accordion-content">
             <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
-                <button class="btn btn-secondary" onclick="clearSectionSelections('section-drop-columns')">Clear Selection</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-drop-columns')">Clear
+                    Selection</button>
             </div>
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
@@ -819,7 +826,8 @@
         <div class="accordion-content">
             <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
-                <button class="btn btn-secondary" onclick="clearSectionSelections('section-missing-values')">Clear Selection</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-missing-values')">Clear
+                    Selection</button>
             </div>
             <div class="preprocess-grid">
                 <!-- Replace with Mean -->
@@ -880,7 +888,8 @@
         <div class="accordion-content">
             <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
-                <button class="btn btn-secondary" onclick="clearSectionSelections('section-outliers')">Clear Selection</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-outliers')">Clear
+                    Selection</button>
             </div>
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
@@ -931,7 +940,8 @@
         <div class="accordion-content">
             <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
-                <button class="btn btn-secondary" onclick="clearSectionSelections('section-encoding')">Clear Selection</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-encoding')">Clear
+                    Selection</button>
             </div>
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
@@ -994,7 +1004,8 @@
         <div class="accordion-content">
             <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
-                <button class="btn btn-secondary" onclick="clearSectionSelections('section-scaling')">Clear Selection</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-scaling')">Clear
+                    Selection</button>
             </div>
             <div class="preprocess-grid">
                 <!-- Min-Max Scaling -->
@@ -1047,7 +1058,8 @@
         <div class="accordion-content">
             <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
-                <button class="btn btn-secondary" onclick="clearSectionSelections('section-transformations')">Clear Selection</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-transformations')">Clear
+                    Selection</button>
             </div>
             <div class="preprocess-grid">
                 <!-- Log Transform -->
@@ -1118,7 +1130,8 @@
         <div class="accordion-content">
             <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
-                <button class="btn btn-secondary" onclick="clearSectionSelections('section-feature-selection')">Clear Selection</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-feature-selection')">Clear
+                    Selection</button>
             </div>
             <div class="preprocess-grid">
                 <!-- Remove low variance -->
@@ -1183,7 +1196,8 @@
         <div class="accordion-content">
             <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
-                <button class="btn btn-secondary" onclick="clearSectionSelections('section-data-reduction')">Clear Selection</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-data-reduction')">Clear
+                    Selection</button>
             </div>
             <div class="preprocess-grid">
                 <!-- PCA -->
@@ -1228,7 +1242,8 @@
         <div class="accordion-content">
             <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
                 <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
-                <button class="btn btn-secondary" onclick="clearSectionSelections('section-imbalanced-data')">Clear Selection</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-imbalanced-data')">Clear
+                    Selection</button>
             </div>
             <div class="preprocess-grid">
                 <!-- SMOTE -->
@@ -1277,7 +1292,9 @@
         </div>
     </div>
     <!-- Overlay backdrop -->
-    <div id="sidebar-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 999;"></div>
+    <div id="sidebar-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 999;">
+    </div>
 
     <!-- Activity Log Sidebar -->
     <div id="activity-log-sidebar" class="activity-log-sidebar">
@@ -1330,10 +1347,12 @@
                         {% endfor %}
                     </select>
                 </div>
-                <button class="btn btn-primary" onclick="generatePlot()" id="viz-generate-btn" style="width:100%; margin-top: auto;">
+                <button class="btn btn-primary" onclick="generatePlot()" id="viz-generate-btn"
+                    style="width:100%; margin-top: auto;">
                     <i class="fas fa-play" style="margin-right:8px;"></i>Generate
                 </button>
-                <button class="btn btn-secondary" id="viz-export-btn" onclick="exportChart()" style="width:100%; display:none;">
+                <button class="btn btn-secondary" id="viz-export-btn" onclick="exportChart()"
+                    style="width:100%; display:none;">
                     <i class="fas fa-image" style="margin-right:8px;"></i>Save as Image
                 </button>
             </div>
@@ -1342,11 +1361,13 @@
             <div class="visualize-main">
                 <div class="viz-chart-container" id="viz-chart-container">
                     <div id="viz-plotly-chart">
-                        <p style="color: var(--text-muted); text-align: center;">Select a column and chart type, then click Generate.</p>
+                        <p style="color: var(--text-muted); text-align: center;">Select a column and chart type, then
+                            click Generate.</p>
                     </div>
                 </div>
                 <div class="viz-stats-card" id="viz-stats-card" style="display:none;">
-                    <h4><i class="fas fa-table" style="margin-right:8px; color: var(--primary-color);"></i>EDA Statistics</h4>
+                    <h4><i class="fas fa-table" style="margin-right:8px; color: var(--primary-color);"></i>EDA
+                        Statistics</h4>
                     <div class="viz-stats-grid" id="viz-stats-grid"></div>
                     <div class="viz-observation" id="viz-observation" style="display:none;"></div>
                 </div>
@@ -1366,7 +1387,8 @@
                     <span style="font-weight: 600; color: #89b4fa;">SQL Editor</span>
                     <span style="font-size: 0.8rem; color: #6c7086;">Available table: <strong>data</strong></span>
                 </div>
-                <textarea id="sql-query-input" class="sql-editor" spellcheck="false" placeholder="SELECT * FROM data WHERE ..."></textarea>
+                <textarea id="sql-query-input" class="sql-editor" spellcheck="false"
+                    placeholder="SELECT * FROM data WHERE ..."></textarea>
                 <div style="display: flex; gap: 1rem;">
                     <button class="btn btn-primary" onclick="runSqlQuery()" id="run-query-btn">
                         <i class="fas fa-play"></i> Run Query

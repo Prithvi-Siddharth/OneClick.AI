@@ -11,7 +11,7 @@ import boto3
 import pandas as pd
 from datetime import datetime
 from sqlalchemy.orm import Session
-from botocore.exceptions import NoCredentialsError
+from botocore.exceptions import NoCredentialsError, ClientError
 from app.models import Dataset, Experiment, TemporaryDataset
 from app.services.data_preprocessing import get_dataset_preview_and_stats
 from io import BytesIO
@@ -436,17 +436,27 @@ def upload_model_to_s3(
 def s3_delete_object(bucket_name: str, s3_key: str) -> bool:
     """
     Deletes an object from S3.
+    Returns True if deleted or already gone.
+    Raises Exception if deletion failed due to permissions or other errors.
     """
     s3 = get_s3_client()
     try:
         s3.delete_object(Bucket=bucket_name, Key=s3_key)
+        print(f"DEBUG: Successfully deleted {s3_key} from {bucket_name}")
         return True
+    except ClientError as e:
+        error_code = e.response.get('Error', {}).get('Code')
+        if error_code in ['404', 'NoSuchKey']:
+            print(f"DEBUG: Object {s3_key} already deleted from S3. Proceeding.")
+            return True # Consider success if already gone
+        print(f"ERROR: S3 ClientError during deletion: {e}")
+        raise Exception(f"AWS S3 Error: {error_code or str(e)}")
     except NoCredentialsError:
-        print("Credentials not available")
-        return False
+        print("ERROR: AWS Credentials not available")
+        raise Exception("AWS Credentials missing. Cannot delete from S3.")
     except Exception as e:
-        print(f"Failed to delete object from S3: {e}")
-        return False
+        print(f"ERROR: Failed to delete object from S3: {e}")
+        raise Exception(f"Unexpected S3 Error: {str(e)}")
 
 # Generate a presigned URL to share an S3 object
 def create_presigned_download_url(bucket_name: str, s3_key: str, filename: str, expiration=3600):

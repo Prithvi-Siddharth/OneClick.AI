@@ -56,8 +56,8 @@ def cleanup_expired_temp_data(hours_threshold: int = 6):
         db.close()
 
 if __name__ == "__main__":
-    # You can pass the number of hours as an argument if needed, default is 24.
-    hours = 24
+    # Default is now 6 to match your preference.
+    hours = 6
     if len(sys.argv) > 1:
         try:
             hours = int(sys.argv[1])

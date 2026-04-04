@@ -129,16 +129,22 @@ def delete_model(model_id: int, request: Request, db: Session = Depends(get_db))
     if not model:
         raise HTTPException(status_code=404, detail="Model not found")
     
-    # Delete from S3
-    bucket_name = os.getenv("S3_BUCKET_NAME")
-    if model.model_artifact_path and bucket_name:
-        s3_delete_object(bucket_name, model.model_artifact_path)
-    
-    # Delete from DB
-    db.delete(model)
-    db.commit()
-    
-    return JSONResponse(content={"message": "Model deleted successfully"})
+    try:
+        # 1. Delete from S3 first
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+        if model.model_artifact_path and bucket_name:
+            # This will raise an Exception if S3 deletion fails (e.g. Access Denied)
+            s3_delete_object(bucket_name, model.model_artifact_path)
+        
+        # 2. Only if S3 is successful, delete from DB
+        db.delete(model)
+        db.commit()
+        
+        return JSONResponse(content={"message": "Model deleted successfully from S3 and database"})
+    except Exception as e:
+        db.rollback()
+        print(f"ERROR: Model deletion failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete model: {str(e)}")
 
 # this route is used to download the model
 @router.get("/download_model/{model_id}")
