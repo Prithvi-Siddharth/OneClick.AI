@@ -22,6 +22,11 @@
 
                 if (data.type === "status") {
                     document.getElementById("status-text").textContent = data.message;
+                } else if (data.type === "query_results") {
+                    renderQueryResults(data.data);
+                    document.getElementById('query-results-loading').style.display = 'none';
+                    document.getElementById('query-results-wrapper').style.display = 'block';
+                    document.getElementById('run-query-btn').disabled = false;
                 } else if (data.type === "progress") {
                     updateProgress(data.percentage, data.message);
                 } else if (data.type === "preview") {
@@ -36,8 +41,16 @@
                         }
                     }, 3000);
                 } else if (data.type === "error") {
-                    if (data.message && (data.message.includes("is not numeric") || data.message.includes("is not categorical"))) {
+                    // Check if error is from Query Tool
+                    const queryLoading = document.getElementById('query-results-loading');
+                    if (queryLoading && queryLoading.style.display === 'block') {
+                        document.getElementById('query-results-loading').style.display = 'none';
+                        document.getElementById('run-query-btn').disabled = false;
+                        document.getElementById('query-status-text').textContent = "Error in SQL";
+                        alert("SQL Error: " + data.message);
+                    } else if (data.message && (data.message.includes("is not numeric") || data.message.includes("is not categorical"))) {
                         alert("Did your data school forget to teach variable types? Stick to counting colors—maybe you'll get that kindergarten diploma.");
+                        resetRadioButtons();
                     } else {
                         alert("Error: " + data.message);
                     }
@@ -125,6 +138,14 @@
             const checked = document.querySelector(`input[name="${groupName}"]:checked`);
             if (checked) checked.checked = false;
         });
+    }
+
+    function clearSectionSelections(sectionId) {
+        const section = document.getElementById(sectionId);
+        if (!section) return;
+        
+        const radios = section.querySelectorAll('input[type="radio"]');
+        radios.forEach(radio => radio.checked = false);
     }
 
     function applyPreprocessing() {
@@ -479,6 +500,79 @@
         } finally {
             document.getElementById("preview-loading").style.display = "none";
         }
+    }
+
+
+    // ── Query Tool Logic ──────────────────────────────────────────────────
+    function showQueryTool() {
+        document.getElementById('query-tool-panel').classList.add('open');
+        document.getElementById('sidebar-overlay').style.display = 'block';
+    }
+
+    function hideQueryTool() {
+        document.getElementById('query-tool-panel').classList.remove('open');
+        document.getElementById('sidebar-overlay').style.display = 'none';
+    }
+
+    function runSqlQuery() {
+        const query = document.getElementById('sql-query-input').value.trim();
+        if (!query) {
+            alert("Please enter a SQL query!");
+            return;
+        }
+
+        const runBtn = document.getElementById('run-query-btn');
+        const loading = document.getElementById('query-results-loading');
+        const wrapper = document.getElementById('query-results-wrapper');
+        const statusText = document.getElementById('query-status-text');
+
+        runBtn.disabled = true;
+        loading.style.display = 'block';
+        wrapper.style.display = 'none';
+        statusText.textContent = "Executing...";
+
+        socket.send(JSON.stringify({
+            action: "run_sql",
+            query: query
+        }));
+    }
+
+    function renderQueryResults(data) {
+        const thead = document.getElementById('query-results-thead');
+        const tbody = document.getElementById('query-results-tbody');
+        const rowCountEl = document.getElementById('query-row-count');
+        const statusText = document.getElementById('query-status-text');
+
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            statusText.textContent = "Results: No data found";
+            rowCountEl.textContent = "0 rows";
+            tbody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 3rem; color: #585b70;">No results to display.</td></tr>';
+            return;
+        }
+
+        statusText.textContent = "Results";
+        rowCountEl.textContent = `${data.length} rows found`;
+
+        const headers = Object.keys(data[0]);
+        let headerHtml = '<tr>';
+        headers.forEach(h => headerHtml += `<th>${h}</th>`);
+        headerHtml += '</tr>';
+        thead.innerHTML = headerHtml;
+
+        let bodyHtml = '';
+        data.forEach(row => {
+            bodyHtml += '<tr>';
+            headers.forEach(h => {
+                let val = row[h];
+                if (val === null || val === undefined) val = '<span style="color: #45475a;">null</span>';
+                bodyHtml += `<td>${val}</td>`;
+            });
+            bodyHtml += '</tr>';
+        });
+        tbody.innerHTML = bodyHtml;
     }
 
 

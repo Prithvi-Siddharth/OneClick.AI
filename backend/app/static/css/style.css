@@ -10,6 +10,8 @@
     --accent: #3b82f6;
     --accent-hover: #2563eb;
     --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    --primary-color: #6366f1;
+    --error-color: #ef4444;
     --border: #e2e8f0;
     --nav-bg: #f8fafc;
     --glass-blur: none;
@@ -31,6 +33,8 @@
     --accent: #818cf8;
     --accent-hover: #a5b4fc;
     --accent-gradient: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+    --primary-color: #818cf8;
+    --error-color: #f87171;
     --border: #334155;
     --nav-bg: #0f172a;
     --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
@@ -212,6 +216,24 @@ a:hover {
     color: var(--text-primary);
 }
 
+.btn-danger {
+    background: var(--error-color);
+    color: white;
+    box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.39);
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.23);
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 8px;
+}
+
 /* Forms */
 .form-group {
     margin-bottom: 2rem;
@@ -323,7 +345,7 @@ a:hover {
     display: none;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 3000;
 }
 
 .modal-box {
@@ -642,6 +664,7 @@ input:checked + .slider:before {
     margin-bottom: 1.5rem;
     background: var(--accent-gradient);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     display: inline-block;
 }

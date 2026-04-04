@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-import os, json, pandas as pd
+import os, json, pandas as pd, duckdb
 from io import BytesIO
 from datetime import datetime
 
@@ -240,13 +240,64 @@ def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
                 TemporaryDataset.user_id == int(user_id)
             ).order_by(TemporaryDataset.id.desc()).first()
     
-    #fetching the dataset from s3 bucket.
-    df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
+    if not active_dataset:
+        return RedirectResponse(url="/preprocessing?error=no_active_dataset")
+
+    # OPTIMIZATION: Use the stored feature schema if available to avoid expensive S3 read on page load
+    dataset_metadata = None
+    if active_dataset.feature_schema:
+        try:
+            import json
+            schema = json.loads(active_dataset.feature_schema)
+            dataset_metadata = {
+                "columns": list(schema.keys()),
+                "dtypes": schema
+            }
+        except Exception as e:
+            print(f"Error parsing feature_schema: {e}")
+
+    # Fallback: If no schema is stored, do a light-weight header-only read from S3
+    if not dataset_metadata:
+        try:
+            # We only need headers for the initial UI render (Selection cards)
+            s3 = get_s3_client()
+            response = s3.get_object(Bucket=active_dataset.s3_bucket, Key=active_dataset.s3_key)
+            s3_key = active_dataset.s3_key.lower()
+            
+            if s3_key.endswith('.csv'):
+                line = next(response['Body'].iter_lines()).decode('utf-8')
+                import csv
+                from io import StringIO
+                reader = csv.reader(StringIO(line))
+                columns = next(reader)
+            elif s3_key.endswith(('.xls', '.xlsx')):
+                # For Excel, we still have to read a bit more, but nrows=0 is fast
+                import pandas as pd
+                from io import BytesIO
+                content = response['Body'].read()
+                df_headers = pd.read_excel(BytesIO(content), nrows=0)
+                columns = df_headers.columns.tolist()
+            else:
+                # Default to full read if format unknown
+                df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
+                columns = df.columns.tolist()
+            
+            dataset_metadata = {
+                "columns": columns,
+                "dtypes": {col: "unknown" for col in columns}
+            }
+        except Exception as e:
+            print(f"Fallback header read failed: {e}")
+            df = read_df_from_s3(active_dataset.s3_bucket, active_dataset.s3_key)
+            dataset_metadata = {
+                "columns": df.columns.tolist(),
+                "dtypes": {col: str(dtype) for col, dtype in df.dtypes.items()}
+            }
     
     return templates.TemplateResponse("preprocess-dataset.html", {
         "request": request,
         "username": user.username,
-        "dataset": df,
+        "dataset": dataset_metadata,
         "dataset_id": active_dataset.id
     })
 
@@ -328,6 +379,32 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 await send_status("No active dataset found. Please upload one first.")
                 continue
 
+            if action == "run_sql":
+                query = message.get("query", "")
+                try:
+                    # Load dataset
+                    df = await run_in_threadpool(read_df_from_s3, active_dataset.s3_bucket, active_dataset.s3_key)
+                    
+                    # DuckDB can query the pandas DataFrame 'df' directly by name
+                    # We'll make 'data' available as an alias for the dataframe
+                    data = df 
+                    results_df = duckdb.query(query).to_df()
+                    
+                    # Convert to list of dicts (handling NaN for JSON)
+                    # We use .replace({pd.NA: None}) or similar for better JSON compatibility
+                    results = results_df.astype(object).where(pd.notnull(results_df), None).to_dict(orient="records")
+                    
+                    await websocket.send_text(json.dumps({
+                        "type": "query_results",
+                        "data": results
+                    }))
+                except Exception as e:
+                    await websocket.send_text(json.dumps({
+                        "type": "error",
+                        "message": f"SQL Error: {str(e)}"
+                    }))
+                continue
+
             if action == "get_preview":
                 await send_status("Fetching initial preview...")
                 # Offload blocking S3 read to a threadpool
@@ -351,7 +428,7 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
                 processed_df = await run_in_threadpool(apply_preprocessing, df, ops, attributes, target_column)
 
                 if isinstance(processed_df, dict) and "error" in processed_df:
-                    await send_progress(0, f"Error: {processed_df['error']}")
+                    await websocket.send_text(json.dumps({"type": "error", "message": processed_df['error']}))
                     continue
 
                 # Offload blocking to_csv to a threadpool
@@ -412,7 +489,7 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
         except Exception as e:
             print(f"WebSocket execution error: {str(e)}")
             try:
-                await websocket.send_text(json.dumps({"type": "status", "message": f"Critical Error: {str(e)}"}))
+                await websocket.send_text(json.dumps({"type": "error", "message": f"Critical Error: {str(e)}"}))
             except:
                 break
 

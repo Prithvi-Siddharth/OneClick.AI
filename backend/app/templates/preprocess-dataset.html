@@ -4,6 +4,17 @@
 
 {% block head %}
 <style>
+    :root {
+        --primary-color: #6366f1;
+    }
+
+    /* Prevent horizontal scroll from sidebars */
+    body {
+        overflow-x: hidden;
+        width: 100%;
+        position: relative;
+    }
+
     .preprocess-grid {
         display: flex;
         flex-direction: row;
@@ -96,7 +107,9 @@
     .progress-bar {
         height: 100%;
         width: 0%;
-        background: linear-gradient(90deg, var(--primary-color), #6366f1);
+        background-color: #4f46e5; /* Fallback solid color */
+        background: linear-gradient(90deg, #4f46e5, #8b5cf6, #6366f1);
+        box-shadow: 0 0 10px rgba(79, 70, 229, 0.4);
         transition: width 0.4s ease-out;
     }
 
@@ -221,13 +234,15 @@
         background: #ffffff;
         box-shadow: -4px 0 15px rgba(0, 0, 0, 0.1);
         z-index: 1000;
-        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
         display: flex;
         flex-direction: column;
+        visibility: hidden;
     }
 
     .activity-log-sidebar.open {
         right: 0;
+        visibility: visible;
     }
 
     .activity-log-header {
@@ -294,6 +309,169 @@
         display: inline-block;
         font-size: 0.75rem;
     }
+
+    /* Query Tool Panel */
+    .query-tool-panel {
+        position: fixed;
+        top: 100vh; /* Slide from bottom */
+        left: 5vw;
+        width: 90vw;
+        height: 85vh;
+        z-index: 2000;
+        transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+        display: flex;
+        flex-direction: column;
+        color: var(--text-primary);
+        border-radius: 24px 24px 24px 24px; /* Rounded corners */
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        visibility: hidden;
+
+        /* Default Light Mode Palette (Off-white/Cream) */
+        --panel-bg: #fdfbf7;
+        --panel-header: #f7f5f0;
+        --panel-content: #faf9f6;
+        --panel-card: #ffffff;
+        --panel-input: #fcfbf9;
+        
+        background: var(--panel-bg);
+        color: var(--text-primary);
+    }
+
+    /* Dark Mode Override for Query Tool */
+    .theme-dark .query-tool-panel {
+        --panel-bg: var(--card-bg);
+        --panel-header: var(--bg-secondary);
+        --panel-content: var(--bg-primary);
+        --panel-card: var(--card-bg);
+        --panel-input: var(--bg-secondary);
+    }
+
+    .query-tool-panel.open {
+        top: 10vh; /* Leave gap at top */
+        visibility: visible;
+    }
+
+    .query-tool-header {
+        padding: 1rem 2rem;
+        background: var(--panel-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .query-tool-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .query-tool-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+        gap: 1.5rem;
+        overflow-y: auto;
+        background: var(--panel-content);
+        border-radius: 0 0 24px 24px;
+    }
+
+    .query-input-area {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background: var(--panel-card);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+    }
+
+    .sql-editor {
+        width: 100%;
+        height: 150px;
+        background: var(--panel-input);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: 'Fira Code', 'Courier New', monospace;
+        font-size: 1rem;
+        line-height: 1.5;
+        resize: vertical;
+        outline: none;
+    }
+
+    .sql-editor:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+    }
+
+    .query-results-area {
+        flex: 1;
+        background: var(--panel-card);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-height: 300px;
+    }
+
+    .query-results-table-wrapper {
+        flex: 1;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+    }
+
+    .query-results-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    .query-results-table th {
+        position: sticky;
+        top: 0;
+        background: var(--panel-header);
+        color: var(--text-primary);
+        padding: 12px 16px;
+        text-align: left;
+        font-weight: 600;
+        border-bottom: 2px solid var(--border);
+        white-space: nowrap;
+    }
+
+    .query-results-table td {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-secondary);
+        white-space: nowrap;
+    }
+
+    .query-results-table tr:hover {
+        background: var(--panel-header);
+    }
+
+    .close-panel-btn {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .close-panel-btn:hover {
+        color: var(--error-color);
+    }
+
 </style>
 {% endblock %}
 
@@ -302,6 +480,9 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h1 style="color: var(--text-primary); margin: 0;">Preprocessing Studio</h1>
         <div style="display: flex; gap: 10px;">
+            <button class="btn btn-secondary" onclick="showQueryTool()">
+                <i class="fas fa-terminal" style="margin-right: 8px;"></i>Query Tool
+            </button>
             <a href="#" class="btn btn-secondary" onclick="showHistory()">
                 <i class="fas fa-history" style="margin-right: 8px;"></i>Activity Log
             </a>
@@ -403,7 +584,10 @@
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
-            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-drop-columns')">Clear Selection</button>
+            </div>
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
                 <div class="preprocess-card">
@@ -435,7 +619,10 @@
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
-            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-missing-values')">Clear Selection</button>
+            </div>
             <div class="preprocess-grid">
                 <!-- Replace with Mean -->
                 <div class="preprocess-card">
@@ -492,8 +679,11 @@
             <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>4: Outlier Handling</h2><i
                 class="fas fa-chevron-down accordion-icon"></i>
         </div>
-        <div class="accordion-content"><button class="btn btn-primary" style="margin-bottom: 1.5rem;"
-                onclick="applyPreprocessing()">Apply</button>
+        <div class="accordion-content">
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-outliers')">Clear Selection</button>
+            </div>
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
                 <div class="preprocess-card">
@@ -540,8 +730,11 @@
             <h2><i class="fas fa-sliders" style="margin-right: 10px;"></i>5: Encoding</h2><i
                 class="fas fa-chevron-down accordion-icon"></i>
         </div>
-        <div class="accordion-content"><button class="btn btn-primary" style="margin-bottom: 1.5rem;"
-                onclick="applyPreprocessing()">Apply</button>
+        <div class="accordion-content">
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-encoding')">Clear Selection</button>
+            </div>
             <div class="preprocess-grid">
                 <!-- One Hot Encoding -->
                 <div class="preprocess-card">
@@ -601,7 +794,10 @@
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
-            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-scaling')">Clear Selection</button>
+            </div>
             <div class="preprocess-grid">
                 <!-- Min-Max Scaling -->
                 <div class="preprocess-card">
@@ -651,7 +847,10 @@
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
-            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-transformations')">Clear Selection</button>
+            </div>
             <div class="preprocess-grid">
                 <!-- Log Transform -->
                 <div class="preprocess-card">
@@ -719,7 +918,10 @@
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
-            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-feature-selection')">Clear Selection</button>
+            </div>
             <div class="preprocess-grid">
                 <!-- Remove low variance -->
                 <div class="preprocess-card">
@@ -781,7 +983,10 @@
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
-            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-data-reduction')">Clear Selection</button>
+            </div>
             <div class="preprocess-grid">
                 <!-- PCA -->
                 <div class="preprocess-card">
@@ -823,7 +1028,10 @@
             <i class="fas fa-chevron-down accordion-icon"></i>
         </div>
         <div class="accordion-content">
-            <button class="btn btn-primary" style="margin-bottom: 1.5rem;" onclick="applyPreprocessing()">Apply</button>
+            <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem;">
+                <button class="btn btn-primary" onclick="applyPreprocessing()">Apply</button>
+                <button class="btn btn-secondary" onclick="clearSectionSelections('section-imbalanced-data')">Clear Selection</button>
+            </div>
             <div class="preprocess-grid">
                 <!-- SMOTE -->
                 <div class="preprocess-card">
@@ -870,16 +1078,8 @@
             </button>
         </div>
     </div>
-
     <!-- Overlay backdrop -->
-    <div id="sidebar-overlay" style="
-        display: none;
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: rgba(0,0,0,0.3);
-        z-index: 999;
-    "></div>
+    <div id="sidebar-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 999;"></div>
 
     <!-- Activity Log Sidebar -->
     <div id="activity-log-sidebar" class="activity-log-sidebar">
@@ -892,6 +1092,54 @@
         <div id="activity-log-content" class="activity-log-content">
             <div id="log-list">
                 <p style="color: #64748b; text-align: center; margin-top: 2rem;">No preprocessing steps applied yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Query Tool Full-Screen Panel -->
+    <div id="query-tool-panel" class="query-tool-panel">
+        <div class="query-tool-header">
+            <h2><i class="fas fa-database"></i> Query Tool</h2>
+            <button class="close-panel-btn" onclick="hideQueryTool()">&times;</button>
+        </div>
+        <div class="query-tool-content">
+            <div class="query-input-area">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; color: #89b4fa;">SQL Editor</span>
+                    <span style="font-size: 0.8rem; color: #6c7086;">Available table: <strong>data</strong></span>
+                </div>
+                <textarea id="sql-query-input" class="sql-editor" spellcheck="false" placeholder="SELECT * FROM data WHERE ..."></textarea>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" onclick="runSqlQuery()" id="run-query-btn">
+                        <i class="fas fa-play"></i> Run Query
+                    </button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('sql-query-input').value = ''">
+                        <i class="fas fa-eraser"></i> Clear
+                    </button>
+                </div>
+            </div>
+
+            <div class="query-results-area">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 600; color: #a6adc8;" id="query-status-text">Results</span>
+                    <span id="query-row-count" style="font-size: 0.85rem; color: #6c7086;"></span>
+                </div>
+                <div id="query-results-loading" style="display: none; text-align: center; padding: 2rem;">
+                    <i class="fas fa-spinner fa-spin fa-2x" style="color: #89b4fa;"></i>
+                    <p style="margin-top: 1rem; color: #6c7086;">Executing query...</p>
+                </div>
+                <div class="query-results-table-wrapper" id="query-results-wrapper">
+                    <table class="query-results-table" id="query-results-table">
+                        <thead id="query-results-thead"></thead>
+                        <tbody id="query-results-tbody">
+                            <tr>
+                                <td colspan="100%" style="text-align: center; padding: 3rem; color: #585b70;">
+                                    Run a query to see results here.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
