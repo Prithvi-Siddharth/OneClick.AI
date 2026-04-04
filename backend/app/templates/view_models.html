@@ -94,14 +94,15 @@
         {% endif %}
     </div>
 
-    <!-- Model Details Modal -->
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal-box" style="max-width: 800px; width: 95%; border-radius: 24px;">
-            <button class="modal-close" id="closeModal">&times;</button>
-            <div class="modal-title" style="font-family: var(--font-heading); font-weight: 800;">Model Analysis</div>
-            <div id="modelPreview" style="padding: 1rem 0; max-height: 70vh; overflow-y: auto;">
-                <!-- Model info will be injected here -->
-            </div>
+</div>
+
+<!-- Model Details Modal -->
+<div class="modal-overlay" id="modalOverlay" style="position: absolute; width: 100%;">
+    <div class="modal-box" style="max-width: 800px; width: 95%; border-radius: 24px;">
+        <button class="modal-close" id="closeModal">&times;</button>
+        <div class="modal-title" style="font-family: var(--font-heading); font-weight: 800;">Model Analysis</div>
+        <div id="modelPreview" style="padding: 1rem 0; max-height: 70vh; overflow-y: auto;">
+            <!-- Model info will be injected here -->
         </div>
     </div>
 </div>
@@ -161,6 +162,8 @@
             const modelId = this.id.replace('viewButton', '');
 
             modelPreview.innerHTML = "<div style='text-align:center; padding: 4rem;'><i class='fas fa-spinner fa-spin fa-3x' style='color: var(--accent); margin-bottom: 1rem;'></i><p style='color: var(--text-secondary);'>Analyzing model performance...</p></div>";
+            modalOverlay.style.top = window.scrollY + 'px';
+            modalOverlay.style.height = window.innerHeight + 'px';
             modalOverlay.style.display = 'flex';
             try {
                 const response = await fetch(`/preview_model/${modelId}`);
