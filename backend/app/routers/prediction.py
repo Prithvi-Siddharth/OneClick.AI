@@ -7,8 +7,8 @@ from io import BytesIO
 import os
 
 from app.db import get_db
-from app.models import Experiment
-from app.services.s3_operations import get_s3_client
+from app.models import Experiment, Dataset
+from app.services.s3_operations import get_s3_client, load_dataset_as_dataframe
 
 router = APIRouter()
 
@@ -85,5 +85,67 @@ async def predict(model_id: int, request: Request, db: Session = Depends(get_db)
                 "error": error_detail,
                 "hint": hint,
                 "model_id": model_id
+            }
+        )
+
+# ── PREDICT USING CATALOG DATASET ───────────────────────────────────────────
+@router.post("/v1/predict_catalog/{model_id}/{dataset_id}")
+async def predict_catalog(model_id: int, dataset_id: int, request: Request, db: Session = Depends(get_db)):
+    """
+    Predict using a dataset stored in the Data Catalog.
+    Returns a preview of the results (first 50 rows).
+    """
+    # 1. Fetch Model and Dataset
+    experiment = db.query(Experiment).filter(Experiment.id == model_id).first()
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+
+    if not experiment or not experiment.model_artifact_path:
+        raise HTTPException(status_code=404, detail="Model not found")
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    # 2. Load Dataset from S3
+    try:
+        df = load_dataset_as_dataframe(dataset.s3_bucket, dataset.s3_key)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load dataset: {str(e)}")
+
+    # 3. Load Pipeline from S3
+    try:
+        s3 = get_s3_client()
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+        response = s3.get_object(Bucket=bucket_name, Key=experiment.model_artifact_path)
+        pipeline = joblib.load(BytesIO(response['Body'].read()))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load model: {str(e)}")
+
+    # 4. Run Prediction
+    try:
+        # Prepare data (drop target if exists in input)
+        X = df.copy()
+        if experiment.target_column in X.columns:
+            X = X.drop(columns=[experiment.target_column])
+        
+        predictions = pipeline.predict(X)
+        
+        # 5. Build Result Preview (Limit to first 50)
+        df_display = df.head(50).copy()
+        df_display['Prediction'] = predictions[:50]
+        
+        return {
+            "status": "success",
+            "model_name": experiment.name,
+            "dataset_name": dataset.filename,
+            "total_rows": len(df),
+            "preview_rows": df_display.to_dict('records'),
+            "predictions": predictions.tolist() # returning all predictions in case needed for export
+        }
+    except Exception as e:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "status": "error",
+                "error": str(e),
+                "hint": "Check if the dataset schema matches the model requirements."
             }
         )

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 import os, json
 
 from app.db import get_db
-from app.models import User, Experiment, TemporaryDataset
+from app.models import User, Experiment, TemporaryDataset, Dataset
 from app.security import get_current_user_id
 from app.services.s3_operations import get_user_models, upload_model_to_s3, s3_delete_object, create_presigned_download_url
 from app.services.constants import ML_HYPERPARAMETERS
@@ -202,12 +202,16 @@ def test_model_page(experiment_id: int, request: Request, db: Session = Depends(
     model_task = ML_HYPERPARAMETERS.get(experiment.algorithm, {}).get("task", "unknown")
     user = db.query(User).filter(User.user_id == int(user_id)).first()
 
+    # Fetch all catalog datasets for the user
+    datasets = db.query(Dataset).filter(Dataset.user_id == int(user_id)).all()
+
     return templates.TemplateResponse("test_model.html", {
         "request": request,
         "username": user.username if user else None,
         "experiment": experiment,
         "feature_columns": feature_columns,
         "model_task": model_task,
+        "datasets": datasets,
     })
 
 

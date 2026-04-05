@@ -166,17 +166,24 @@
         <a href="javascript:history.back()" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 1rem;">
             <i class="fas fa-arrow-left"></i> Back
         </a>
-        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16,185,129,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                <i class="fas fa-flask" style="color: #059669; font-size: 1.25rem;"></i>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16,185,129,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i class="fas fa-flask" style="color: #059669; font-size: 1.25rem;"></i>
+                </div>
+                <div>
+                    <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-primary);">Test Your Model</h1>
+                    <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+                        <strong>{{ experiment.algorithm }}</strong>
+                        {% if experiment.target_column %} &mdash; predicting <strong>{{ experiment.target_column }}</strong>{% endif %}
+                    </p>
+                </div>
             </div>
-            <div>
-                <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-primary);">Test Your Model</h1>
-                <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
-                    <strong>{{ experiment.algorithm }}</strong>
-                    {% if experiment.target_column %} &mdash; predicting <strong>{{ experiment.target_column }}</strong>{% endif %}
-                </p>
-            </div>
+            {% if experiment.status != 'COMPLETED' %}
+            <button onclick="saveModelToCatalog()" class="btn btn-secondary" style="padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
+                <i class="fas fa-save" style="margin-right: 6px;"></i> Save to Catalog
+            </button>
+            {% endif %}
         </div>
     </div>
 
@@ -187,7 +194,10 @@
                 <i class="fas fa-keyboard" style="margin-right: 6px;"></i>Single Query
             </button>
             <button class="tab-btn" onclick="switchTab('batch', this)">
-                <i class="fas fa-table" style="margin-right: 6px;"></i>Batch Test
+                <i class="fas fa-file-upload" style="margin-right: 6px;"></i>Batch Upload
+            </button>
+            <button class="tab-btn" onclick="switchTab('catalog', this)">
+                <i class="fas fa-database" style="margin-right: 6px;"></i>Data Catalog
             </button>
         </div>
 
@@ -263,14 +273,50 @@
                 <table class="results-table" id="batch-table"></table>
             </div>
         </div>
+
+        <!-- ── DATA CATALOG TAB ── -->
+        <div id="tab-catalog" class="tab-panel">
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                Select a dataset from your Data Catalog to run predictions against it on the server.
+            </p>
+
+            <div class="feature-group" style="max-width: 400px; margin-bottom: 1.5rem;">
+                <label>Select Dataset</label>
+                <select id="catalog-dataset-id" class="form-control" style="width: 100%; padding: 0.65rem; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
+                    <option value="">-- Choose a Dataset --</option>
+                    {% for ds in datasets %}
+                    <option value="{{ ds.id }}">{{ ds.filename }} (ID: {{ ds.id }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="catalog-error" class="error-text"></div>
+
+            <button onclick="runCatalogPredict()" class="btn btn-primary" style="padding: 0.7rem 2rem;">
+                <i class="fas fa-server" style="margin-right: 6px;"></i> Predict Catalog Data
+            </button>
+
+            <!-- Results table (Shared wrap ID for simplicity or unique) -->
+            <div id="catalog-results-header" style="display:none; margin-top: 1.5rem; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 700; color: var(--text-primary);" id="catalog-count-label"></span>
+                <button onclick="downloadCatalogCSV()" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
+                    <i class="fas fa-download" style="margin-right: 6px;"></i>Download Full Results
+                </button>
+            </div>
+            <div class="results-table-wrap" id="catalog-table-wrap" style="display:none;">
+                <table class="results-table" id="catalog-table"></table>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
     const MODEL_ID = {{ experiment.id }};
     const FEATURE_COLS = {{ feature_columns | tojson }};
-    let batchParsedRows = [];   // raw rows from file
-    let batchPredictions = [];  // predictions array from API
+    let batchParsedRows = []; 
+    let batchPredictions = [];
+    let catalogFullPredictions = []; // for full download
+    let catalogPreviewRows = [];     // for table display
 
     // ── Tab switching ──────────────────────────────────────────────────────────
     function switchTab(name, btn) {
@@ -330,6 +376,32 @@
             document.getElementById('sq-result').style.display = 'block';
         } catch (err) {
             showError('sq-error', 'Request failed. Please try again.');
+        }
+    }
+
+    // ── Save to Catalog ────────────────────────────────────────────────────────
+    async function saveModelToCatalog() {
+        const customName = prompt("Enter a name for this model in your catalog:", "{{ experiment.algorithm }}_Model");
+        if (!customName) return;
+
+        try {
+            const res = await fetch('/save_to_catalog', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    experiment_id: MODEL_ID,
+                    custom_name: customName
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert("Error saving model: " + data.error);
+            }
+        } catch (err) {
+            alert("Failed to connect to server.");
         }
     }
 
@@ -461,6 +533,79 @@
         a.download = `predictions_model_${MODEL_ID}.csv`;
         a.click();
         URL.revokeObjectURL(a.href);
+    }
+
+    // ── Catalog Predict ────────────────────────────────────────────────────────
+    async function runCatalogPredict() {
+        const dsId = document.getElementById('catalog-dataset-id').value;
+        clearError('catalog-error');
+        document.getElementById('catalog-table-wrap').style.display = 'none';
+        document.getElementById('catalog-results-header').style.display = 'none';
+
+        if (!dsId) {
+            showError('catalog-error', 'Please select a dataset from your catalog.');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/v1/predict_catalog/${MODEL_ID}/${dsId}`, { method: 'POST' });
+            const data = await res.json();
+
+            if (data.status === 'error') {
+                showError('catalog-error', data.error);
+                return;
+            }
+
+            catalogFullPredictions = data.predictions;
+            catalogPreviewRows = data.preview_rows;
+            renderCatalogTable(data.total_rows);
+        } catch (err) {
+            showError('catalog-error', 'Server error. Failed to process catalog dataset.');
+        }
+    }
+
+    function renderCatalogTable(total) {
+        const table = document.getElementById('catalog-table');
+        const wrap = document.getElementById('catalog-table-wrap');
+        const header = document.getElementById('catalog-results-header');
+
+        if (!catalogPreviewRows.length) return;
+
+        const cols = Object.keys(catalogPreviewRows[0]);
+        let html = '<thead><tr>';
+        cols.forEach(c => { html += `<th class="${c === 'Prediction' ? 'pred-col' : ''}">${c}</th>`; });
+        html += '</tr></thead><tbody>';
+
+        catalogPreviewRows.forEach(row => {
+            html += '<tr>';
+            cols.forEach(c => { html += `<td class="${c === 'Prediction' ? 'pred-col' : ''}">${row[c] ?? ''}</td>`; });
+            html += '</tr>';
+        });
+        html += '</tbody>';
+
+        table.innerHTML = html;
+        wrap.style.display = 'block';
+        header.style.display = 'flex';
+        document.getElementById('catalog-count-label').textContent = 
+            `Showing preview of first 50 results (out of ${total} total rows)`;
+    }
+
+    function downloadCatalogCSV() {
+        if (!catalogFullPredictions.length) return;
+        // In a real app, you might want the full CSV from the server, 
+        // but since we returned the full predictions array, we'll suggest that.
+        // For simplicity, we'll just download the current preview or a generic "Download Full" could be a backend link.
+        alert("Full dataset prediction results are ready. Generating download...");
+        
+        // Since we have ALL predictions but not ALL original rows, 
+        // a better approach for "Full Download" is a backend CSV generation route.
+        // For now, we'll download what we have or just info that it's completed.
+        const csv = "Row Index,Prediction\n" + catalogFullPredictions.map((p, i) => `${i+1},${p}`).join("\n");
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `catalog_predictions_model_${MODEL_ID}.csv`;
+        a.click();
     }
 </script>
 {% endblock %}
