@@ -396,7 +396,6 @@
             const data = await response.json();
             if (response.ok) {
                 alert(data.message);
-                window.location.href = "/view_datasets";
             } else {
                 alert("Error: " + data.error);
             }
@@ -506,8 +505,7 @@
 
             const data = await response.json();
             if (response.ok) {
-                alert(data.message);
-                window.location.href = "/view_datasets"; // Go to Data Catalog
+                alert(data.message); // Go to Data Catalog
             } else {
                 alert("Error: " + data.error);
             }
@@ -730,7 +728,7 @@
         grid.innerHTML = statsToShow.map(s => `
             <div class="viz-stat-item">
                 <div class="stat-label">${s.label}</div>
-                <div class="stat-value">${s.value}</div>
+                <div class="stat-value">${s.value ?? 'N/A'}</div>
             </div>
         `).join('');
 

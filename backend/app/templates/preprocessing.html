@@ -311,7 +311,7 @@
                         <td>${stats.data_types[col]}</td>
                         <td>${stats.unique_counts[col]}</td>
                         <td>${stats.outliers[col] || 0}</td>
-                        <td>${stats.skewness[col] !== undefined ? stats.skewness[col].toFixed(3) : '-'}</td>
+                        <td>${stats.skewness[col] != null ? stats.skewness[col].toFixed(3) : '-'}</td>
                      </tr>`;
                 }
                 extraStatsHtml += `</tbody></table></div>`;
@@ -333,7 +333,7 @@
                                 const val = Math.abs(v);
                                 if (val > 0.7) bg = "background-color: var(--accent); color: white;"; // Highlight strong correlations
                             }
-                            extraStatsHtml += `<td style="${bg}">${v !== undefined ? v.toFixed(2) : '-'}</td>`;
+                            extraStatsHtml += `<td style="${bg}">${v != null ? v.toFixed(2) : '-'}</td>`;
                         });
                         extraStatsHtml += '</tr>';
                     });

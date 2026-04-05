@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 from app.db import get_db
-from app.models import Dataset, TemporaryDataset, Experiment
+from app.models import User, Dataset, TemporaryDataset, Experiment
 from app.security import get_current_user_id
 from app.services.s3_operations import duplicate_dataset_in_s3
 from app.services.constants import ML_HYPERPARAMETERS, get_hyperparameters, get_grid_search_params
@@ -54,8 +54,12 @@ def train_model_page(request: Request, db: Session = Depends(get_db), response_c
     #fetch the latest loaded dataset for preprocessing and display it in the preprocessing page
     active_dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
     
+    # Fetch user for navbar profile
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    
     return templates.TemplateResponse("train_model.html", {
         "request": request, 
+        "username": user.username if user else None,
         "datasets": datasets,
         "active_dataset": active_dataset
     })
@@ -138,8 +142,12 @@ def training_page(request: Request, db: Session = Depends(get_db), dataset_id: i
         # Fallback to the latest temporary dataset if no ID provided or not found
         dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
     
+    # Fetch user for navbar profile
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    
     return templates.TemplateResponse("training.html", {
         "request": request,
+        "username": user.username if user else None,
         "dataset": dataset
     })
     
@@ -162,8 +170,12 @@ def models_page(request: Request, db: Session = Depends(get_db), dataset_id: int
     except ValueError:
         raise HTTPException(status_code=404, detail=f"Model {model} not supported")
     
+    # Fetch user for navbar profile
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    
     return templates.TemplateResponse("train_dataset.html", {
         "request": request,
+        "username": user.username if user else None,
         "dataset": dataset,
         "model": model,
         "hyperparameters": hyperparams
@@ -342,8 +354,12 @@ def select_target_page(
 
     model_task = ML_HYPERPARAMETERS.get(experiment.algorithm, {}).get("task", "unknown")
 
+    # Fetch user for navbar profile
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    
     return templates.TemplateResponse("select_target.html", {
         "request": request,
+        "username": user.username if user else None,
         "experiment_id": experiment_id,
         "columns": columns,
         "mode": mode,
@@ -545,8 +561,12 @@ def suggest_algorithm_page(request: Request, db: Session = Depends(get_db), data
     if not user_id:
         return RedirectResponse(url="/login")
     
+    # Fetch user for navbar profile
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    
     return templates.TemplateResponse("algorithm_suggestion_form.html", {
         "request": request,
+        "username": user.username if user else None,
         "dataset_id": dataset_id
     })
 
@@ -596,8 +616,12 @@ async def suggest_algorithm_results(request: Request, db: Session = Depends(get_
             "task": info.get("task", "unknown"),
         })
 
+    # Fetch user for navbar profile
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    
     return templates.TemplateResponse("algorithm_suggestion_results.html", {
         "request": request,
+        "username": user.username if user else None,
         "recommended_algorithms": recommended_algos,
         "dataset_id": dataset_id
     })

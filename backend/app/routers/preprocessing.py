@@ -64,8 +64,12 @@ def preprocessing_page(request: Request, db: Session = Depends(get_db)):
     #fetch the latest loaded dataset for preprocessing and display it in the preprocessing page
     active_dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
     
+    # Fetch user for navbar profile
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    
     return templates.TemplateResponse("preprocessing.html", {
         "request": request, 
+        "username": user.username if user else None,
         "datasets": datasets,
         "active_dataset": active_dataset
     })

@@ -19,6 +19,7 @@ def cleanup_expired_temp_data(hours_threshold: int = 6):
     try:
         # 1. Calculate the expiration threshold
         threshold_time = datetime.utcnow() - timedelta(hours=hours_threshold)
+        print(f"[{datetime.utcnow()}] Cleanup Task: Looking for data older than {threshold_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
         
         # 2. Find expired records in the 'temp' table
         expired_datasets = db.query(TemporaryDataset).filter(

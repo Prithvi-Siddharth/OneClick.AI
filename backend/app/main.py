@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import HTMLResponse
@@ -39,11 +40,18 @@ Base.metadata.create_all(bind=engine)
 # ── Background Scheduler Setup ────────────────────────────────────────────────
 @app.on_event("startup")
 def start_scheduler():
+    # 1. Run the cleanup once immediately on startup
+    print(f"[{datetime.utcnow()}] Initializing Startup Cleanup...")
+    try:
+        cleanup_expired_temp_data()
+    except Exception as e:
+        print(f"[{datetime.utcnow()}] Error during startup cleanup: {e}")
+
+    # 2. Schedule to run every 6 hours thereafter
     scheduler = BackgroundScheduler()
-    # Run the cleanup every 6 hours
     scheduler.add_job(cleanup_expired_temp_data, 'interval', hours=6, id="cleanup_id")
     scheduler.start()
-    print("Background Scheduler started: Cleanup task scheduled every 6 hours.")
+    print(f"[{datetime.utcnow()}] Background Scheduler started: Cleanup task scheduled every 6 hours.")
 
 @app.on_event("shutdown")
 def shutdown_scheduler():
@@ -60,6 +68,7 @@ app.include_router(training.router)
 app.include_router(notes.router)
 app.include_router(deploy.router)
 app.include_router(profile.router)
+app.include_router(prediction.router)
 
 
 
