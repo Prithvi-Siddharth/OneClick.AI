@@ -366,6 +366,83 @@
             grid-template-columns: 1fr;
         }
     }
+
+    /* Password Reset Modal Styles */
+    .reset-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .reset-modal-content {
+        background: var(--profile-card-bg);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 32px;
+        width: 90%;
+        max-width: 440px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        transform: translateY(0);
+        animation: modalSlideUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @keyframes modalSlideUp {
+        from { opacity: 0; transform: translateY(30px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .reset-modal-header {
+        text-align: center;
+        margin-bottom: 24px;
+    }
+
+    .reset-modal-header h2 {
+        margin: 0;
+        font-size: 22px;
+        color: var(--text-primary);
+    }
+
+    .reset-modal-header p {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin: 8px 0 0;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+    }
+
+    .modal-actions button {
+        flex: 1;
+    }
+
+    .btn-secondary {
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        padding: 12px 24px;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: var(--border);
+    }
 </style>
 {% endblock %}
 
@@ -477,18 +554,8 @@
 
         <div class="form-group" style="margin-top: 30px; border-top: 1px solid var(--border); padding-top: 30px;">
             <h3>Update Password</h3>
-            <div class="settings-grid">
-                <div class="form-group">
-                    <label for="newPassword">New Password</label>
-                    <input type="password" id="newPassword" placeholder="Enter new password">
-                </div>
-                <div class="form-group">
-                    <label for="confirmNewPassword">Confirm New Password</label>
-                    <input type="password" id="confirmNewPassword" placeholder="Confirm new password">
-                </div>
-            </div>
-            <button class="btn-primary" onclick="changePassword()">
-                <i class="fas fa-key"></i> Update Password
+            <button class="btn-primary" onclick="openResetModal()">
+                <i class="fas fa-key"></i> Reset Password
             </button>
         </div>
 
@@ -497,7 +564,40 @@
             <p style="color: var(--text-secondary); margin-bottom: 15px;">Deleting your account will permanently remove all your datasets, experiments, and saved models from OneClick.AI. This action cannot be undone.</p>
             <button class="btn-danger" onclick="confirmDeleteAccount()">
                 <i class="fas fa-trash-alt"></i> Delete My Account
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div id="reset-modal" class="reset-modal-overlay">
+    <div class="reset-modal-content">
+        <div class="reset-modal-header">
+            <div style="width: 50px; height: 50px; background: rgba(59, 130, 246, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: var(--accent);">
+                <i class="fas fa-lock" style="font-size: 24px;"></i>
             </div>
+            <h2>Reset Password</h2>
+            <p>Secure your account with a new password.</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="modalCurrentPassword">Current Password</label>
+            <input type="password" id="modalCurrentPassword" placeholder="Enter current password">
+        </div>
+        
+        <div class="form-group">
+            <label for="modalNewPassword">New Password</label>
+            <input type="password" id="modalNewPassword" placeholder="Minimum 6 characters">
+        </div>
+        
+        <div class="form-group">
+            <label for="modalConfirmNewPassword">Confirm New Password</label>
+            <input type="password" id="modalConfirmNewPassword" placeholder="Repeat new password">
+        </div>
+        
+        <div class="modal-actions">
+            <button class="btn-secondary" onclick="closeResetModal()">Cancel</button>
+            <button class="btn-primary" onclick="handleResetPassword()">Reset</button>
         </div>
     </div>
 </div>
@@ -559,13 +659,26 @@
         }
     }
 
-    async function changePassword() {
-        const newPassword = document.getElementById('newPassword').value;
-        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-        const currentPassword = document.getElementById('confirmPassword').value;
+    function openResetModal() {
+        document.getElementById('reset-modal').style.display = 'flex';
+        document.getElementById('modalCurrentPassword').focus();
+    }
 
-        if (!currentPassword) {
-            alert('Please enter your current password below to verify identity');
+    function closeResetModal() {
+        document.getElementById('reset-modal').style.display = 'none';
+        // Clear fields
+        document.getElementById('modalCurrentPassword').value = '';
+        document.getElementById('modalNewPassword').value = '';
+        document.getElementById('modalConfirmNewPassword').value = '';
+    }
+
+    async function handleResetPassword() {
+        const currentPassword = document.getElementById('modalCurrentPassword').value;
+        const newPassword = document.getElementById('modalNewPassword').value;
+        const confirmNewPassword = document.getElementById('modalConfirmNewPassword').value;
+
+        if (!currentPassword || !newPassword || !confirmNewPassword) {
+            alert('Please fill in all fields');
             return;
         }
 
@@ -590,16 +703,14 @@
             });
             const result = await response.json();
             if (response.ok) {
-                alert('Password changed successfully!');
-                document.getElementById('newPassword').value = '';
-                document.getElementById('confirmNewPassword').value = '';
-                document.getElementById('confirmPassword').value = '';
+                alert('Password reset successfully!');
+                closeResetModal();
             } else {
-                alert(result.error || 'Password change failed');
+                alert(result.error || 'Password reset failed');
             }
         } catch (err) {
             console.error(err);
-            alert('Error changing password');
+            alert('Error during password reset');
         }
     }
 

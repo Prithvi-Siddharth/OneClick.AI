@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container" style="max-width: 900px;">
     <div style="text-align: center; margin-bottom: 3rem;">
-        <h1 style="color: #1a202c; font-size: 2.5rem; margin-bottom: 0.5rem;">Recommended Models</h1>
+        <h1 style="color: var(--text-primary); font-size: 2.5rem; margin-bottom: 0.5rem;">Recommended Models</h1>
         <p style="color: var(--text-secondary); font-size: 1.1rem;">Based on your inputs, these are the top 3 most suitable algorithms for your problem.</p>
     </div>
 
@@ -27,7 +27,7 @@
             </div>
 
             <div style="margin-bottom: 2rem;">
-                <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: #2d3748;">{{ algo.display_name }}</h3>
+                <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--text-primary);">{{ algo.display_name }}</h3>
                 <span class="badge" style="background: rgba(49, 130, 206, 0.1); color: var(--primary-color); font-size: 0.8rem; text-transform: uppercase;">{{ algo.task }}</span>
             </div>
 
@@ -38,9 +38,9 @@
         {% endfor %}
     </div>
 
-    <div style="text-align: center; background: #f8fafc; border-radius: 12px; padding: 2rem; border: 1px dashed #cbd5e0;">
-        <h3 style="color: #4a5568; margin-bottom: 0.5rem;">Not satisfied with these recommendations?</h3>
-        <p style="color: #718096; margin-bottom: 1.5rem;">You can refine your requirements or select manually from all algorithms.</p>
+    <div style="text-align: center; background: var(--bg-secondary); border-radius: 12px; padding: 2rem; border: 1px dashed var(--border);">
+        <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">Not satisfied with these recommendations?</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">You can refine your requirements or select manually from all algorithms.</p>
         <div style="display: flex; gap: 1rem; justify-content: center;">
             <a href="/suggest_algorithm?dataset_id={{ dataset_id }}" class="btn btn-secondary">
                 <i class="fas fa-sync-alt"></i> Re-calculate

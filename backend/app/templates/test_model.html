@@ -181,7 +181,7 @@
             </div>
             {% if experiment.status != 'COMPLETED' %}
             <button onclick="saveModelToCatalog()" class="btn btn-secondary" style="padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
-                <i class="fas fa-save" style="margin-right: 6px;"></i> Save to Catalog
+                <i class="fas fa-save" style="margin-right: 6px;"></i> Save Model to Catalog
             </button>
             {% endif %}
         </div>
@@ -222,9 +222,14 @@
 
             <div id="sq-error" class="error-text"></div>
 
-            <button onclick="runSingleQuery()" class="btn btn-primary" style="padding: 0.7rem 2rem; margin-top: 0.5rem;">
-                <i class="fas fa-bolt" style="margin-right: 6px;"></i> Predict
-            </button>
+            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 0.5rem; flex-wrap: wrap;">
+                <button onclick="runSingleQuery()" class="btn btn-primary" style="padding: 0.7rem 2rem;">
+                    <i class="fas fa-bolt" style="margin-right: 6px;"></i> Predict
+                </button>
+                <button id="sq-save-btn" onclick="saveModelToCatalog()" class="btn btn-secondary" style="display: none; padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
+                    <i class="fas fa-save" style="margin-right: 6px;"></i> Save Model to Catalog
+                </button>
+            </div>
 
             <!-- Single result -->
             <div id="sq-result" class="result-card">
@@ -258,16 +263,23 @@
 
             <div id="batch-error" class="error-text"></div>
 
-            <button onclick="runBatchPredict()" class="btn btn-primary" style="padding: 0.7rem 2rem;">
-                <i class="fas fa-play" style="margin-right: 6px;"></i> Run Predictions
-            </button>
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                <button onclick="runBatchPredict()" class="btn btn-primary" style="padding: 0.7rem 2rem;">
+                    <i class="fas fa-play" style="margin-right: 6px;"></i> Run Predictions
+                </button>
+                <button id="batch-save-btn" onclick="saveModelToCatalog()" class="btn btn-secondary" style="display: none; padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
+                    <i class="fas fa-save" style="margin-right: 6px;"></i> Save Model to Catalog
+                </button>
+            </div>
 
             <!-- Results table -->
-            <div id="batch-results-header" style="display:none; margin-top: 1.5rem; display:none; justify-content: space-between; align-items: center;">
+            <div id="batch-results-header" style="display:none; margin-top: 1.5rem; justify-content: space-between; align-items: center;">
                 <span style="font-weight: 700; color: var(--text-primary);" id="batch-count-label"></span>
-                <button onclick="downloadCSV()" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
-                    <i class="fas fa-download" style="margin-right: 6px;"></i>Download CSV
-                </button>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button onclick="downloadCSV()" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
+                        <i class="fas fa-download" style="margin-right: 6px;"></i>Download CSV
+                    </button>
+                </div>
             </div>
             <div class="results-table-wrap" id="batch-table-wrap">
                 <table class="results-table" id="batch-table"></table>
@@ -292,16 +304,23 @@
 
             <div id="catalog-error" class="error-text"></div>
 
-            <button onclick="runCatalogPredict()" class="btn btn-primary" style="padding: 0.7rem 2rem;">
-                <i class="fas fa-server" style="margin-right: 6px;"></i> Predict Catalog Data
-            </button>
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                <button onclick="runCatalogPredict()" class="btn btn-primary" style="padding: 0.7rem 2rem;">
+                    <i class="fas fa-server" style="margin-right: 6px;"></i> Predict Catalog Data
+                </button>
+                <button id="catalog-save-btn" onclick="saveModelToCatalog()" class="btn btn-secondary" style="display: none; padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
+                    <i class="fas fa-save" style="margin-right: 6px;"></i> Save Model to Catalog
+                </button>
+            </div>
 
             <!-- Results table (Shared wrap ID for simplicity or unique) -->
             <div id="catalog-results-header" style="display:none; margin-top: 1.5rem; justify-content: space-between; align-items: center;">
                 <span style="font-weight: 700; color: var(--text-primary);" id="catalog-count-label"></span>
-                <button onclick="downloadCatalogCSV()" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
-                    <i class="fas fa-download" style="margin-right: 6px;"></i>Download Full Results
-                </button>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button onclick="downloadCatalogCSV()" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
+                        <i class="fas fa-download" style="margin-right: 6px;"></i>Download Full Results
+                    </button>
+                </div>
             </div>
             <div class="results-table-wrap" id="catalog-table-wrap" style="display:none;">
                 <table class="results-table" id="catalog-table"></table>
@@ -312,6 +331,7 @@
 
 <script>
     const MODEL_ID = {{ experiment.id }};
+    const EXPERIMENT_STATUS = "{{ experiment.status }}";
     const FEATURE_COLS = {{ feature_columns | tojson }};
     let batchParsedRows = []; 
     let batchPredictions = [];
@@ -374,6 +394,11 @@
             const pred = data.predictions[0];
             document.getElementById('sq-result-value').textContent = pred;
             document.getElementById('sq-result').style.display = 'block';
+
+            // Show Save button next to Predict if not completed
+            if (EXPERIMENT_STATUS !== 'COMPLETED') {
+                document.getElementById('sq-save-btn').style.display = 'inline-flex';
+            }
         } catch (err) {
             showError('sq-error', 'Request failed. Please try again.');
         }
@@ -487,6 +512,11 @@
 
             batchPredictions = data.predictions;
             renderBatchTable();
+
+            // Show Save button beside Run Predictions if not completed
+            if (EXPERIMENT_STATUS !== 'COMPLETED') {
+                document.getElementById('batch-save-btn').style.display = 'inline-flex';
+            }
         } catch (err) {
             showError('batch-error', 'Request failed. Please try again.');
         }
@@ -559,6 +589,11 @@
             catalogFullPredictions = data.predictions;
             catalogPreviewRows = data.preview_rows;
             renderCatalogTable(data.total_rows);
+
+            // Show Save button beside Predict Catalog Data if not completed
+            if (EXPERIMENT_STATUS !== 'COMPLETED') {
+                document.getElementById('catalog-save-btn').style.display = 'inline-flex';
+            }
         } catch (err) {
             showError('catalog-error', 'Server error. Failed to process catalog dataset.');
         }
