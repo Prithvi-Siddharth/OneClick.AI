@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+{% block title %}Model Report — {{ experiment.algorithm }}{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<!-- jsPDF and html2canvas for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+.stats-wrap   { max-width: 980px; margin: 0 auto; padding: 5rem 1rem 3rem; }
+.section-card { background: var(--card-bg); border: 1px solid var(--border);
+                border-radius: 16px; padding: 1.75rem; margin-bottom: 1.5rem; }
+.section-title{ font-size: 1rem; font-weight: 700; color: var(--text-primary);
+                margin: 0 0 1.25rem; display: flex; align-items: center; gap: .6rem; }
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr));
+                gap: 1.1rem; margin-bottom: .5rem; }
+.mc {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.1rem 1rem; display: flex; flex-direction: column; gap: .3rem;
+}
+.mc-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em;
+            color: var(--text-muted); font-weight: 600; }
+.mc-value { font-size: 1.7rem; font-weight: 800; line-height: 1; }
+.mc-desc  { font-size: .75rem; color: var(--text-muted); line-height: 1.35; margin-top: .15rem; }
+.good { color: #059669; }
+.warn { color: #d97706; }
+.bad  { color: #dc2626; }
+.neutral { color: var(--primary-color); }
+
+.cm-wrap  { overflow-x: auto; }
+.cm-table { border-collapse: collapse; font-size: .85rem; }
+.cm-table th { background: var(--bg-secondary); padding: .5rem .9rem;
+               font-size: .73rem; text-transform: uppercase; letter-spacing: .04em;
+               color: var(--text-muted); font-weight: 600; }
+.cm-table td { width: 70px; height: 52px; text-align: center; font-weight: 700;
+               font-size: .95rem; border: 1px solid var(--border); }
+
+.info-row { display: flex; justify-content: space-between; align-items: center;
+            padding: .6rem 0; border-bottom: 1px solid var(--border); font-size: .9rem; }
+.info-row:last-child { border-bottom: none; }
+.info-label { color: var(--text-muted); font-weight: 500; }
+.info-value { font-weight: 600; color: var(--text-primary); }
+
+.hp-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.hp-table thead th {
+    padding: .55rem .85rem; text-align: left;
+    background: var(--bg-secondary); color: var(--text-muted);
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+    font-weight: 600; border-bottom: 1px solid var(--border);
+}
+.hp-table tbody tr { border-bottom: 1px solid var(--border); }
+.hp-table tbody tr:last-child { border-bottom: none; }
+.hp-table tbody td { padding: .6rem .85rem; vertical-align: top; }
+.hp-key   { font-family: monospace; font-size: .82rem; color: #6366f1; font-weight: 600; }
+.hp-val   { font-weight: 700; color: var(--text-primary); }
+.hp-default { color: var(--text-muted); font-style: italic; }
+.hp-desc  { color: var(--text-muted); font-size: .82rem; line-height: 1.4; }
+.badge-changed { display:inline-block; background:rgba(99,102,241,.12);
+                 color:#6366f1; border-radius:6px; padding:.1rem .45rem;
+                 font-size:.68rem; font-weight:700; margin-left:.4rem; }
+
+.dl-btn {
+    padding: .65rem 1.3rem; border-radius: 10px; border: none; cursor: pointer;
+    font-weight: 700; font-size: .88rem; display: flex; align-items: center; gap: .55rem;
+    transition: opacity .15s;
+}
+.dl-btn:hover { opacity: .88; }
+.dl-btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn-xlsx { background: linear-gradient(135deg, #10b981, #059669); color: white;
+            box-shadow: 0 4px 12px rgba(16,185,129,.3); }
+.btn-pdf  { background: linear-gradient(135deg, #ef4444, #dc2626); color: white;
+            box-shadow: 0 4px 12px rgba(239,68,68,.3); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stats-wrap" id="report-root">
+
+    <!-- Header row -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:2rem;">
+        <div>
+            <a href="javascript:history.back()" id="back-link"
+               style="color:var(--text-muted);font-size:.85rem;text-decoration:none;
+                      display:inline-flex;align-items:center;gap:.4rem;margin-bottom:.75rem;">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+                <div style="width:48px;height:48px;border-radius:12px;background:rgba(99,102,241,.12);
+                            display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-chart-bar" style="color:#6366f1;font-size:1.25rem;"></i>
+                </div>
+                <div>
+                    <h1 style="margin:0;font-size:1.6rem;font-weight:800;color:var(--text-primary);">
+                        Model Performance Report
+                    </h1>
+                    <p style="margin:.25rem 0 0;color:var(--text-muted);font-size:.9rem;">
+                        <strong>{{ experiment.algorithm }}</strong>
+                        {% if experiment.target_column %}&mdash; predicting <strong>{{ experiment.target_column }}</strong>{% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <!-- Download buttons -->
+        <div id="header-actions" style="display:flex;gap:.75rem;align-self:flex-end;flex-wrap:wrap;">
+            <button class="dl-btn btn-xlsx" onclick="downloadXLSX()">
+                <i class="fas fa-file-excel"></i> Download (.xlsx)
+            </button>
+            <button class="dl-btn btn-pdf" id="pdf-btn" onclick="downloadPDF()">
+                <i class="fas fa-file-pdf"></i> Download (.pdf)
+            </button>
+        </div>
+    </div>
+
+    <!-- Model Info -->
+    <div class="section-card">
+        <div class="section-title"><i class="fas fa-info-circle" style="color:#6366f1;"></i> Model Information</div>
+        <div class="info-row"><span class="info-label">Model Name</span><span class="info-value">{{ experiment.name or 'Unnamed' }}</span></div>
+        <div class="info-row"><span class="info-label">Algorithm</span><span class="info-value">{{ experiment.algorithm }}</span></div>
+        <div class="info-row"><span class="info-label">Task Type</span><span class="info-value" style="text-transform:capitalize;">{{ model_task }}</span></div>
+        {% if experiment.target_column %}
+        <div class="info-row"><span class="info-label">Target Column</span><span class="info-value">{{ experiment.target_column }}</span></div>
+        {% endif %}
+        <div class="info-row"><span class="info-label">Status</span><span class="info-value" style="color:#059669;">{{ experiment.status }}</span></div>
+        <div class="info-row"><span class="info-label">Trained At</span><span class="info-value">{{ experiment.created_at.strftime('%Y-%m-%d %H:%M') if experiment.created_at else 'N/A' }}</span></div>
+    </div>
+
+    <!-- Hyperparameters -->
+    <div class="section-card">
+        <div class="section-title"><i class="fas fa-sliders-h" style="color:#6366f1;"></i> Hyperparameters Used</div>
+        {% if hyperparams %}
+        <table class="hp-table">
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Value Used</th>
+                    <th>Default</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key, val in hyperparams.items() %}
+                {% set meta = hyperparam_meta.get(key, {}) %}
+                {% set default_val = meta.get('default', None) %}
+                {% set is_changed = (val | string) != (default_val | string) %}
+                <tr>
+                    <td><span class="hp-key">{{ key }}</span></td>
+                    <td>
+                        <span class="hp-val">{{ val if val is not none else 'None' }}</span>
+                        {% if is_changed %}<span class="badge-changed">tuned</span>{% endif %}
+                    </td>
+                    <td><span class="hp-default">{{ default_val if default_val is not none else 'None' }}</span></td>
+                    <td><span class="hp-desc">{{ meta.get('description', '—') }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p style="font-size:.75rem;color:var(--text-muted);margin:.9rem 0 0;">
+            Parameters marked <strong>tuned</strong> differ from their default values.
+        </p>
+        {% else %}
+        <p style="color:var(--text-muted);font-size:.88rem;margin:0;">
+            No hyperparameter data recorded for this model. This may be a model uploaded externally.
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- Top Metrics (JS-rendered) -->
+    <div class="section-card">
+        <div class="section-title"><i class="fas fa-tachometer-alt" style="color:#6366f1;"></i>
+            <span id="metrics-section-title">Key Metrics</span>
+        </div>
+        <div class="metrics-grid" id="metrics-grid"></div>
+        <div id="metrics-note" style="font-size:.8rem;color:var(--text-muted);margin-top:.5rem;display:none;"></div>
+    </div>
+
+    <!-- Confusion Matrix (classification only, JS-rendered) -->
+    <div class="section-card" id="cm-section" style="display:none;">
+        <div class="section-title"><i class="fas fa-th" style="color:#6366f1;"></i> Confusion Matrix</div>
+        <p style="font-size:.85rem;color:var(--text-muted);margin:0 0 1rem;">
+            Rows = Actual class &nbsp;|&nbsp; Columns = Predicted class. Darker = higher count.
+        </p>
+        <div class="cm-wrap"><table class="cm-table" id="cm-table"></table></div>
+    </div>
+
+    <!-- Chart -->
+    <div class="section-card">
+        <div class="section-title"><i class="fas fa-chart-bar" style="color:#6366f1;"></i>
+            <span id="chart-title">Metrics Overview</span>
+        </div>
+        <div style="height:280px;position:relative;"><canvas id="metricsChart"></canvas></div>
+    </div>
+
+</div>
+
+<script>
+// ─── Data from server ──────────────────────────────────────────────────────────
+const METRICS      = {{ metrics | tojson }};
+const ALGORITHM    = "{{ experiment.algorithm }}";
+const MODEL_ID     = {{ experiment.id }};
+const MODEL_TASK   = "{{ model_task }}";
+const HYPERPARAMS  = {{ hyperparams | tojson }};
+const HYPERPARAM_META = {{ hyperparam_meta | tojson }};
+
+// ─── Metric metadata ───────────────────────────────────────────────────────────
+const META = {
+    // Classification — basic
+    accuracy:     { label:'Accuracy',                   desc:'Fraction of all predictions that are correct.',                                           fmt:'pct',  hib:true,  lo:.70, hi:.85 },
+    precision:    { label:'Precision (Weighted)',        desc:'Of all predicted positives, how many were actually positive.',                            fmt:'pct',  hib:true,  lo:.65, hi:.80 },
+    recall:       { label:'Recall (Weighted)',           desc:'Of all actual positives, how many were correctly identified.',                            fmt:'pct',  hib:true,  lo:.65, hi:.80 },
+    f1_score:     { label:'F1 Score (Weighted)',         desc:'Harmonic mean of precision and recall — balances both equally.',                          fmt:'pct',  hib:true,  lo:.65, hi:.80 },
+    f2_score:     { label:'F2 Score',                   desc:'Weighs recall twice as much as precision — useful when missing positives is costly.',      fmt:'d4',   hib:true,  lo:.65, hi:.80 },
+    f0_5_score:   { label:'F0.5 Score',                 desc:'Weighs precision twice as much as recall — useful when false alarms are costly.',          fmt:'d4',   hib:true,  lo:.65, hi:.80 },
+    cohen_kappa:  { label:"Cohen's Kappa",               desc:'Agreement between predictions and actual labels, corrected for chance. >0.6 = good.',     fmt:'d4',   hib:true,  lo:.40, hi:.60 },
+    mcc:          { label:'MCC',                        desc:'Matthews Correlation Coefficient — reliable even for very imbalanced class distributions.', fmt:'d4',   hib:true,  lo:.40, hi:.70 },
+    specificity:  { label:'Specificity',                desc:'Of all actual negatives, how many were correctly predicted as negative.',                  fmt:'pct',  hib:true,  lo:.65, hi:.80 },
+    false_positive_rate:       { label:'False Positive Rate',    desc:'% of negatives incorrectly flagged as positive — lower is better.',               fmt:'pct',  hib:false, lo:.25, hi:.10 },
+    false_negative_rate:       { label:'False Negative Rate',    desc:'% of positives missed by the model — lower is better.',                          fmt:'pct',  hib:false, lo:.25, hi:.10 },
+    false_discovery_rate:      { label:'False Discovery Rate',   desc:'Of all predicted positives, how many are wrong — lower is better.',               fmt:'pct',  hib:false, lo:.25, hi:.10 },
+    negative_predictive_value: { label:'Neg. Predictive Value', desc:'Of all predicted negatives, how many are actually negative.',                      fmt:'pct',  hib:true,  lo:.65, hi:.80 },
+    roc_auc:      { label:'ROC-AUC',                    desc:"Area under ROC curve — model's overall ability to separate classes.",                      fmt:'d4',   hib:true,  lo:.75, hi:.90 },
+    brier_score:  { label:'Brier Score',                desc:'Mean squared error of predicted probabilities — lower is better (0 = perfect).',          fmt:'d4',   hib:false, lo:.25, hi:.10 },
+    log_loss_val: { label:'Log Loss',                   desc:'Penalises confident wrong predictions heavily — lower is better.',                         fmt:'d4',   hib:false, lo:.50, hi:.20 },
+    n_support_vectors:{ label:'Support Vectors',        desc:'Number of support vectors used. Fewer usually means a cleaner margin.',                    fmt:'int',  hib:null,  lo:null,hi:null },
+    tree_depth:   { label:'Tree Depth',                 desc:'Maximum depth reached by the tree — deeper = more complex (risk of overfitting).',         fmt:'int',  hib:null,  lo:null,hi:null },
+    n_estimators: { label:'Trees in Ensemble',          desc:'Number of decision trees in the Random Forest.',                                           fmt:'int',  hib:null,  lo:null,hi:null },
+    // Regression
+    r2_score:     { label:'R² Score',                   desc:'Proportion of target variance explained by the model. 1 = perfect, 0 = baseline.',        fmt:'d4',   hib:true,  lo:.60, hi:.85 },
+    adjusted_r2:  { label:'Adjusted R²',                desc:'R² penalised for the number of features — more reliable for feature selection.',           fmt:'d4',   hib:true,  lo:.60, hi:.85 },
+    mae:          { label:'MAE',                        desc:'Mean Absolute Error — average size of prediction errors in the target unit.',              fmt:'d4',   hib:false, lo:null,hi:null },
+    mse:          { label:'MSE',                        desc:'Mean Squared Error — penalises large errors much more heavily than MAE.',                  fmt:'d4',   hib:false, lo:null,hi:null },
+    rmse:         { label:'RMSE',                       desc:'Root Mean Squared Error — same units as the target; sensitive to large errors.',           fmt:'d4',   hib:false, lo:null,hi:null },
+    mape:         { label:'MAPE (%)',                   desc:'Mean Absolute Percentage Error — expresses error as a % of the actual value.',             fmt:'d2',   hib:false, lo:null,hi:null },
+    median_absolute_error:{ label:'Median Abs Error',  desc:'Median of absolute errors — more robust to extreme outliers than MAE.',                    fmt:'d4',   hib:false, lo:null,hi:null },
+    max_error:    { label:'Max Error',                  desc:'The single worst prediction error in the test set.',                                        fmt:'d4',   hib:false, lo:null,hi:null },
+    explained_variance:{ label:'Explained Variance',   desc:'How much variance in the target the model accounts for (similar to R²).',                  fmt:'d4',   hib:true,  lo:.60, hi:.85 },
+    pearson_correlation:{ label:'Pearson Correlation', desc:'Linear correlation between predicted and actual values. 1 = perfect positive correlation.', fmt:'d4',   hib:true,  lo:.70, hi:.90 },
+    residual_mean:{ label:'Residual Mean',              desc:'Average prediction error. Should be near 0 — bias away from 0 means systematic error.',    fmt:'d4',   hib:null,  lo:null,hi:null },
+    residual_std: { label:'Residual Std Dev',           desc:'Spread of prediction errors — lower means the model is more consistent.',                  fmt:'d4',   hib:false, lo:null,hi:null },
+    non_zero_coefficients:{ label:'Non-Zero Coefs',    desc:'Features actually used by Lasso after regularisation — reflects model sparsity.',           fmt:'int',  hib:null,  lo:null,hi:null },
+    // Clustering
+    silhouette_score:{ label:'Silhouette Score',       desc:'How well each point fits its own cluster vs the nearest other cluster. Range -1 to 1.',    fmt:'d4',   hib:true,  lo:.25, hi:.50 },
+    calinski_harabasz:{ label:'Calinski-Harabasz',     desc:'Ratio of between-cluster to within-cluster variance — higher means more distinct clusters.',fmt:'d1',   hib:true,  lo:null,hi:null },
+    davies_bouldin:{ label:'Davies-Bouldin Index',     desc:'Average similarity between clusters — lower means clusters are more separate and compact.',  fmt:'d4',   hib:false, lo:null,hi:null },
+    inertia:      { label:'Inertia (WCSS)',             desc:'Sum of squared distances from each point to its cluster centre — lower means tighter clusters.',fmt:'d1',hib:false, lo:null,hi:null },
+    n_clusters:   { label:'Number of Clusters',         desc:'How many groups were formed in the data.',                                                  fmt:'int',  hib:null,  lo:null,hi:null },
+};
+
+// ─── Top-10 keys per algorithm ─────────────────────────────────────────────────
+const ALGO_KEYS = {
+    LogisticRegression:   ['accuracy','roc_auc','log_loss_val','precision','recall','f1_score','brier_score','cohen_kappa','mcc','specificity'],
+    SVC:                  ['accuracy','precision','recall','f1_score','f2_score','mcc','cohen_kappa','roc_auc','n_support_vectors','false_positive_rate'],
+    DecisionTree:         ['accuracy','precision','recall','f1_score','mcc','cohen_kappa','f2_score','tree_depth','specificity','false_negative_rate'],
+    RandomForest:         ['accuracy','roc_auc','f1_score','precision','recall','mcc','cohen_kappa','n_estimators','log_loss_val','brier_score'],
+    KNeighborsClassifier: ['accuracy','precision','recall','f1_score','roc_auc','mcc','cohen_kappa','f2_score','specificity','false_positive_rate'],
+    LinearRegression:     ['r2_score','adjusted_r2','rmse','mae','mse','mape','explained_variance','pearson_correlation','residual_mean','residual_std'],
+    Ridge:                ['r2_score','adjusted_r2','rmse','mae','mse','mape','explained_variance','pearson_correlation','residual_mean','max_error'],
+    Lasso:                ['r2_score','adjusted_r2','rmse','mae','mse','mape','non_zero_coefficients','explained_variance','residual_mean','pearson_correlation'],
+    SVR:                  ['r2_score','adjusted_r2','rmse','mae','mse','mape','explained_variance','pearson_correlation','n_support_vectors','residual_std'],
+    KNeighborsRegressor:  ['r2_score','adjusted_r2','rmse','mae','median_absolute_error','mape','explained_variance','pearson_correlation','max_error','residual_std'],
+    KMeans:               ['silhouette_score','calinski_harabasz','davies_bouldin','inertia','n_clusters'],
+};
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+function fmtVal(v, fmt) {
+    if (v === null || v === undefined) return 'N/A';
+    if (fmt === 'pct')  return (v * 100).toFixed(2) + '%';
+    if (fmt === 'd4')   return v.toFixed(4);
+    if (fmt === 'd2')   return v.toFixed(2) + '%';
+    if (fmt === 'd1')   return v.toFixed(1);
+    if (fmt === 'int')  return String(Math.round(v));
+    return String(v);
+}
+
+function colorClass(v, m) {
+    if (m.hib === null || m.lo === null) return 'neutral';
+    if (m.hib) return v >= m.hi ? 'good' : v >= m.lo ? 'warn' : 'bad';
+    else        return v <= m.hi ? 'good' : v <= m.lo ? 'warn' : 'bad';
+}
+
+// ─── Render top metrics ────────────────────────────────────────────────────────
+function renderTopMetrics() {
+    const keys  = ALGO_KEYS[ALGORITHM] || Object.keys(METRICS).filter(k => k !== 'confusion_matrix').slice(0, 10);
+    const grid  = document.getElementById('metrics-grid');
+    const avail = [];
+
+    keys.forEach(k => {
+        const val = METRICS[k];
+        if (val === undefined || val === null || k === 'confusion_matrix') return;
+        const m   = META[k] || { label: k, desc: '', fmt: 'd4', hib: null, lo: null, hi: null };
+        const cls = colorClass(val, m);
+        avail.push({ k, val, m });
+        grid.innerHTML += `
+        <div class="mc">
+            <div class="mc-label">${m.label}</div>
+            <div class="mc-value ${cls}">${fmtVal(val, m.fmt)}</div>
+            <div class="mc-desc">${m.desc}</div>
+        </div>`;
+    });
+
+    const missing = keys.filter(k => k !== 'confusion_matrix' && METRICS[k] === undefined);
+    if (missing.length) {
+        const note = document.getElementById('metrics-note');
+        note.textContent = 'Some metrics were not available for this model (trained before the latest update). Retrain to get full metrics.';
+        note.style.display = 'block';
+    }
+
+    return avail;
+}
+
+// ─── Render confusion matrix ───────────────────────────────────────────────────
+function renderCM() {
+    const cm = METRICS.confusion_matrix;
+    if (!cm) return;
+    document.getElementById('cm-section').style.display = 'block';
+    const table = document.getElementById('cm-table');
+    let html = '<thead><tr><th style="background:transparent;border:none;"></th>';
+    for (let j = 0; j < cm[0].length; j++) html += `<th>Pred ${j}</th>`;
+    html += '</tr></thead><tbody>';
+    const maxV = Math.max(...cm.flat());
+    cm.forEach((row, i) => {
+        html += `<tr><th style="padding-right:.9rem;text-align:right;">Actual ${i}</th>`;
+        row.forEach(v => {
+            const alpha = maxV > 0 ? 0.1 + 0.75 * (v / maxV) : 0.1;
+            const color = alpha > 0.55 ? 'white' : 'var(--text-primary)';
+            html += `<td style="background:rgba(99,102,241,${alpha.toFixed(2)});color:${color};">${v}</td>`;
+        });
+        html += '</tr>';
+    });
+    html += '</tbody>';
+    table.innerHTML = html;
+}
+
+// ─── Render chart ──────────────────────────────────────────────────────────────
+let chartInstance = null;
+function renderChart(availMetrics) {
+    const chartable = availMetrics.filter(({ k, m }) => m.fmt !== 'int' && k !== 'confusion_matrix');
+    if (!chartable.length) return;
+
+    const palette = ['#6366f1','#10b981','#f59e0b','#ef4444','#3b82f6','#8b5cf6','#06b6d4','#f97316','#ec4899','#84cc16'];
+    const ctx = document.getElementById('metricsChart').getContext('2d');
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: chartable.map(({ m }) => m.label),
+            datasets: [{
+                data: chartable.map(({ val }) => val),
+                backgroundColor: chartable.map((_, i) => palette[i % palette.length]),
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            animation: { duration: 400 },
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { grid: { color: '#f1f5f9' }, border: { display: false } },
+                x: { grid: { display: false }, ticks: { maxRotation: 35, font: { size: 11 } } }
+            }
+        }
+    });
+
+    const titles = { classification: 'Classification Metrics Overview', regression: 'Regression Metrics Overview', clustering: 'Clustering Metrics Overview' };
+    document.getElementById('chart-title').textContent = titles[MODEL_TASK] || 'Metrics Overview';
+}
+
+// ─── XLSX download ─────────────────────────────────────────────────────────────
+function downloadXLSX() {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: metrics
+    const rows = [];
+    for (const [k, v] of Object.entries(METRICS)) {
+        if (k === 'confusion_matrix') continue;
+        const m = META[k];
+        rows.push({
+            'Metric':      m ? m.label : k.replace(/_/g, ' '),
+            'Key':         k,
+            'Value':       v,
+            'Formatted':   m ? fmtVal(v, m.fmt) : String(v),
+            'Description': m ? m.desc : '',
+        });
+    }
+    const ws1 = XLSX.utils.json_to_sheet(rows);
+    ws1['!cols'] = [{ wch: 28 }, { wch: 24 }, { wch: 12 }, { wch: 14 }, { wch: 60 }];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Metrics');
+
+    // Sheet 2: confusion matrix
+    if (METRICS.confusion_matrix) {
+        const cm = METRICS.confusion_matrix;
+        const cmRows = cm.map((row, i) => {
+            const obj = { 'Actual \\ Predicted': `Actual ${i}` };
+            row.forEach((v, j) => { obj[`Predicted ${j}`] = v; });
+            return obj;
+        });
+        const ws2 = XLSX.utils.json_to_sheet(cmRows);
+        XLSX.utils.book_append_sheet(wb, ws2, 'Confusion Matrix');
+    }
+
+    // Sheet 3: hyperparameters
+    if (Object.keys(HYPERPARAMS).length) {
+        const hpRows = Object.entries(HYPERPARAMS).map(([k, v]) => {
+            const meta = HYPERPARAM_META[k] || {};
+            return {
+                'Parameter':   k,
+                'Value Used':  v === null ? 'None' : String(v),
+                'Default':     meta.default === undefined ? '—' : (meta.default === null ? 'None' : String(meta.default)),
+                'Type':        meta.type || '—',
+                'Description': meta.description || '—',
+            };
+        });
+        const ws3 = XLSX.utils.json_to_sheet(hpRows);
+        ws3['!cols'] = [{ wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 55 }];
+        XLSX.utils.book_append_sheet(wb, ws3, 'Hyperparameters');
+    }
+
+    // Sheet 4: model info
+    const infoRows = [
+        { Field: 'Model Name',    Value: '{{ experiment.name or "Unnamed" }}' },
+        { Field: 'Algorithm',     Value: ALGORITHM },
+        { Field: 'Task Type',     Value: MODEL_TASK },
+        { Field: 'Target Column', Value: '{{ experiment.target_column or "N/A" }}' },
+        { Field: 'Status',        Value: '{{ experiment.status }}' },
+        { Field: 'Trained At',    Value: '{{ experiment.created_at.strftime("%Y-%m-%d %H:%M") if experiment.created_at else "N/A" }}' },
+    ];
+    const ws4 = XLSX.utils.json_to_sheet(infoRows);
+    ws4['!cols'] = [{ wch: 18 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(wb, ws4, 'Model Info');
+
+    XLSX.writeFile(wb, `model_${MODEL_ID}_report.xlsx`);
+}
+
+// ─── PDF download ──────────────────────────────────────────────────────────────
+async function downloadPDF() {
+    const btn = document.getElementById('pdf-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+    // Hide action buttons so they don't appear in the capture
+    const actions = document.getElementById('header-actions');
+    const backBtn = document.getElementById('back-link');
+    actions.style.visibility = 'hidden';
+    if (backBtn) backBtn.style.visibility = 'hidden';
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const root = document.getElementById('report-root');
+
+        const canvas = await html2canvas(root, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff',
+            windowWidth: root.scrollWidth,
+        });
+
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+        const pdfW  = pdf.internal.pageSize.getWidth();
+        const pdfH  = pdf.internal.pageSize.getHeight();
+        const MARGIN = 10;
+        const contentW = pdfW - MARGIN * 2;
+        const contentH = pdfH - MARGIN * 2;
+
+        // px-to-mm scale factor
+        const pxToMm = contentW / canvas.width;
+        const totalMM = canvas.height * pxToMm;
+        const pxPerPage = Math.ceil(canvas.height * (contentH / totalMM));
+        const pages = Math.ceil(canvas.height / pxPerPage);
+
+        for (let i = 0; i < pages; i++) {
+            if (i > 0) pdf.addPage();
+
+            const srcY = i * pxPerPage;
+            const srcH = Math.min(pxPerPage, canvas.height - srcY);
+
+            const slice = document.createElement('canvas');
+            slice.width  = canvas.width;
+            slice.height = srcH;
+            const ctx = slice.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, slice.width, slice.height);
+            ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+
+            const sliceMM = srcH * pxToMm;
+            pdf.addImage(slice.toDataURL('image/jpeg', 0.93), 'JPEG', MARGIN, MARGIN, contentW, sliceMM);
+
+            // Add Symbol at top left
+            pdf.setDrawColor(99, 102, 241); // #6366f1
+            pdf.setLineWidth(0.5);
+            pdf.circle(MARGIN + 5, MARGIN + 5, 3, 'S');
+            pdf.setTextColor(99, 102, 241);
+            pdf.setFontSize(8);
+            pdf.text('O', MARGIN + 4.2, MARGIN + 5.8);
+
+            // Add Header
+            pdf.setTextColor(31, 41, 55); // var(--text-primary)
+            pdf.setFontSize(14);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Model Statistics', pdfW / 2, MARGIN + 6, { align: 'center' });
+            pdf.setFont('helvetica', 'normal');
+
+            // Add Watermark at right bottom
+            pdf.setTextColor(200, 200, 200);
+            pdf.setFontSize(10);
+            pdf.text('OneClick.AI', pdfW - MARGIN - 25, pdfH - MARGIN + 5);
+        }
+
+        pdf.save(`model_${MODEL_ID}_report.pdf`);
+    } catch (err) {
+        console.error('PDF generation failed:', err);
+        alert('PDF generation failed. Please try again.');
+    } finally {
+        actions.style.visibility = '';
+        if (backBtn) backBtn.style.visibility = '';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-file-pdf"></i> Download (.pdf)';
+    }
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────────
+const available = renderTopMetrics();
+renderCM();
+renderChart(available);
+</script>
+{% endblock %}

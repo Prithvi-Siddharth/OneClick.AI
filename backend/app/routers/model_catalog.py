@@ -5,9 +5,10 @@ from sqlalchemy.orm import Session
 import os, json
 
 from app.db import get_db
-from app.models import User, Experiment
+from app.models import User, Experiment, TemporaryDataset
 from app.security import get_current_user_id
 from app.services.s3_operations import get_user_models, upload_model_to_s3, s3_delete_object, create_presigned_download_url
+from app.services.constants import ML_HYPERPARAMETERS
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
@@ -169,3 +170,83 @@ def download_model(model_id: int, request: Request, db: Session = Depends(get_db
     )
     
     return JSONResponse(content={"download_url": url})
+
+
+# Test model page
+@router.get("/test_model/{experiment_id}")
+def test_model_page(experiment_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    experiment = db.query(Experiment).filter(
+        Experiment.id == experiment_id,
+        Experiment.user_id == int(user_id)
+    ).first()
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Model not found")
+
+    # Derive feature columns from latest temp dataset schema, excluding target
+    dataset = db.query(TemporaryDataset).filter(
+        TemporaryDataset.user_id == int(user_id)
+    ).order_by(TemporaryDataset.id.desc()).first()
+
+    feature_columns = []
+    if dataset and dataset.feature_schema:
+        try:
+            schema = json.loads(dataset.feature_schema)
+            feature_columns = [c for c in schema if c != experiment.target_column]
+        except Exception:
+            pass
+
+    model_task = ML_HYPERPARAMETERS.get(experiment.algorithm, {}).get("task", "unknown")
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+
+    return templates.TemplateResponse("test_model.html", {
+        "request": request,
+        "username": user.username if user else None,
+        "experiment": experiment,
+        "feature_columns": feature_columns,
+        "model_task": model_task,
+    })
+
+
+# Model stats page
+@router.get("/model_stats/{experiment_id}")
+def model_stats_page(experiment_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+
+    experiment = db.query(Experiment).filter(
+        Experiment.id == experiment_id,
+        Experiment.user_id == int(user_id)
+    ).first()
+    if not experiment:
+        raise HTTPException(status_code=404, detail="Model not found")
+
+    try:
+        metrics = json.loads(experiment.metrics) if experiment.metrics else {}
+    except Exception:
+        metrics = {}
+
+    try:
+        hyperparams = json.loads(experiment.hyperparameters) if experiment.hyperparameters else {}
+    except Exception:
+        hyperparams = {}
+
+    algo_info = ML_HYPERPARAMETERS.get(experiment.algorithm, {})
+    model_task = algo_info.get("task", "unknown")
+    hyperparam_meta = algo_info.get("hyperparameters", {})
+
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+
+    return templates.TemplateResponse("model_stats.html", {
+        "request": request,
+        "username": user.username if user else None,
+        "experiment": experiment,
+        "metrics": metrics,
+        "model_task": model_task,
+        "hyperparams": hyperparams,
+        "hyperparam_meta": hyperparam_meta,
+    })

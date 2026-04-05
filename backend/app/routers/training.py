@@ -370,8 +370,12 @@ def select_target_page(
 import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
-    r2_score, mean_absolute_error, accuracy_score, f1_score,
-    silhouette_score, calinski_harabasz_score, davies_bouldin_score
+    r2_score, mean_absolute_error, mean_squared_error,
+    explained_variance_score, median_absolute_error, max_error,
+    accuracy_score, precision_score, f1_score, recall_score,
+    fbeta_score, confusion_matrix, cohen_kappa_score, matthews_corrcoef,
+    roc_auc_score, log_loss, brier_score_loss,
+    silhouette_score, calinski_harabasz_score, davies_bouldin_score,
 )
 from app.services.s3_operations import load_dataset_as_dataframe
 
@@ -521,15 +525,91 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
             predictions = pipeline.predict(X_test)
 
             if model_info["task"] == "regression":
-                results["metrics"] = {
-                    "r2_score": r2_score(y_test, predictions),
-                    "mae": mean_absolute_error(y_test, predictions)
+                r2 = r2_score(y_test, predictions)
+                n  = len(y_test)
+                p  = pipeline.named_steps['preprocessor'].transform(X_test).shape[1]
+                adj_r2 = 1 - (1 - r2) * (n - 1) / (n - p - 1) if n > p + 1 else r2
+                residuals = np.array(y_test, dtype=float) - np.array(predictions, dtype=float)
+
+                metrics_dict = {
+                    "r2_score":              round(r2, 4),
+                    "adjusted_r2":           round(adj_r2, 4),
+                    "mae":                   round(float(mean_absolute_error(y_test, predictions)), 4),
+                    "mse":                   round(float(mean_squared_error(y_test, predictions)), 4),
+                    "rmse":                  round(float(np.sqrt(mean_squared_error(y_test, predictions))), 4),
+                    "median_absolute_error": round(float(median_absolute_error(y_test, predictions)), 4),
+                    "max_error":             round(float(max_error(y_test, predictions)), 4),
+                    "explained_variance":    round(float(explained_variance_score(y_test, predictions)), 4),
+                    "residual_mean":         round(float(residuals.mean()), 4),
+                    "residual_std":          round(float(residuals.std()), 4),
                 }
-            else:
-                results["metrics"] = {
-                    "accuracy": accuracy_score(y_test, predictions),
-                    "f1_score": f1_score(y_test, predictions, average='weighted')
+                try:
+                    from sklearn.metrics import mean_absolute_percentage_error
+                    metrics_dict["mape"] = round(float(mean_absolute_percentage_error(y_test, predictions) * 100), 4)
+                except Exception: pass
+                try:
+                    metrics_dict["pearson_correlation"] = round(float(np.corrcoef(
+                        np.array(y_test, dtype=float), np.array(predictions, dtype=float))[0, 1]), 4)
+                except Exception: pass
+                model_step = pipeline.named_steps['model']
+                try:
+                    if hasattr(model_step, 'support_vectors_'):
+                        metrics_dict['n_support_vectors'] = int(model_step.support_vectors_.shape[0])
+                except Exception: pass
+                try:
+                    if experiment.algorithm == 'Lasso' and hasattr(model_step, 'coef_'):
+                        metrics_dict['non_zero_coefficients'] = int(np.count_nonzero(model_step.coef_))
+                except Exception: pass
+
+                results["metrics"] = metrics_dict
+
+            else:  # classification
+                cm = confusion_matrix(y_test, predictions)
+                is_binary = len(np.unique(y_test)) == 2
+
+                metrics_dict = {
+                    "accuracy":    round(float(accuracy_score(y_test, predictions)), 4),
+                    "precision":   round(float(precision_score(y_test, predictions, average='weighted', zero_division=0)), 4),
+                    "recall":      round(float(recall_score(y_test, predictions, average='weighted', zero_division=0)), 4),
+                    "f1_score":    round(float(f1_score(y_test, predictions, average='weighted')), 4),
+                    "f2_score":    round(float(fbeta_score(y_test, predictions, beta=2, average='weighted', zero_division=0)), 4),
+                    "f0_5_score":  round(float(fbeta_score(y_test, predictions, beta=0.5, average='weighted', zero_division=0)), 4),
+                    "cohen_kappa": round(float(cohen_kappa_score(y_test, predictions)), 4),
+                    "mcc":         round(float(matthews_corrcoef(y_test, predictions)), 4),
+                    "confusion_matrix": cm.tolist(),
                 }
+                if is_binary:
+                    tn, fp, fn, tp = cm.ravel()
+                    metrics_dict['specificity']               = round(tn / (tn + fp), 4) if (tn + fp) else 0.0
+                    metrics_dict['false_positive_rate']       = round(fp / (fp + tn), 4) if (fp + tn) else 0.0
+                    metrics_dict['false_negative_rate']       = round(fn / (fn + tp), 4) if (fn + tp) else 0.0
+                    metrics_dict['false_discovery_rate']      = round(fp / (fp + tp), 4) if (fp + tp) else 0.0
+                    metrics_dict['negative_predictive_value'] = round(tn / (tn + fn), 4) if (tn + fn) else 0.0
+                if hasattr(pipeline, 'predict_proba'):
+                    try:
+                        proba = pipeline.predict_proba(X_test)
+                        if is_binary:
+                            metrics_dict['roc_auc']     = round(float(roc_auc_score(y_test, proba[:, 1])), 4)
+                            metrics_dict['brier_score'] = round(float(brier_score_loss(y_test, proba[:, 1])), 4)
+                        else:
+                            metrics_dict['roc_auc']     = round(float(roc_auc_score(y_test, proba, multi_class='ovr', average='weighted')), 4)
+                        metrics_dict['log_loss_val'] = round(float(log_loss(y_test, proba)), 4)
+                    except Exception: pass
+                model_step = pipeline.named_steps['model']
+                try:
+                    if hasattr(model_step, 'n_support_'):
+                        metrics_dict['n_support_vectors'] = int(np.sum(model_step.n_support_))
+                except Exception: pass
+                try:
+                    if hasattr(model_step, 'get_depth'):
+                        metrics_dict['tree_depth'] = int(model_step.get_depth())
+                except Exception: pass
+                try:
+                    if hasattr(model_step, 'n_estimators'):
+                        metrics_dict['n_estimators'] = int(model_step.n_estimators)
+                except Exception: pass
+
+                results["metrics"] = metrics_dict
 
             for actual, pred in zip(y_test[:10], predictions[:10]):
                 comparison.append({

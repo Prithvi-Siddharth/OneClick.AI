@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+
+{% block title %}Test Model — {{ experiment.algorithm }}{% endblock %}
+
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+    .test-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 5rem 1rem 3rem;
+    }
+
+    .tab-bar {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 0;
+    }
+
+    .tab-btn {
+        padding: 0.65rem 1.5rem;
+        border: none;
+        background: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: color 0.2s, border-color 0.2s;
+    }
+
+    .tab-btn.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .feature-group label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.4rem;
+    }
+
+    .feature-group input {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border-radius: 8px;
+        border: 1.5px solid var(--border);
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+    }
+
+    .feature-group input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .error-text {
+        color: #dc2626;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-top: 0.75rem;
+        display: none;
+    }
+
+    .result-card {
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(5,150,105,0.04));
+        border: 1px solid rgba(16,185,129,0.3);
+        border-radius: 12px;
+        display: none;
+    }
+
+    .result-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #059669;
+        margin-top: 0.25rem;
+    }
+
+    .drop-zone {
+        border: 2px dashed var(--border);
+        border-radius: 12px;
+        padding: 3rem 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+        margin-bottom: 1.25rem;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+        border-color: var(--primary-color);
+        background: rgba(59,130,246,0.04);
+    }
+
+    .results-table-wrap {
+        overflow-x: auto;
+        margin-top: 1.5rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        display: none;
+    }
+
+    .results-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+
+    .results-table th {
+        background: var(--bg-secondary);
+        padding: 0.65rem 1rem;
+        text-align: left;
+        font-weight: 700;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+
+    .results-table th.pred-col {
+        background: rgba(16,185,129,0.1);
+        color: #059669;
+    }
+
+    .results-table td {
+        padding: 0.55rem 1rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-primary);
+    }
+
+    .results-table td.pred-col {
+        font-weight: 700;
+        color: #059669;
+    }
+
+    .results-table tr:last-child td { border-bottom: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="test-container">
+
+    <!-- Header -->
+    <div style="margin-bottom: 2rem;">
+        <a href="javascript:history.back()" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 1rem;">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16,185,129,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i class="fas fa-flask" style="color: #059669; font-size: 1.25rem;"></i>
+            </div>
+            <div>
+                <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-primary);">Test Your Model</h1>
+                <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
+                    <strong>{{ experiment.algorithm }}</strong>
+                    {% if experiment.target_column %} &mdash; predicting <strong>{{ experiment.target_column }}</strong>{% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="padding: 2rem;">
+        <!-- Tab bar -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('single', this)">
+                <i class="fas fa-keyboard" style="margin-right: 6px;"></i>Single Query
+            </button>
+            <button class="tab-btn" onclick="switchTab('batch', this)">
+                <i class="fas fa-table" style="margin-right: 6px;"></i>Batch Test
+            </button>
+        </div>
+
+        <!-- ── SINGLE QUERY TAB ── -->
+        <div id="tab-single" class="tab-panel active">
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                Enter values for each feature and get an instant prediction.
+            </p>
+
+            {% if feature_columns %}
+            <div class="feature-grid">
+                {% for col in feature_columns %}
+                <div class="feature-group">
+                    <label>{{ col }}</label>
+                    <input type="text" id="sq-{{ loop.index0 }}" data-col="{{ col }}" placeholder="Enter value">
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p style="color: var(--text-muted); font-style: italic;">No feature columns available. The model may not have a stored schema.</p>
+            {% endif %}
+
+            <div id="sq-error" class="error-text"></div>
+
+            <button onclick="runSingleQuery()" class="btn btn-primary" style="padding: 0.7rem 2rem; margin-top: 0.5rem;">
+                <i class="fas fa-bolt" style="margin-right: 6px;"></i> Predict
+            </button>
+
+            <!-- Single result -->
+            <div id="sq-result" class="result-card">
+                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #059669;">
+                    {% if model_task == 'clustering' %}Assigned Cluster{% else %}Prediction{% endif %}
+                </div>
+                <div class="result-value" id="sq-result-value"></div>
+            </div>
+        </div>
+
+        <!-- ── BATCH TEST TAB ── -->
+        <div id="tab-batch" class="tab-panel">
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+                Upload a CSV or Excel file. The columns must match the model's expected features.
+                {% if feature_columns %}
+                <br><span style="font-size: 0.8rem;">Expected columns: <code style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">{{ feature_columns | join(', ') }}</code></span>
+                {% endif %}
+            </p>
+
+            <!-- Drop zone -->
+            <div class="drop-zone" id="drop-zone" onclick="document.getElementById('batch-file').click()"
+                 ondragover="event.preventDefault(); this.classList.add('dragover')"
+                 ondragleave="this.classList.remove('dragover')"
+                 ondrop="handleDrop(event)">
+                <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 0.75rem; display: block;"></i>
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Click to upload or drag & drop</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">CSV or Excel (.xlsx) supported</div>
+                <div id="batch-file-name" style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--primary-color); font-weight: 600;"></div>
+            </div>
+            <input type="file" id="batch-file" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleFileSelect(this.files[0])">
+
+            <div id="batch-error" class="error-text"></div>
+
+            <button onclick="runBatchPredict()" class="btn btn-primary" style="padding: 0.7rem 2rem;">
+                <i class="fas fa-play" style="margin-right: 6px;"></i> Run Predictions
+            </button>
+
+            <!-- Results table -->
+            <div id="batch-results-header" style="display:none; margin-top: 1.5rem; display:none; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 700; color: var(--text-primary);" id="batch-count-label"></span>
+                <button onclick="downloadCSV()" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
+                    <i class="fas fa-download" style="margin-right: 6px;"></i>Download CSV
+                </button>
+            </div>
+            <div class="results-table-wrap" id="batch-table-wrap">
+                <table class="results-table" id="batch-table"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const MODEL_ID = {{ experiment.id }};
+    const FEATURE_COLS = {{ feature_columns | tojson }};
+    let batchParsedRows = [];   // raw rows from file
+    let batchPredictions = [];  // predictions array from API
+
+    // ── Tab switching ──────────────────────────────────────────────────────────
+    function switchTab(name, btn) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + name).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    function showError(id, msg) {
+        const el = document.getElementById(id);
+        el.textContent = msg;
+        el.style.display = 'block';
+    }
+    function clearError(id) {
+        const el = document.getElementById(id);
+        el.textContent = '';
+        el.style.display = 'none';
+    }
+
+    // ── Single Query ───────────────────────────────────────────────────────────
+    async function runSingleQuery() {
+        clearError('sq-error');
+        document.getElementById('sq-result').style.display = 'none';
+
+        const inputs = document.querySelectorAll('#tab-single input[data-col]');
+        const payload = {};
+        let hasEmpty = false;
+
+        inputs.forEach(inp => {
+            const val = inp.value.trim();
+            if (val === '') { hasEmpty = true; inp.style.borderColor = '#dc2626'; }
+            else { inp.style.borderColor = ''; payload[inp.dataset.col] = isNaN(val) ? val : Number(val); }
+        });
+
+        if (hasEmpty) {
+            showError('sq-error', 'Please fill in all query fields before predicting.');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/v1/predict/${MODEL_ID}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.status === 'error') {
+                showError('sq-error', 'Please check your query — ' + (data.hint || data.error));
+                return;
+            }
+
+            const pred = data.predictions[0];
+            document.getElementById('sq-result-value').textContent = pred;
+            document.getElementById('sq-result').style.display = 'block';
+        } catch (err) {
+            showError('sq-error', 'Request failed. Please try again.');
+        }
+    }
+
+    // ── File handling ──────────────────────────────────────────────────────────
+    function handleDrop(e) {
+        e.preventDefault();
+        document.getElementById('drop-zone').classList.remove('dragover');
+        handleFileSelect(e.dataTransfer.files[0]);
+    }
+
+    function handleFileSelect(file) {
+        if (!file) return;
+        clearError('batch-error');
+        document.getElementById('batch-file-name').textContent = file.name;
+        document.getElementById('batch-table-wrap').style.display = 'none';
+        document.getElementById('batch-results-header').style.display = 'none';
+        batchParsedRows = [];
+        batchPredictions = [];
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext === 'csv') {
+            Papa.parse(file, {
+                header: true, skipEmptyLines: true,
+                complete: r => { batchParsedRows = r.data; }
+            });
+        } else if (ext === 'xlsx' || ext === 'xls') {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const wb = XLSX.read(e.target.result, { type: 'binary' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                batchParsedRows = XLSX.utils.sheet_to_json(ws);
+            };
+            reader.readAsBinaryString(file);
+        } else {
+            showError('batch-error', 'Unsupported file type. Please upload a CSV or Excel file.');
+        }
+    }
+
+    // ── Batch Predict ──────────────────────────────────────────────────────────
+    async function runBatchPredict() {
+        clearError('batch-error');
+        document.getElementById('batch-table-wrap').style.display = 'none';
+        document.getElementById('batch-results-header').style.display = 'none';
+
+        if (batchParsedRows.length === 0) {
+            showError('batch-error', 'Please upload a file first.');
+            return;
+        }
+
+        // Validate columns if we know the expected features
+        if (FEATURE_COLS.length > 0) {
+            const fileCols = Object.keys(batchParsedRows[0]);
+            const missing = FEATURE_COLS.filter(c => !fileCols.includes(c));
+            if (missing.length > 0) {
+                showError('batch-error',
+                    `Please check your file — missing columns: ${missing.join(', ')}. ` +
+                    `Expected: ${FEATURE_COLS.join(', ')}.`);
+                return;
+            }
+        }
+
+        // Cast numeric strings to numbers
+        const payload = batchParsedRows.map(row => {
+            const out = {};
+            for (const [k, v] of Object.entries(row)) {
+                out[k] = (v !== '' && !isNaN(v)) ? Number(v) : v;
+            }
+            return out;
+        });
+
+        try {
+            const res = await fetch(`/v1/predict/${MODEL_ID}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (data.status === 'error') {
+                showError('batch-error', 'Please check your file — ' + (data.hint || data.error));
+                return;
+            }
+
+            batchPredictions = data.predictions;
+            renderBatchTable();
+        } catch (err) {
+            showError('batch-error', 'Request failed. Please try again.');
+        }
+    }
+
+    function renderBatchTable() {
+        const wrap = document.getElementById('batch-table-wrap');
+        const header = document.getElementById('batch-results-header');
+        const table = document.getElementById('batch-table');
+
+        const cols = Object.keys(batchParsedRows[0]);
+
+        let html = '<thead><tr>';
+        cols.forEach(c => { html += `<th>${c}</th>`; });
+        html += '<th class="pred-col">Prediction</th></tr></thead><tbody>';
+
+        batchParsedRows.forEach((row, i) => {
+            html += '<tr>';
+            cols.forEach(c => { html += `<td>${row[c] ?? ''}</td>`; });
+            html += `<td class="pred-col">${batchPredictions[i] ?? ''}</td></tr>`;
+        });
+        html += '</tbody>';
+
+        table.innerHTML = html;
+        wrap.style.display = 'block';
+
+        document.getElementById('batch-count-label').textContent =
+            `${batchParsedRows.length} row${batchParsedRows.length !== 1 ? 's' : ''} predicted`;
+        header.style.display = 'flex';
+    }
+
+    // ── Download CSV ───────────────────────────────────────────────────────────
+    function downloadCSV() {
+        if (!batchParsedRows.length || !batchPredictions.length) return;
+        const cols = Object.keys(batchParsedRows[0]);
+        const rows = [cols.concat(['Prediction'])];
+        batchParsedRows.forEach((row, i) => {
+            rows.push(cols.map(c => row[c] ?? '').concat([batchPredictions[i] ?? '']));
+        });
+        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `predictions_model_${MODEL_ID}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+</script>
+{% endblock %}

@@ -249,6 +249,14 @@
                     style="flex: 1; min-width: 150px; padding: 0.75rem;">
                     <i class="fas fa-redo" style="margin-right: 8px;"></i> Train Again
                 </button>
+                <a id="test-model-btn" href="#" class="btn btn-primary"
+                    style="flex: 1; min-width: 150px; padding: 0.75rem; text-decoration: none; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+                    <i class="fas fa-flask" style="margin-right: 8px;"></i> Test Your Model
+                </a>
+                <a id="more-details-btn" href="#" class="btn btn-secondary"
+                    style="flex: 1; min-width: 150px; padding: 0.75rem; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-chart-bar" style="margin-right: 8px;"></i> More Details
+                </a>
                 <button onclick="downloadModel()" class="btn btn-secondary"
                     style="flex: 1; min-width: 150px; padding: 0.75rem; background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;">
                     <i class="fas fa-download" style="margin-right: 8px;"></i> Download Model
@@ -355,6 +363,8 @@
             if (trainResponse.ok) {
                 loadingPhase.style.display = 'none';
                 resultsPhase.style.display = 'block';
+                document.getElementById('test-model-btn').href = `/test_model/${finalExperimentId}`;
+                document.getElementById('more-details-btn').href = `/model_stats/${finalExperimentId}`;
 
                 // Show best params badge for auto_tune
                 if (currentMode === 'auto_tune' && tuneResult && tuneResult.best_params) {
@@ -374,14 +384,32 @@
                 const metricsDiv = document.getElementById('metrics-display');
                 metricsDiv.innerHTML = '';
 
+                // Only show primary metrics to avoid clutter
+                const classificationMetrics = ['accuracy', 'precision', 'recall'];
+                const regressionMetrics = ['r2_score', 'mae', 'rmse'];
+                const clusteringMetrics = ['silhouette_score', 'n_clusters'];
+
                 for (const [key, value] of Object.entries(result.metrics || {})) {
-                    metricsDiv.innerHTML += `
-                    <div class="metric-card">
-                        <div class="metric-label">${key.replace(/_/g, ' ')}</div>
-                        <div class="metric-value">
-                            ${typeof value === 'number' ? value.toFixed(4) : value}
-                        </div>
-                    </div>`;
+                    let shouldShow = false;
+                    const lowKey = key.toLowerCase();
+
+                    if (result.model_task === 'classification') {
+                        if (classificationMetrics.includes(lowKey)) shouldShow = true;
+                    } else if (result.model_task === 'regression') {
+                        if (regressionMetrics.includes(lowKey)) shouldShow = true;
+                    } else if (result.model_task === 'clustering') {
+                        if (clusteringMetrics.includes(lowKey)) shouldShow = true;
+                    }
+
+                    if (shouldShow) {
+                        metricsDiv.innerHTML += `
+                        <div class="metric-card">
+                            <div class="metric-label">${key.replace(/_/g, ' ')}</div>
+                            <div class="metric-value">
+                                ${typeof value === 'number' ? value.toFixed(4) : value}
+                            </div>
+                        </div>`;
+                    }
                 }
 
                 // Create the Chart
