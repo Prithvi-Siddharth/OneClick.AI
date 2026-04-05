@@ -2,6 +2,258 @@
 
 {% block title %}View Datasets - OneClick.AI{% endblock %}
 
+{% block head %}
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+<style>
+    /* Query Tool Panel */
+    .query-tool-panel {
+        position: fixed;
+        top: 100vh;
+        left: 5vw;
+        width: 90vw;
+        height: 85vh;
+        z-index: 2000;
+        transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+        display: flex;
+        flex-direction: column;
+        color: var(--text-primary);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        visibility: hidden;
+        --panel-bg: #fdfbf7;
+        --panel-header: #f7f5f0;
+        --panel-content: #faf9f6;
+        --panel-card: #ffffff;
+        --panel-input: #fcfbf9;
+        background: var(--panel-bg);
+    }
+
+    .theme-dark .query-tool-panel {
+        --panel-bg: var(--card-bg);
+        --panel-header: var(--bg-secondary);
+        --panel-content: var(--bg-primary);
+        --panel-card: var(--card-bg);
+        --panel-input: var(--bg-secondary);
+    }
+
+    .query-tool-panel.open {
+        top: 10vh;
+        visibility: visible;
+    }
+
+    .query-tool-header {
+        padding: 1rem 2rem;
+        background: var(--panel-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        border-radius: 24px 24px 0 0;
+    }
+
+    .query-tool-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+        gap: 1.5rem;
+        overflow-y: auto;
+        background: var(--panel-content);
+        border-radius: 0 0 24px 24px;
+    }
+
+    .query-input-area {
+        background: var(--panel-card);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .sql-editor {
+        width: 100%;
+        height: 120px;
+        background: var(--panel-input);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        font-family: 'Fira Code', monospace;
+        resize: vertical;
+    }
+
+    .query-results-area {
+        flex: 1;
+        background: var(--panel-card);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-height: 300px;
+    }
+
+    .query-results-table-wrapper {
+        flex: 1;
+        overflow: auto;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+    }
+
+    .query-results-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    .query-results-table th {
+        position: sticky;
+        top: 0;
+        background: var(--panel-header);
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 2px solid var(--border);
+    }
+
+    .query-results-table td {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* Visualization Panel */
+    .visualize-panel {
+        position: fixed;
+        top: 100vh;
+        left: 5vw;
+        width: 90vw;
+        height: 85vh;
+        z-index: 2000;
+        transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
+        display: flex;
+        flex-direction: column;
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        visibility: hidden;
+        --panel-bg: #fdfbf7;
+        --panel-header: #f7f5f0;
+        --panel-content: #faf9f6;
+        --panel-card: #ffffff;
+        background: var(--panel-bg);
+        color: var(--text-primary);
+    }
+
+    .theme-dark .visualize-panel {
+        --panel-bg: var(--card-bg);
+        --panel-header: var(--bg-secondary);
+        --panel-content: var(--bg-primary);
+        --panel-card: var(--card-bg);
+    }
+
+    .visualize-panel.open {
+        top: 10vh;
+        visibility: visible;
+    }
+
+    .visualize-panel-header {
+        padding: 1rem 2rem;
+        background: var(--panel-header);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border);
+        border-radius: 24px 24px 0 0;
+    }
+
+    .visualize-panel-body {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+        border-radius: 0 0 24px 24px;
+    }
+
+    .visualize-sidebar {
+        width: 260px;
+        background: var(--panel-header);
+        border-right: 1px solid var(--border);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        overflow-y: auto;
+    }
+
+    .visualize-sidebar label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .visualize-sidebar select {
+        width: 100%;
+        padding: 0.6rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--panel-card);
+        color: var(--text-primary);
+    }
+
+    .visualize-main {
+        flex: 1;
+        padding: 1.5rem;
+        background: var(--panel-content);
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+        overflow-y: auto;
+    }
+
+    .viz-chart-container {
+        flex: 1;
+        background: var(--panel-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        min-height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .viz-stats-card {
+        background: var(--panel-card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+
+    .viz-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .viz-stat-item {
+        background: var(--panel-header);
+        border-radius: 8px;
+        padding: 10px;
+    }
+
+    .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+    .stat-value { font-size: 1rem; font-weight: 700; color: var(--primary-color); }
+
+    .close-panel-btn { background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; }
+    .close-panel-btn:hover { color: var(--error-color); }
+    .attr2-row.hidden { display: none; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
@@ -32,15 +284,21 @@
                     </td>
                     <td>{{ dataset.upload_date.strftime('%Y-%m-%d') }}</td>
                     <td>
-                        <div style="display: flex; gap: 10px;">
-                            <button id="viewButton{{ dataset.id }}" class="btn btn-sm btn-primary">
-                                <i class="fas fa-eye"></i> View
+                        <div style="display: flex; gap: 6px;">
+                            <button id="viewButton{{ dataset.id }}" class="btn btn-sm btn-primary" title="Preview Data">
+                                <i class="fas fa-eye"></i>
                             </button>
-                            <button id="downloadButton{{ dataset.id }}" class="btn btn-sm btn-secondary">
-                                <i class="fas fa-download"></i> Download
+                            <button class="btn btn-sm btn-secondary query-tool-btn" data-id="{{ dataset.id }}" style="background: #8b5cf6; border-color: #8b5cf6;" title="SQL Query">
+                                <i class="fas fa-terminal"></i>
                             </button>
-                            <button id="deleteButton{{ dataset.id }}" class="btn btn-sm btn-danger">
-                                <i class="fas fa-trash"></i> Delete
+                            <button class="btn btn-sm btn-secondary visualize-tool-btn" data-id="{{ dataset.id }}" style="background: #10b981; border-color: #10b981;" title="Visualize">
+                                <i class="fas fa-chart-bar"></i>
+                            </button>
+                            <button id="downloadButton{{ dataset.id }}" class="btn btn-sm btn-secondary" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button id="deleteButton{{ dataset.id }}" class="btn btn-sm btn-danger" title="Delete">
+                                <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </td>
@@ -66,6 +324,104 @@
         </div>
     </div>
 </div>
+
+<!-- Query Tool Panel -->
+<div id="query-tool-panel" class="query-tool-panel">
+    <div class="query-tool-header">
+        <h2><i class="fas fa-database"></i> Query Tool</h2>
+        <button class="close-panel-btn" onclick="closeQueryTool()">&times;</button>
+    </div>
+    <div class="query-tool-content">
+        <div class="query-input-area">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 600;">SQL Editor</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Available table: <strong>data</strong></span>
+            </div>
+            <textarea id="sql-query-input" class="sql-editor" spellcheck="false" placeholder="SELECT * FROM data LIMIT 10"></textarea>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn btn-primary" onclick="runSqlQuery()" id="run-query-btn">
+                    <i class="fas fa-play"></i> Run Query
+                </button>
+                <button class="btn btn-secondary" onclick="document.getElementById('sql-query-input').value = ''">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+        </div>
+
+        <div class="query-results-area">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 600;" id="query-status-text">Results</span>
+                <span id="query-row-count" style="font-size: 0.85rem; color: var(--text-muted);"></span>
+            </div>
+            <div id="query-results-loading" style="display: none; text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--primary-color);"></i>
+                <p style="margin-top: 1rem; color: var(--text-muted);">Executing query...</p>
+            </div>
+            <div class="query-results-table-wrapper" id="query-results-wrapper">
+                <table class="query-results-table" id="query-results-table">
+                    <thead id="query-results-thead"></thead>
+                    <tbody id="query-results-tbody">
+                        <tr><td colspan="100%" style="text-align: center; padding: 3rem; color: var(--text-muted);">Run a query to see results.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visualization Panel -->
+<div id="visualize-panel" class="visualize-panel">
+    <div class="visualize-panel-header">
+        <h2><i class="fas fa-chart-bar"></i> Visualization</h2>
+        <button class="close-panel-btn" onclick="closeVisualizeTool()">&times;</button>
+    </div>
+    <div class="visualize-panel-body">
+        <div class="visualize-sidebar">
+            <div>
+                <label for="viz-attr1">Attribute 1</label>
+                <select id="viz-attr1">
+                    <option value="">— loading columns —</option>
+                </select>
+            </div>
+            <div>
+                <label for="viz-chart-type">Chart Type</label>
+                <select id="viz-chart-type" onchange="onChartTypeChange()">
+                    <option value="histogram">Histogram</option>
+                    <option value="box">Box Plot</option>
+                    <option value="scatter">Scatter Plot</option>
+                    <option value="bar">Bar Chart</option>
+                </select>
+            </div>
+            <div class="attr2-row hidden" id="viz-attr2-row">
+                <label for="viz-attr2">Attribute 2</label>
+                <select id="viz-attr2">
+                    <option value="">— loading columns —</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="generatePlot()" id="viz-generate-btn" style="width:100%; margin-top: auto;">
+                <i class="fas fa-play" style="margin-right:8px;"></i>Generate
+            </button>
+            <button class="btn btn-secondary" id="viz-export-btn" onclick="exportChart()" style="width:100%; display:none;">
+                <i class="fas fa-image" style="margin-right:8px;"></i>Save as Image
+            </button>
+        </div>
+
+        <div class="visualize-main">
+            <div class="viz-chart-container" id="viz-chart-container">
+                <div id="viz-plotly-chart" style="width: 100%; height: 100%;">
+                    <p style="color: var(--text-muted); text-align: center;">Select columns and click Generate.</p>
+                </div>
+            </div>
+            <div class="viz-stats-card" id="viz-stats-card" style="display:none;">
+                <h4>EDA Statistics</h4>
+                <div class="viz-stats-grid" id="viz-stats-grid"></div>
+                <div id="viz-observation" style="margin-top: 1rem; font-style: italic; color: var(--text-secondary);"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="sidebar-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 1999;"></div>
 
 <!-- Upload Dataset Modal -->
 <div class="modal-overlay" id="uploadModalOverlay">
@@ -223,6 +579,21 @@
         });
     });
 
+    // --- Query and Visualize Tool Button Listeners ---
+    document.querySelectorAll('.query-tool-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const datasetId = this.getAttribute('data-id');
+            openQueryTool(datasetId);
+        });
+    });
+
+    document.querySelectorAll('.visualize-tool-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const datasetId = this.getAttribute('data-id');
+            openVisualizeTool(datasetId);
+        });
+    });
+
     // --- Upload Dataset Logic ---
     const openUploadBtn = document.getElementById('openUploadBtn');
     const datasetFileInput = document.getElementById('datasetFileInput');
@@ -284,5 +655,184 @@
             uploadStatusText.innerHTML = `<span style="color: #ef4444">Error uploading file.</span>`;
         }
     });
+
+    // --- Query and Visualization Tools Logic ---
+    let toolSocket = null;
+    let currentToolDatasetId = null;
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+
+    function openQueryTool(datasetId) {
+        currentToolDatasetId = datasetId;
+        document.getElementById('query-tool-panel').classList.add('open');
+        sidebarOverlay.style.display = 'block';
+        connectToolSocket(datasetId);
+    }
+
+    function closeQueryTool() {
+        document.getElementById('query-tool-panel').classList.remove('open');
+        sidebarOverlay.style.display = 'none';
+        if (toolSocket) toolSocket.close();
+    }
+
+    function openVisualizeTool(datasetId) {
+        currentToolDatasetId = datasetId;
+        document.getElementById('visualize-panel').classList.add('open');
+        sidebarOverlay.style.display = 'block';
+        connectToolSocket(datasetId);
+    }
+
+    function closeVisualizeTool() {
+        document.getElementById('visualize-panel').classList.remove('open');
+        sidebarOverlay.style.display = 'none';
+        if (toolSocket) toolSocket.close();
+    }
+
+    sidebarOverlay.addEventListener('click', () => {
+        closeQueryTool();
+        closeVisualizeTool();
+    });
+
+    function connectToolSocket(datasetId) {
+        if (toolSocket) toolSocket.close();
+        
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        toolSocket = new WebSocket(`${protocol}//${window.location.host}/data-catalog/ws/${datasetId}`);
+
+        toolSocket.onopen = () => {
+            console.log("Tool WebSocket connected");
+            // Request schema for visualization dropdowns
+            toolSocket.send(JSON.stringify({ action: "get_schema" }));
+        };
+
+        toolSocket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "query_results") {
+                renderQueryResults(data.data);
+                document.getElementById('query-results-loading').style.display = 'none';
+                document.getElementById('query-results-wrapper').style.display = 'block';
+                document.getElementById('run-query-btn').disabled = false;
+            } else if (data.type === "visualization_result") {
+                document.getElementById('viz-generate-btn').disabled = false;
+                document.getElementById('viz-generate-btn').innerHTML = '<i class="fas fa-play" style="margin-right:8px;"></i>Generate';
+                renderPlotlyChart(data.plot_data);
+                displayEDAStats(data.eda_stats);
+                document.getElementById('viz-export-btn').style.display = 'block';
+            } else if (data.type === "schema") {
+                populateVizDropdowns(data.columns);
+            } else if (data.type === "error") {
+                alert("Error: " + data.message);
+                document.getElementById('query-results-loading').style.display = 'none';
+                document.getElementById('run-query-btn').disabled = false;
+                document.getElementById('viz-generate-btn').disabled = false;
+                document.getElementById('viz-generate-btn').innerHTML = '<i class="fas fa-play" style="margin-right:8px;"></i>Generate';
+            }
+        };
+    }
+
+    function runSqlQuery() {
+        const query = document.getElementById('sql-query-input').value.trim();
+        if (!query) return;
+        document.getElementById('run-query-btn').disabled = true;
+        document.getElementById('query-results-loading').style.display = 'block';
+        document.getElementById('query-results-wrapper').style.display = 'none';
+        toolSocket.send(JSON.stringify({ action: "run_sql", query: query }));
+    }
+
+    function renderQueryResults(data) {
+        const thead = document.getElementById('query-results-thead');
+        const tbody = document.getElementById('query-results-tbody');
+        const rowCountEl = document.getElementById('query-row-count');
+        const statusText = document.getElementById('query-status-text');
+
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            statusText.textContent = "Results: No data found";
+            rowCountEl.textContent = "0 rows";
+            tbody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 3rem;">No results.</td></tr>';
+            return;
+        }
+
+        statusText.textContent = "Results";
+        rowCountEl.textContent = `${data.length} rows found`;
+
+        const headers = Object.keys(data[0]);
+        thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+        tbody.innerHTML = data.map(row => '<tr>' + headers.map(h => `<td>${row[h] ?? ''}</td>`).join('') + '</tr>').join('');
+    }
+
+    function populateVizDropdowns(columns) {
+        const select1 = document.getElementById('viz-attr1');
+        const select2 = document.getElementById('viz-attr2');
+        const options = '<option value="">— select column —</option>' + columns.map(c => `<option value="${c}">${c}</option>`).join('');
+        select1.innerHTML = options;
+        select2.innerHTML = options;
+    }
+
+    function onChartTypeChange() {
+        const type = document.getElementById('viz-chart-type').value;
+        document.getElementById('viz-attr2-row').classList.toggle('hidden', type !== 'scatter');
+    }
+
+    function generatePlot() {
+        const col1 = document.getElementById('viz-attr1').value;
+        const col2 = document.getElementById('viz-attr2').value;
+        const type = document.getElementById('viz-chart-type').value;
+        if (!col1 || (type === 'scatter' && !col2)) {
+            alert("Please select required columns.");
+            return;
+        }
+        const btn = document.getElementById('viz-generate-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        toolSocket.send(JSON.stringify({ action: "get_visualization", col1: col1, col2: col2, plot_type: type }));
+    }
+
+    function renderPlotlyChart(plotData) {
+        const container = document.getElementById('viz-plotly-chart');
+        const isDark = document.documentElement.classList.contains('theme-dark') || document.body.classList.contains('theme-dark');
+        const paperBg = isDark ? '#1e2030' : '#ffffff';
+        const fontColor = isDark ? '#cdd6f4' : '#1e293b';
+        const accentColor = '#6366f1';
+
+        const layout = {
+            paper_bgcolor: paperBg, plot_bgcolor: paperBg,
+            font: { color: fontColor, family: 'Inter, sans-serif' },
+            margin: { t: 40, r: 20, b: 50, l: 55 },
+            xaxis: { title: plotData.col1 },
+            showlegend: false,
+        };
+
+        let traces = [];
+        if (plotData.plot_type === 'histogram' || plotData.plot_type === 'bar') {
+            traces = [{ x: plotData.x, y: plotData.y, type: 'bar', marker: { color: accentColor } }];
+        } else if (plotData.plot_type === 'box') {
+            traces = [{ type: 'box', q1: [plotData.q1], median: [plotData.median], q3: [plotData.q3], lowerfence: [plotData.lower_fence], upperfence: [plotData.upper_fence], y: plotData.outliers, marker: { color: accentColor } }];
+        } else if (plotData.plot_type === 'scatter') {
+            traces = [{ x: plotData.x, y: plotData.y, mode: 'markers', type: 'scatter', marker: { color: accentColor, opacity: 0.6 } }];
+            layout.yaxis = { title: plotData.col2 };
+        }
+        Plotly.react(container, traces, layout, { displayModeBar: false, responsive: true });
+    }
+
+    function displayEDAStats(stats) {
+        const grid = document.getElementById('viz-stats-grid');
+        const obs = document.getElementById('viz-observation');
+        const items = [{ label: 'Total Rows', value: stats.total_count }, { label: 'Nulls', value: `${stats.null_count} (${stats.null_percent}%)` }];
+        if (stats.is_numeric) {
+            items.push({ label: 'Mean', value: stats.mean }, { label: 'Median', value: stats.median }, { label: 'Min', value: stats.min }, { label: 'Max', value: stats.max });
+            obs.textContent = stats.skewness ? `Skewness: ${stats.skewness}` : '';
+        } else {
+            items.push({ label: 'Unique', value: stats.unique_count }, { label: 'Top', value: stats.top_value });
+            obs.textContent = '';
+        }
+        grid.innerHTML = items.map(it => `<div class="viz-stat-item"><div class="stat-label">${it.label}</div><div class="stat-value">${it.value}</div></div>`).join('');
+        document.getElementById('viz-stats-card').style.display = 'block';
+    }
+
+    function exportChart() {
+        Plotly.downloadImage(document.getElementById('viz-plotly-chart'), { format: 'png', filename: 'visualization' });
+    }
 </script>
 {% endblock %}

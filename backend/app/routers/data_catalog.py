@@ -11,8 +11,13 @@ from app.security import get_current_user_id
 from app.services.s3_operations import (
     process_and_save_dataset, get_user_datasets, read_dataset_from_s3,
     s3_delete_object, create_presigned_download_url,
-    process_and_save_dataset_temporary, duplicate_dataset_in_s3
+    process_and_save_dataset_temporary, duplicate_dataset_in_s3,
+    load_dataset_as_dataframe, get_s3_client
 )
+from app.services.visualization_service import calculate_eda_stats, get_plot_data
+from fastapi import WebSocket, WebSocketDisconnect
+from fastapi.concurrency import run_in_threadpool
+import json, pandas as pd, duckdb
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
@@ -177,4 +182,92 @@ def download_dataset(dataset_id: int, request: Request, db: Session = Depends(ge
     if not url:
         raise HTTPException(status_code=500, detail="Failed to generate download URL")
         
-    return JSONResponse(content={"download_url": url})    
+    return JSONResponse(content={"download_url": url})
+
+
+# WebSocket route for Query and Visualization tools in Data Catalog
+@router.websocket("/data-catalog/ws/{dataset_id}")
+async def websocket_data_catalog(websocket: WebSocket, dataset_id: int, db: Session = Depends(get_db)):
+    await websocket.accept()
+
+    # Authentication
+    token = websocket.cookies.get("access_token")
+    user_id = None
+    if token:
+        try:
+            from app.security import JWT_SECRET_KEY, JWT_ALGORITHM
+            from jose import jwt
+            payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+            user_id = payload.get("sub")
+        except Exception:
+            pass
+
+    if not user_id:
+        await websocket.send_text(json.dumps({"type": "error", "message": "Authentication failed. Please log in."}))
+        await websocket.close()
+        return
+
+    # Fetch dataset metadata to verify ownership
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
+    if not dataset:
+        await websocket.send_text(json.dumps({"type": "error", "message": "Dataset not found or access denied."}))
+        await websocket.close()
+        return
+
+    while True:
+        try:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            action = message.get("action")
+
+            if action == "run_sql":
+                query = message.get("query", "")
+                try:
+                    df = await run_in_threadpool(load_dataset_as_dataframe, dataset.s3_bucket, dataset.s3_key)
+                    # Use 'data' as alias for the dataframe in SQL
+                    data = df
+                    results_df = duckdb.query(query).to_df()
+                    results = results_df.astype(object).where(pd.notnull(results_df), None).to_dict(orient="records")
+                    await websocket.send_text(json.dumps({"type": "query_results", "data": results}))
+                except Exception as e:
+                    await websocket.send_text(json.dumps({"type": "error", "message": f"SQL Error: {str(e)}"}))
+
+            elif action == "get_visualization":
+                col1 = message.get("col1", "")
+                col2 = message.get("col2") or None
+                plot_type = message.get("plot_type", "histogram")
+
+                if not col1:
+                    await websocket.send_text(json.dumps({"type": "error", "message": "No column specified for visualization."}))
+                    continue
+
+                df = await run_in_threadpool(load_dataset_as_dataframe, dataset.s3_bucket, dataset.s3_key)
+                eda_stats = await run_in_threadpool(calculate_eda_stats, df, col1)
+                plot_data = await run_in_threadpool(get_plot_data, df, col1, col2, plot_type)
+
+                await websocket.send_text(json.dumps({
+                    "type": "visualization_result",
+                    "eda_stats": eda_stats,
+                    "plot_data": plot_data,
+                }))
+
+            elif action == "get_schema":
+                # Return column list for visualization dropdowns
+                if dataset.feature_schema:
+                    schema = json.loads(dataset.feature_schema)
+                    columns = list(schema.keys())
+                else:
+                    df = await run_in_threadpool(load_dataset_as_dataframe, dataset.s3_bucket, dataset.s3_key)
+                    columns = df.columns.tolist()
+                
+                await websocket.send_text(json.dumps({
+                    "type": "schema",
+                    "columns": columns
+                }))
+
+        except WebSocketDisconnect:
+            break
+        except Exception as e:
+            await websocket.send_text(json.dumps({"type": "error", "message": f"Critical Error: {str(e)}"}))
+            break
+    
