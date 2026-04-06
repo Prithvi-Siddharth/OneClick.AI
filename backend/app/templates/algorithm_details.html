@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}{{ details.name }} Details - OneClick.AI{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --brand-color: {{ details.color | default('#6366f1') }};
+        --brand-color-44: {{ details.color }}44;
+        --brand-color-66: {{ details.color }}66;
+        --brand-color-88: {{ details.color }}88;
+        --brand-color-33: {{ details.color }}33;
+        --primary-gradient: linear-gradient(135deg, var(--brand-color) 0%, #4f46e5 100%);
+        --accent: var(--brand-color);
+    }
+
+    .details-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 3rem 1.5rem 8rem;
+    }
+
+    .glass-header {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 2.5rem;
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05);
+    }
+
+    .icon-box {
+        width: 100px;
+        height: 100px;
+        border-radius: 24px;
+        background: rgba(99, 102, 241, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--brand-color);
+        font-size: 3rem;
+        flex-shrink: 0;
+        box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.05);
+    }
+
+    .section-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .section-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 15px 45px -12px rgba(0, 0, 0, 0.1);
+        border-color: var(--brand-color-44);
+    }
+
+    .section-title {
+        font-family: var(--font-heading);
+        font-weight: 800;
+        font-size: 1.25rem;
+        color: var(--text-primary);
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .tag-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+
+    .tag {
+        padding: 0.5rem 1rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+
+    .tag-strength {
+        background: rgba(16, 185, 129, 0.08);
+        color: #059669;
+        border: 1px solid rgba(16, 185, 129, 0.15);
+    }
+
+    .tag-weakness {
+        background: rgba(239, 68, 68, 0.08);
+        color: #dc2626;
+        border: 1px solid rgba(239, 68, 68, 0.15);
+    }
+
+    .case-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: background 0.2s;
+    }
+    
+    .case-card:hover {
+        background: var(--border);
+    }
+
+    .action-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--card-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-top: 1px solid var(--border);
+        padding: 1.5rem;
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+        z-index: 100;
+        box-shadow: 0 -10px 30px rgba(0,0,0,0.05);
+    }
+
+    .btn-premium {
+        background: var(--primary-gradient);
+        color: white !important;
+        padding: 1rem 3rem;
+        border-radius: 16px;
+        font-weight: 800;
+        border: none;
+        box-shadow: 0 8px 20px -6px var(--brand-color-66);
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.1rem;
+    }
+
+    .btn-premium:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 12px 30px -8px var(--brand-color-88);
+    }
+
+    .mechanics-box {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 2rem;
+        font-family: 'Fira Code', 'Courier New', monospace;
+        font-size: 1rem;
+        color: var(--text-primary);
+        line-height: 1.7;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .mechanics-box::before {
+        content: '\f121';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        position: absolute;
+        right: -10px;
+        bottom: -10px;
+        font-size: 5rem;
+        opacity: 0.03;
+        transform: rotate(-15deg);
+    }
+
+    @media (max-width: 768px) {
+        .glass-header {
+            flex-direction: column;
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .details-container {
+            grid-template-columns: 1fr !important;
+        }
+        
+        .action-bar {
+            padding: 1rem;
+            flex-direction: column-reverse;
+        }
+        
+        .btn-premium {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="details-container">
+    <!-- Header Area -->
+    <div class="glass-header">
+        <div class="icon-box">
+            <i class="{{ details.icon }}"></i>
+        </div>
+        <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                <h1 style="margin: 0; font-family: var(--font-heading); font-weight: 800; font-size: 2.5rem; color: var(--text-primary); line-height: 1;">{{ details.name }}</h1>
+                <span style="background: var(--brand-color); color: white; font-size: 0.75rem; font-weight: 800; padding: 5px 14px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.08em; box-shadow: 0 4px 12px var(--brand-color-33);">
+                    Core Engine
+                </span>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 1.2rem; margin: 0; line-height: 1.6; font-weight: 500;">
+                {{ details.overview }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Info Grid -->
+    <div style="display: grid; grid-template-columns: 1.8fr 1fr; gap: 2rem;">
+        
+        <!-- Primary Content -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <div class="section-card">
+                <div class="section-title">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-project-diagram" style="color: var(--accent); font-size: 0.9rem;"></i>
+                    </div>
+                    Implementation Logic
+                </div>
+                <p style="color: var(--text-secondary); line-height: 1.8; font-size: 1.05rem; margin: 0;">
+                    {{ details.how_it_works }}
+                </p>
+            </div>
+
+            <div class="section-card">
+                <div class="section-title">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-terminal" style="color: var(--accent); font-size: 0.9rem;"></i>
+                    </div>
+                    Mathematical Framework
+                </div>
+                <div class="mechanics-box">
+                    {{ details.mechanics }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="section-card" style="border-top: 4px solid #10b981;">
+                    <div class="section-title">
+                        <i class="fas fa-rocket" style="color: #10b981;"></i> Performance Strengths
+                    </div>
+                    <div class="tag-list">
+                        {% for s in details.strengths %}
+                        <div class="tag tag-strength">{{ s }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="section-card" style="border-top: 4px solid #ef4444;">
+                    <div class="section-title">
+                        <i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Known Limitations
+                    </div>
+                    <div class="tag-list">
+                        {% for w in details.weaknesses %}
+                        <div class="tag tag-weakness">{{ w }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Content -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            
+            <div class="section-card" style="flex-grow: 1;">
+                <div class="section-title" style="margin-bottom: 1.5rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-lightbulb" style="color: #f59e0b; font-size: 0.9rem;"></i>
+                    </div>
+                    Production Use Cases
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    {% for case in details.use_cases %}
+                    <div class="case-card">
+                        <div style="width: 6px; height: 6px; border-radius: 50%; background: var(--brand-color); opacity: 0.6;"></div>
+                        {{ case }}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div style="margin-top: auto; padding-top: 2rem;">
+                    <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; text-align: center; position: relative; overflow: hidden;">
+                        <div style="position: absolute; top:0; left:0; width: 100%; height: 4px; background: var(--brand-color); opacity: 0.3;"></div>
+                        <i class="fas fa-microscope" style="font-size: 1.75rem; color: var(--text-muted); margin-bottom: 0.75rem; display: block;"></i>
+                        <h4 style="margin: 0 0 0.5rem; font-weight: 700; color: var(--text-primary);">Analyst Insight</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                            Best results are often achieved through iterative feature engineering and cross-validation on this model class.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Fixed Action Bar -->
+<div class="action-bar">
+    <a href="javascript:history.back()" class="btn btn-ghost" style="padding: 0.8rem 2.5rem; font-weight: 700;">
+        <i class="fas fa-arrow-left"></i> Cancel & Return
+    </a>
+    <a href="/models?dataset_id={{ dataset_id }}&model={{ details.id }}" class="btn-premium">
+        <i class="fas fa-check-circle"></i> Select This Algorithm
+    </a>
+</div>
+{% endblock %}

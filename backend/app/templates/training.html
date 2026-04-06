@@ -25,115 +25,195 @@
     </div>
 
     <div class="grid-3">
-        <!-- Linear Regression -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=LinearRegression" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #3498db; margin-bottom: 1rem;">
-                <i class="fas fa-chart-line"></i>
-            </div>
-            <h3 class="card-title">Linear Regression</h3>
-            <p class="card-text">Predict continuous values based on linear relationships.</p>
-        </a>
+        <div style="position: relative;">
+            <!-- Info Icon -->
+            <a href="/algorithm_details/LinearRegression?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#3498db'"
+               onmouseout="this.style.color='#a1a1aa'"
+               title="View Details">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <!-- Selection Card -->
+            <a href="/models?dataset_id={{ dataset.id }}&model=LinearRegression" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #3498db; margin-bottom: 1rem;">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3 class="card-title">Linear Regression</h3>
+                <p class="card-text">Predict continuous values based on linear relationships.</p>
+            </a>
+        </div>
 
-        <!-- Logistic Regression -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=LogisticRegression" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #e74c3c; margin-bottom: 1rem;">
-                <i class="fas fa-toggle-on"></i>
-            </div>
-            <h3 class="card-title">Logistic Regression</h3>
-            <p class="card-text">Binary classification for categorical outcomes.</p>
-        </a>
+        <div style="position: relative;">
+            <a href="/algorithm_details/LogisticRegression?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#e74c3c'"
+               onmouseout="this.style.color='#a1a1aa'">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <a href="/models?dataset_id={{ dataset.id }}&model=LogisticRegression" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #e74c3c; margin-bottom: 1rem;">
+                    <i class="fas fa-toggle-on"></i>
+                </div>
+                <h3 class="card-title">Logistic Regression</h3>
+                <p class="card-text">Binary classification for categorical outcomes.</p>
+            </a>
+        </div>
 
-        <!-- Decision Tree -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=DecisionTree" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #2ecc71; margin-bottom: 1rem;">
-                <i class="fas fa-tree"></i>
-            </div>
-            <h3 class="card-title">Decision Tree</h3>
-            <p class="card-text">Flowchart-like structure for classification and regression.</p>
-        </a>
+        <div style="position: relative;">
+            <a href="/algorithm_details/DecisionTree?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#2ecc71'"
+               onmouseout="this.style.color='#a1a1aa'">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <a href="/models?dataset_id={{ dataset.id }}&model=DecisionTree" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #2ecc71; margin-bottom: 1rem;">
+                    <i class="fas fa-tree"></i>
+                </div>
+                <h3 class="card-title">Decision Tree</h3>
+                <p class="card-text">Flowchart-like structure for classification and regression.</p>
+            </a>
+        </div>
 
-        <!-- Random Forest -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=RandomForest" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #27ae60; margin-bottom: 1rem;">
-                <i class="fas fa-forest"></i>
-            </div>
-            <h3 class="card-title">Random Forest</h3>
-            <p class="card-text">Ensemble of decision trees for robust predictions.</p>
-        </a>
+        <div style="position: relative;">
+            <a href="/algorithm_details/RandomForest?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#27ae60'"
+               onmouseout="this.style.color='#a1a1aa'">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <a href="/models?dataset_id={{ dataset.id }}&model=RandomForest" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #27ae60; margin-bottom: 1rem;">
+                    <i class="fas fa-forest"></i>
+                </div>
+                <h3 class="card-title">Random Forest</h3>
+                <p class="card-text">Ensemble of decision trees for robust predictions.</p>
+            </a>
+        </div>
 
-        <!-- KNeighbors Classifier -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=KNeighborsClassifier" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #9b59b6; margin-bottom: 1rem;">
-                <i class="fas fa-users"></i>
-            </div>
-            <h3 class="card-title">KNN Classifier</h3>
-            <p class="card-text">Classify based on majority vote of nearest neighbors.</p>
-        </a>
+        <div style="position: relative;">
+            <a href="/algorithm_details/KNeighborsClassifier?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#9b59b6'"
+               onmouseout="this.style.color='#a1a1aa'">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <a href="/models?dataset_id={{ dataset.id }}&model=KNeighborsClassifier" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #9b59b6; margin-bottom: 1rem;">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="card-title">KNN Classifier</h3>
+                <p class="card-text">Classify based on majority vote of nearest neighbors.</p>
+            </a>
+        </div>
 
-        <!-- KNeighbors Regressor -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=KNeighborsRegressor" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #8e44ad; margin-bottom: 1rem;">
-                <i class="fas fa-project-diagram"></i>
-            </div>
-            <h3 class="card-title">KNN Regressor</h3>
-            <p class="card-text">Predict values based on average of nearest neighbors.</p>
-        </a>
+        <div style="position: relative;">
+            <a href="/algorithm_details/KNeighborsRegressor?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#8e44ad'"
+               onmouseout="this.style.color='#a1a1aa'">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <a href="/models?dataset_id={{ dataset.id }}&model=KNeighborsRegressor" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #8e44ad; margin-bottom: 1rem;">
+                    <i class="fas fa-project-diagram"></i>
+                </div>
+                <h3 class="card-title">KNN Regressor</h3>
+                <p class="card-text">Predict values based on average of nearest neighbors.</p>
+            </a>
+        </div>
 
-        <!-- KMeans -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=KMeans" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #f1c40f; margin-bottom: 1rem;">
-                <i class="fas fa-cubes"></i>
-            </div>
-            <h3 class="card-title">KMeans Clustering</h3>
-            <p class="card-text">Unsupervised learning to group similar data points.</p>
-        </a>
+        <div style="position: relative;">
+            <a href="/algorithm_details/KMeans?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#f1c40f'"
+               onmouseout="this.style.color='#a1a1aa'">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <a href="/models?dataset_id={{ dataset.id }}&model=KMeans" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #f1c40f; margin-bottom: 1rem;">
+                    <i class="fas fa-cubes"></i>
+                </div>
+                <h3 class="card-title">KMeans Clustering</h3>
+                <p class="card-text">Unsupervised learning to group similar data points.</p>
+            </a>
+        </div>
 
-        <!-- SVC -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=SVC" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #e67e22; margin-bottom: 1rem;">
-                <i class="fas fa-vector-square"></i>
-            </div>
-            <h3 class="card-title">SVC</h3>
-            <p class="card-text">Support Vector Classifier for optimal class separation.</p>
-        </a>
+        <div style="position: relative;">
+            <a href="/algorithm_details/SVC?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#e67e22'"
+               onmouseout="this.style.color='#a1a1aa'">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <a href="/models?dataset_id={{ dataset.id }}&model=SVC" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #e67e22; margin-bottom: 1rem;">
+                    <i class="fas fa-vector-square"></i>
+                </div>
+                <h3 class="card-title">SVC</h3>
+                <p class="card-text">Support Vector Classifier for optimal class separation.</p>
+            </a>
+        </div>
 
-        <!-- SVR -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=SVR" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #d35400; margin-bottom: 1rem;">
-                <i class="fas fa-bezier-curve"></i>
-            </div>
-            <h3 class="card-title">SVR</h3>
-            <p class="card-text">Support Vector Regressor for flexible prediction lines.</p>
-        </a>
+        <div style="position: relative;">
+            <a href="/algorithm_details/SVR?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#d35400'"
+               onmouseout="this.style.color='#a1a1aa'">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <a href="/models?dataset_id={{ dataset.id }}&model=SVR" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #d35400; margin-bottom: 1rem;">
+                    <i class="fas fa-bezier-curve"></i>
+                </div>
+                <h3 class="card-title">SVR</h3>
+                <p class="card-text">Support Vector Regressor for flexible prediction lines.</p>
+            </a>
+        </div>
 
-        <!-- Lasso -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=Lasso" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #34495e; margin-bottom: 1rem;">
-                <i class="fas fa-filter"></i>
-            </div>
-            <h3 class="card-title">Lasso (L1)</h3>
-            <p class="card-text">Regression with L1 regularization for feature selection.</p>
-        </a>
+        <div style="position: relative;">
+            <a href="/algorithm_details/Lasso?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#34495e'"
+               onmouseout="this.style.color='#a1a1aa'">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <a href="/models?dataset_id={{ dataset.id }}&model=Lasso" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #34495e; margin-bottom: 1rem;">
+                    <i class="fas fa-filter"></i>
+                </div>
+                <h3 class="card-title">Lasso (L1)</h3>
+                <p class="card-text">Regression with L1 regularization for feature selection.</p>
+            </a>
+        </div>
 
-        <!-- Ridge -->
-        <a href="/models?dataset_id={{ dataset.id }}&model=Ridge" class="card card-hover"
-            style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s;">
-            <div style="font-size: 2rem; color: #2c3e50; margin-bottom: 1rem;">
-                <i class="fas fa-mountain"></i>
-            </div>
-            <h3 class="card-title">Ridge (L2)</h3>
-            <p class="card-text">Regression with L2 regularization to prevent overfitting.</p>
-        </a>
+        <div style="position: relative;">
+            <a href="/algorithm_details/Ridge?dataset_id={{ dataset.id }}" 
+               style="position: absolute; top: 1rem; right: 1rem; z-index: 10; color: #a1a1aa; transition: color 0.2s;"
+               onmouseover="this.style.color='#2c3e50'"
+               onmouseout="this.style.color='#a1a1aa'">
+                <i class="fas fa-info-circle" style="font-size: 1.25rem;"></i>
+            </a>
+            <a href="/models?dataset_id={{ dataset.id }}&model=Ridge" class="card card-hover"
+                style="text-decoration: none; color: inherit; display: block; transition: transform 0.2s; height: 100%;">
+                <div style="font-size: 2rem; color: #2c3e50; margin-bottom: 1rem;">
+                    <i class="fas fa-mountain"></i>
+                </div>
+                <h3 class="card-title">Ridge (L2)</h3>
+                <p class="card-text">Regression with L2 regularization to prevent overfitting.</p>
+            </a>
+        </div>
     </div>
 
     {% else %}

@@ -14,10 +14,7 @@ from app.services.model_factory import create_model_instance, get_base_model
 from app.services.learning_algorithm_selector import recommend_algorithms_scoring
 import json
 import ast
-import traceback
-import joblib
-import pandas as pd
-from io import BytesIO
+from app.services.algorithm_info import ALGORITHM_DETAILS
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
@@ -138,17 +135,37 @@ def training_page(request: Request, db: Session = Depends(get_db), dataset_id: i
     if dataset_id:
         dataset = db.query(TemporaryDataset).filter(TemporaryDataset.id == dataset_id, TemporaryDataset.user_id == int(user_id)).first()
     
-    if not dataset:
-        # Fallback to the latest temporary dataset if no ID provided or not found
-        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
-    
     # Fetch user for navbar profile
     user = db.query(User).filter(User.user_id == int(user_id)).first()
     
+    # Also fetch all catalog datasets for the modal
+    datasets = db.query(Dataset).filter(Dataset.user_id == int(user_id)).all()
+    
     return templates.TemplateResponse("training.html", {
         "request": request,
+        "dataset": dataset,
         "username": user.username if user else None,
-        "dataset": dataset
+        "datasets": datasets,
+    })
+
+@router.get("/algorithm_details/{algo_name}")
+def algorithm_details_page(algo_name: str, request: Request, db: Session = Depends(get_db), dataset_id: int = None):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return RedirectResponse(url="/login")
+    
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+    
+    # Get details for the algorithm
+    details = ALGORITHM_DETAILS.get(algo_name)
+    if not details:
+        raise HTTPException(status_code=404, detail="Algorithm details not found")
+    
+    return templates.TemplateResponse("algorithm_details.html", {
+        "request": request,
+        "username": user.username if user else None,
+        "details": {**details, "id": algo_name},
+        "dataset_id": dataset_id
     })
     
 

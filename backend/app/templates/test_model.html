@@ -38,8 +38,13 @@
         border-bottom-color: var(--primary-color);
     }
 
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    .tab-panel {
+        display: none;
+    }
+
+    .tab-panel.active {
+        display: block;
+    }
 
     .feature-grid {
         display: grid;
@@ -86,8 +91,8 @@
     .result-card {
         margin-top: 1.5rem;
         padding: 1.5rem;
-        background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(5,150,105,0.04));
-        border: 1px solid rgba(16,185,129,0.3);
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.04));
+        border: 1px solid rgba(16, 185, 129, 0.3);
         border-radius: 12px;
         display: none;
     }
@@ -109,9 +114,10 @@
         margin-bottom: 1.25rem;
     }
 
-    .drop-zone:hover, .drop-zone.dragover {
+    .drop-zone:hover,
+    .drop-zone.dragover {
         border-color: var(--primary-color);
-        background: rgba(59,130,246,0.04);
+        background: rgba(59, 130, 246, 0.04);
     }
 
     .results-table-wrap {
@@ -139,7 +145,7 @@
     }
 
     .results-table th.pred-col {
-        background: rgba(16,185,129,0.1);
+        background: rgba(16, 185, 129, 0.1);
         color: #059669;
     }
 
@@ -154,7 +160,9 @@
         color: #059669;
     }
 
-    .results-table tr:last-child td { border-bottom: none; }
+    .results-table tr:last-child td {
+        border-bottom: none;
+    }
 </style>
 {% endblock %}
 
@@ -163,24 +171,29 @@
 
     <!-- Header -->
     <div style="margin-bottom: 2rem;">
-        <a href="javascript:history.back()" style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 1rem;">
+        <a href="javascript:history.back()"
+            style="color: var(--text-muted); font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; margin-bottom: 1rem;">
             <i class="fas fa-arrow-left"></i> Back
         </a>
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 1rem;">
-                <div style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16,185,129,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <div
+                    style="width: 48px; height: 48px; border-radius: 12px; background: rgba(16,185,129,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                     <i class="fas fa-flask" style="color: #059669; font-size: 1.25rem;"></i>
                 </div>
                 <div>
-                    <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-primary);">Test Your Model</h1>
+                    <h1 style="margin: 0; font-size: 1.6rem; font-weight: 800; color: var(--text-primary);">Test Your
+                        Model</h1>
                     <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">
                         <strong>{{ experiment.algorithm }}</strong>
-                        {% if experiment.target_column %} &mdash; predicting <strong>{{ experiment.target_column }}</strong>{% endif %}
+                        {% if experiment.target_column %} &mdash; predicting <strong>{{ experiment.target_column
+                            }}</strong>{% endif %}
                     </p>
                 </div>
             </div>
             {% if experiment.status != 'COMPLETED' %}
-            <button onclick="saveModelToCatalog()" class="btn btn-secondary" style="padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
+            <button onclick="saveModelToCatalog()" class="btn btn-secondary"
+                style="padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
                 <i class="fas fa-save" style="margin-right: 6px;"></i> Save Model to Catalog
             </button>
             {% endif %}
@@ -217,7 +230,8 @@
                 {% endfor %}
             </div>
             {% else %}
-            <p style="color: var(--text-muted); font-style: italic;">No feature columns available. The model may not have a stored schema.</p>
+            <p style="color: var(--text-muted); font-style: italic;">No feature columns available. The model may not
+                have a stored schema.</p>
             {% endif %}
 
             <div id="sq-error" class="error-text"></div>
@@ -226,14 +240,16 @@
                 <button onclick="runSingleQuery()" class="btn btn-primary" style="padding: 0.7rem 2rem;">
                     <i class="fas fa-bolt" style="margin-right: 6px;"></i> Predict
                 </button>
-                <button id="sq-save-btn" onclick="saveModelToCatalog()" class="btn btn-secondary" style="display: none; padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
+                <button id="sq-save-btn" onclick="saveModelToCatalog()" class="btn btn-secondary"
+                    style="display: none; padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
                     <i class="fas fa-save" style="margin-right: 6px;"></i> Save Model to Catalog
                 </button>
             </div>
 
             <!-- Single result -->
             <div id="sq-result" class="result-card">
-                <div style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #059669;">
+                <div
+                    style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #059669;">
                     {% if model_task == 'clustering' %}Assigned Cluster{% else %}Prediction{% endif %}
                 </div>
                 <div class="result-value" id="sq-result-value"></div>
@@ -245,21 +261,26 @@
             <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
                 Upload a CSV or Excel file. The columns must match the model's expected features.
                 {% if feature_columns %}
-                <br><span style="font-size: 0.8rem;">Expected columns: <code style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">{{ feature_columns | join(', ') }}</code></span>
+                <br><span style="font-size: 0.8rem;">Expected columns: <code
+                        style="background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px;">{{ feature_columns | join(', ') }}</code></span>
                 {% endif %}
             </p>
 
             <!-- Drop zone -->
             <div class="drop-zone" id="drop-zone" onclick="document.getElementById('batch-file').click()"
-                 ondragover="event.preventDefault(); this.classList.add('dragover')"
-                 ondragleave="this.classList.remove('dragover')"
-                 ondrop="handleDrop(event)">
-                <i class="fas fa-cloud-upload-alt" style="font-size: 2rem; color: var(--text-muted); margin-bottom: 0.75rem; display: block;"></i>
-                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Click to upload or drag & drop</div>
+                ondragover="event.preventDefault(); this.classList.add('dragover')"
+                ondragleave="this.classList.remove('dragover')" ondrop="handleDrop(event)">
+                <i class="fas fa-cloud-upload-alt"
+                    style="font-size: 2rem; color: var(--text-muted); margin-bottom: 0.75rem; display: block;"></i>
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">Click to upload or
+                    drag & drop</div>
                 <div style="font-size: 0.8rem; color: var(--text-muted);">CSV or Excel (.xlsx) supported</div>
-                <div id="batch-file-name" style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--primary-color); font-weight: 600;"></div>
+                <div id="batch-file-name"
+                    style="margin-top: 0.75rem; font-size: 0.85rem; color: var(--primary-color); font-weight: 600;">
+                </div>
             </div>
-            <input type="file" id="batch-file" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleFileSelect(this.files[0])">
+            <input type="file" id="batch-file" accept=".csv,.xlsx,.xls" style="display: none;"
+                onchange="handleFileSelect(this.files[0])">
 
             <div id="batch-error" class="error-text"></div>
 
@@ -267,16 +288,19 @@
                 <button onclick="runBatchPredict()" class="btn btn-primary" style="padding: 0.7rem 2rem;">
                     <i class="fas fa-play" style="margin-right: 6px;"></i> Run Predictions
                 </button>
-                <button id="batch-save-btn" onclick="saveModelToCatalog()" class="btn btn-secondary" style="display: none; padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
+                <button id="batch-save-btn" onclick="saveModelToCatalog()" class="btn btn-secondary"
+                    style="display: none; padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
                     <i class="fas fa-save" style="margin-right: 6px;"></i> Save Model to Catalog
                 </button>
             </div>
 
             <!-- Results table -->
-            <div id="batch-results-header" style="display:none; margin-top: 1.5rem; justify-content: space-between; align-items: center;">
+            <div id="batch-results-header"
+                style="display:none; margin-top: 1.5rem; justify-content: space-between; align-items: center;">
                 <span style="font-weight: 700; color: var(--text-primary);" id="batch-count-label"></span>
                 <div style="display: flex; gap: 0.75rem;">
-                    <button onclick="downloadCSV()" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
+                    <button onclick="downloadCSV()" class="btn btn-secondary"
+                        style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
                         <i class="fas fa-download" style="margin-right: 6px;"></i>Download CSV
                     </button>
                 </div>
@@ -294,7 +318,8 @@
 
             <div class="feature-group" style="max-width: 400px; margin-bottom: 1.5rem;">
                 <label>Select Dataset</label>
-                <select id="catalog-dataset-id" class="form-control" style="width: 100%; padding: 0.65rem; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
+                <select id="catalog-dataset-id" class="form-control"
+                    style="width: 100%; padding: 0.65rem; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
                     <option value="">-- Choose a Dataset --</option>
                     {% for ds in datasets %}
                     <option value="{{ ds.id }}">{{ ds.filename }} (ID: {{ ds.id }})</option>
@@ -308,16 +333,19 @@
                 <button onclick="runCatalogPredict()" class="btn btn-primary" style="padding: 0.7rem 2rem;">
                     <i class="fas fa-server" style="margin-right: 6px;"></i> Predict Catalog Data
                 </button>
-                <button id="catalog-save-btn" onclick="saveModelToCatalog()" class="btn btn-secondary" style="display: none; padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
+                <button id="catalog-save-btn" onclick="saveModelToCatalog()" class="btn btn-secondary"
+                    style="display: none; padding: 0.7rem 1.5rem; border-color: #059669; color: #059669; background: rgba(16,185,129,0.05);">
                     <i class="fas fa-save" style="margin-right: 6px;"></i> Save Model to Catalog
                 </button>
             </div>
 
             <!-- Results table (Shared wrap ID for simplicity or unique) -->
-            <div id="catalog-results-header" style="display:none; margin-top: 1.5rem; justify-content: space-between; align-items: center;">
+            <div id="catalog-results-header"
+                style="display:none; margin-top: 1.5rem; justify-content: space-between; align-items: center;">
                 <span style="font-weight: 700; color: var(--text-primary);" id="catalog-count-label"></span>
                 <div style="display: flex; gap: 0.75rem;">
-                    <button onclick="downloadCatalogCSV()" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
+                    <button onclick="downloadCatalogCSV()" class="btn btn-secondary"
+                        style="padding: 0.5rem 1.25rem; font-size: 0.875rem;">
                         <i class="fas fa-download" style="margin-right: 6px;"></i>Download Full Results
                     </button>
                 </div>
@@ -330,10 +358,10 @@
 </div>
 
 <script>
-    const MODEL_ID = {{ experiment.id }};
+    const MODEL_ID = parseInt("{{ experiment.id }}");
     const EXPERIMENT_STATUS = "{{ experiment.status }}";
-    const FEATURE_COLS = {{ feature_columns | tojson }};
-    let batchParsedRows = []; 
+    const FEATURE_COLS = JSON.parse('{{ feature_columns | tojson | safe }}');
+    let batchParsedRows = [];
     let batchPredictions = [];
     let catalogFullPredictions = []; // for full download
     let catalogPreviewRows = [];     // for table display
@@ -621,7 +649,7 @@
         table.innerHTML = html;
         wrap.style.display = 'block';
         header.style.display = 'flex';
-        document.getElementById('catalog-count-label').textContent = 
+        document.getElementById('catalog-count-label').textContent =
             `Showing preview of first 50 results (out of ${total} total rows)`;
     }
 
@@ -631,11 +659,11 @@
         // but since we returned the full predictions array, we'll suggest that.
         // For simplicity, we'll just download the current preview or a generic "Download Full" could be a backend link.
         alert("Full dataset prediction results are ready. Generating download...");
-        
+
         // Since we have ALL predictions but not ALL original rows, 
         // a better approach for "Full Download" is a backend CSV generation route.
         // For now, we'll download what we have or just info that it's completed.
-        const csv = "Row Index,Prediction\n" + catalogFullPredictions.map((p, i) => `${i+1},${p}`).join("\n");
+        const csv = "Row Index,Prediction\n" + catalogFullPredictions.map((p, i) => `${i + 1},${p}`).join("\n");
         const blob = new Blob([csv], { type: 'text/csv' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
