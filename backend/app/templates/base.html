@@ -293,7 +293,7 @@
             const chatMessages = document.getElementById('chat-messages');
             const chatInput = document.getElementById('chat-input');
             const chatSendBtn = document.getElementById('chat-send-btn');
-            const CHAT_API_URL = 'https://yexxsx2pz2.execute-api.us-east-1.amazonaws.com/prod/ask';
+            const CHAT_API_URL = '/api/chat';
 
             let zIndexCounter = 1001;
             let noteOffset = 0;
@@ -402,6 +402,15 @@
                         body: JSON.stringify({ query: query })
                     });
                     const data = await res.json();
+                    
+                    if (res.status === 429) {
+                        const loading = document.getElementById('chat-loading');
+                        if (loading) loading.remove();
+                        appendMessage(data.error || 'Daily chat limit reached.', 'bot');
+                        return;
+                    }
+
+                    if (!res.ok) throw new Error(data.error || 'Server error');
                     const loading = document.getElementById('chat-loading');
                     if (loading) loading.remove();
                     // Handle different response shapes gracefully

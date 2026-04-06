@@ -88,3 +88,11 @@ class Note(Base):
     note_text = Column(String(10000), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
+
+class ChatUsage(Base):
+    __tablename__ = "chat_usage"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False)
+    chat_date = Column(DateTime, default=datetime.utcnow) # We will only care about the date part
+    usage_count = Column(Integer, default=0)
