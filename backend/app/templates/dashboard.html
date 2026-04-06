@@ -5,7 +5,10 @@
 {% block content %}
 <div class="container">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <h1>Welcome, {{ username }}!</h1>
+        <div style="display: flex; flex-direction: column;">
+            <h1 style="margin: 0;">Welcome, {{ username }}!</h1>
+            <!-- <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 5px; font-weight: 700;">Empowering Rapid ML Experimentation.</p> -->
+        </div>
         <!-- Logout is now in the navbar, but we can keep a secondary one or remove it. Removing it as it's in nav. -->
     </div>
 

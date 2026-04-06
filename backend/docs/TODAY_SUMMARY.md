@@ -1,6 +1,6 @@
 # Development Summary - April 6, 2026
 
-Today's session focused on enhancing the organization, usability, and resource management of the OneClick.AI platform. Key improvements were made across the Data Catalog, Model Catalog, and Training modules.
+Today's session focused on enhancing OneClick.AI—**a no-code ML tool for rapid development by data science and MLOPs teams used to accelerate experimentation.** Key improvements were made across the Data Catalog, Model Catalog, and Training modules.
 
 ## 🚀 Key Accomplishments
 
