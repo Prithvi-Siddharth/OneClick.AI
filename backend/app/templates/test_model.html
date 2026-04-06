@@ -316,16 +316,16 @@
                 Select a dataset from your Data Catalog to run predictions against it on the server.
             </p>
 
-            <div class="feature-group" style="max-width: 400px; margin-bottom: 1.5rem;">
-                <label>Select Dataset</label>
-                <select id="catalog-dataset-id" class="form-control"
-                    style="width: 100%; padding: 0.65rem; border-radius: 8px; border: 1.5px solid var(--border); background: var(--bg-primary); color: var(--text-primary);">
-                    <option value="">-- Choose a Dataset --</option>
-                    {% for ds in datasets %}
-                    <option value="{{ ds.id }}">{{ ds.filename }} (ID: {{ ds.id }})</option>
-                    {% endfor %}
-                </select>
+            <!-- Breadcrumbs -->
+            <div id="catalogBreadcrumbs" style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"></div>
+
+            <div id="catalogExplorer" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-primary); margin-bottom: 1.5rem;">
+                <div style="padding: 2rem; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Loading catalog...</div>
             </div>
+
+            <input type="hidden" id="catalog-dataset-id" value="">
+            <div id="catalog-selection-status" style="margin-bottom: 1.5rem; font-size: 0.95rem; color: var(--text-muted);">No dataset selected</div>
+
 
             <div id="catalog-error" class="error-text"></div>
 
@@ -372,6 +372,84 @@
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById('tab-' + name).classList.add('active');
         btn.classList.add('active');
+        
+        if (name === 'catalog') {
+            loadCatalogContents();
+        }
+    }
+
+    // ── Catalog Explorer ───────────────────────────────────────────────────────
+    async function loadCatalogContents(folderId = null) {
+        const explorer = document.getElementById('catalogExplorer');
+        const breadcrumbs = document.getElementById('catalogBreadcrumbs');
+        explorer.innerHTML = '<div style="padding: 2rem; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        
+        let url = '/api/catalog/contents';
+        if (folderId) url += `?folder_id=${folderId}`;
+        
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Failed to load catalog");
+            const data = await response.json();
+            
+            // Breadcrumbs
+            let bHtml = `<a href="javascript:void(0)" onclick="loadCatalogContents()" style="text-decoration: none; color: var(--primary-color);">Root</a>`;
+            data.breadcrumbs.forEach(crumb => {
+                bHtml += `<i class="fas fa-chevron-right" style="font-size: 0.7rem; margin: 0 4px;"></i>`;
+                bHtml += `<a href="javascript:void(0)" onclick="loadCatalogContents(${crumb.id})" style="text-decoration: none; color: var(--primary-color);">${crumb.name}</a>`;
+            });
+            breadcrumbs.innerHTML = bHtml;
+
+            if (data.folders.length === 0 && data.datasets.length === 0) {
+                explorer.innerHTML = '<div style="padding: 3rem; text-align: center; color: var(--text-muted);">Empty folder</div>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column;">';
+            data.folders.forEach(f => {
+                html += `
+                    <div class="explorer-item" onclick="loadCatalogContents(${f.id})" style="padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); transition: background 0.2s;">
+                        <i class="fas fa-folder" style="color: #fbbf24; font-size: 1.2rem;"></i>
+                        <span style="font-weight: 600; color: var(--text-primary);">${f.name}</span>
+                        <i class="fas fa-chevron-right" style="margin-left: auto; color: var(--text-muted); font-size: 0.8rem;"></i>
+                    </div>`;
+            });
+
+            data.datasets.forEach(d => {
+                const isSelected = document.getElementById('catalog-dataset-id').value == d.id;
+                html += `
+                    <div class="explorer-item dataset-item ${isSelected ? 'selected' : ''}" data-id="${d.id}" data-name="${d.filename}" onclick="selectCatalogDataset(this)" style="padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); transition: background 0.2s;">
+                        <i class="fas fa-file-csv" style="color: #6366f1; font-size: 1.2rem;"></i>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-weight: 500; color: var(--text-primary);">${d.filename}</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Uploaded: ${d.upload_date}</span>
+                        </div>
+                    </div>`;
+            });
+            html += '</div>';
+            explorer.innerHTML = html;
+
+            if (!document.getElementById('catalog-explorer-styles')) {
+                const style = document.createElement('style');
+                style.id = 'catalog-explorer-styles';
+                style.textContent = `
+                    .explorer-item:hover { background: var(--bg-secondary); }
+                    .explorer-item.selected { background: rgba(99, 102, 241, 0.1); border-left: 4px solid var(--primary-color); }
+                `;
+                document.head.appendChild(style);
+            }
+        } catch (error) {
+            explorer.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444;">Error: ${error.message}</div>`;
+        }
+    }
+
+    window.selectCatalogDataset = function(el) {
+        document.querySelectorAll('.dataset-item').forEach(i => i.classList.remove('selected'));
+        el.classList.add('selected');
+        const id = el.getAttribute('data-id');
+        const name = el.getAttribute('data-name');
+        document.getElementById('catalog-dataset-id').value = id;
+        document.getElementById('catalog-selection-status').innerHTML = `Selected: <strong>${name}</strong>`;
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────

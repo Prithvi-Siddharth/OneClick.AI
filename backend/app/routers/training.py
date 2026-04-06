@@ -14,6 +14,11 @@ from app.services.model_factory import create_model_instance, get_base_model
 from app.services.learning_algorithm_selector import recommend_algorithms_scoring
 import json
 import ast
+import traceback
+import joblib
+import pandas as pd
+import numpy as np
+from io import BytesIO
 from app.services.algorithm_info import ALGORITHM_DETAILS
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
@@ -49,7 +54,8 @@ def train_model_page(request: Request, db: Session = Depends(get_db), response_c
     datasets = db.query(Dataset).filter(Dataset.user_id == int(user_id)).all()
     
     #fetch the latest loaded dataset for preprocessing and display it in the preprocessing page
-    active_dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+    # Using the most recently uploaded Catalog dataset as the "active" one
+    active_dataset = db.query(Dataset).filter(Dataset.user_id == int(user_id)).order_by(Dataset.id.desc()).first()
     
     # Fetch user for navbar profile
     user = db.query(User).filter(User.user_id == int(user_id)).first()
@@ -81,49 +87,17 @@ def connect_dataset_train(
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
 
-    try:
-        bucket_name = os.getenv("S3_BUCKET_NAME")
-        
-        if not bucket_name:
-            raise ValueError("S3_BUCKET_NAME not configured in environment variables")
-
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        source_ext = os.path.splitext(dataset.s3_key)[1]  # e.g. '.xlsx'
-
-        # Call the function with required metadata from the catalog record
-        temp_dataset = duplicate_dataset_in_s3(
-            db=db,
-            user_id=int(user_id),
-            bucket_name=bucket_name,
-            source_key=dataset.s3_key,
-            filename=dataset.filename, # ADD THIS
-            row_count=dataset.row_count,
-            feature_schema=dataset.feature_schema,
-            file_size=dataset.file_size
-        )
-
-        
-        # Return success response
-        return JSONResponse(
-            content={
-                "message": "Dataset connected successfully",
-                "dataset_id": temp_dataset.id,
-                "row_count": temp_dataset.row_count,
-                "file_size": temp_dataset.file_size
-            },
-            status_code=status.HTTP_200_OK
-        )
-        
-    except HTTPException as e:
-        return JSONResponse(
-            content={"error": e.detail},
-            status_code=e.status_code
-        )
-    except Exception as e:
-        return JSONResponse(
-            content={"error": str(e)},
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    # The user wants to use the main catalog directly. 
+    # Instead of duplicating, we simply return the dataset_id of the existing catalog entry.
+    return JSONResponse(
+        content={
+            "message": "Dataset connected successfully",
+            "dataset_id": dataset.id,
+            "row_count": dataset.row_count,
+            "file_size": dataset.file_size
+        },
+        status_code=status.HTTP_200_OK
+    )
 
 @router.get("/training")
 def training_page(request: Request, db: Session = Depends(get_db), dataset_id: int = None):
@@ -133,7 +107,7 @@ def training_page(request: Request, db: Session = Depends(get_db), dataset_id: i
     
     dataset = None
     if dataset_id:
-        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.id == dataset_id, TemporaryDataset.user_id == int(user_id)).first()
+        dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
     
     # Fetch user for navbar profile
     user = db.query(User).filter(User.user_id == int(user_id)).first()
@@ -177,9 +151,9 @@ def models_page(request: Request, db: Session = Depends(get_db), dataset_id: int
     
     dataset = None
     if dataset_id:
-        dataset = db.query(TemporaryDataset).filter(
-            TemporaryDataset.id == dataset_id, 
-            TemporaryDataset.user_id == int(user_id)
+        dataset = db.query(Dataset).filter(
+            Dataset.id == dataset_id, 
+            Dataset.user_id == int(user_id)
         ).first()
     
     try:
@@ -245,12 +219,12 @@ async def auto_tune(request: Request, db: Session = Depends(get_db)):
     if model_info["task"] == "clustering":
         return JSONResponse(status_code=400, content={"error": f"Auto-Tune is not supported for clustering models like '{model_name}'. GridSearchCV requires a labelled target column."})
 
-    # 2. Load dataset from S3
-    dataset = db.query(TemporaryDataset).filter(
-        TemporaryDataset.user_id == int(user_id)
-    ).order_by(TemporaryDataset.id.desc()).first()
+    # 2. Load dataset from Catalog
+    dataset = db.query(Dataset).filter(
+        Dataset.user_id == int(user_id)
+    ).order_by(Dataset.id.desc()).first()
     if not dataset:
-        return JSONResponse(status_code=404, content={"error": "No temporary dataset found. Please load a dataset first."})
+        return JSONResponse(status_code=404, content={"error": "No dataset found in catalog. Please upload one first."})
 
     try:
         from app.services.s3_operations import load_dataset_as_dataframe
@@ -340,9 +314,9 @@ def select_target_page(
         raise HTTPException(status_code=404, detail="Experiment not found")
 
     # Get the latest dataset to find column names
-    dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+    dataset = db.query(Dataset).filter(Dataset.user_id == int(user_id)).order_by(Dataset.id.desc()).first()
     if not dataset:
-        raise HTTPException(status_code=400, detail="No dataset found for training")
+        raise HTTPException(status_code=400, detail="No dataset found in catalog for training")
     
     # Robustly get columns from the actual S3 file to ensure preprocessed deletions are reflected
     try:
@@ -426,10 +400,10 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
         if not is_clustering and not target_column:
             return JSONResponse(status_code=400, content={"error": "Missing target_column"})
 
-        # Use the newest temporary dataset for this user
-        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+        # Use the newest dataset for this user from the catalog
+        dataset = db.query(Dataset).filter(Dataset.user_id == int(user_id)).order_by(Dataset.id.desc()).first()
         if not dataset:
-            return JSONResponse(status_code=404, content={"error": "No temporary dataset found"})
+            return JSONResponse(status_code=404, content={"error": "No dataset found in catalog"})
 
         print(f"DEBUG: Starting final_train for experiment {experiment_id_raw}, algorithm {experiment.algorithm}, target {target_column}")
 

@@ -763,7 +763,7 @@
         });
     </script>
 
-    {% block scripts %}{% endblock %}
+
 
     <!-- Logout Confirmation Modal -->
     <div id="logout-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
@@ -794,6 +794,8 @@
             if (e.target === this) this.style.display = 'none';
         });
     </script>
+    {% block modals %}{% endblock %}
+    {% block scripts %}{% endblock %}
 </body>
 
 </html>

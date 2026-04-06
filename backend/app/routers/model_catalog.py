@@ -5,10 +5,13 @@ from sqlalchemy.orm import Session
 import os, json
 
 from app.db import get_db
-from app.models import User, Experiment, TemporaryDataset, Dataset
+from app.models import User, Experiment, TemporaryDataset, Dataset, Folder
 from app.security import get_current_user_id
 from app.services.s3_operations import get_user_models, upload_model_to_s3, s3_delete_object, create_presigned_download_url
 from app.services.constants import ML_HYPERPARAMETERS
+from sqlalchemy import or_
+from typing import Optional
+from datetime import datetime
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))
@@ -21,6 +24,7 @@ def upload_model(
     modelName: str = Form(...),
     modelAlgorithm: str = Form(...),
     model_file: UploadFile = File(...),
+    folder_id: Optional[int] = Form(None)
 ):
     user_id = get_current_user_id(request)
     if not user_id:
@@ -51,7 +55,8 @@ def upload_model(
             bucket_name=bucket_name,
             user_id=int(user_id),
             model_name=modelName,
-            algorithm=modelAlgorithm
+            algorithm=modelAlgorithm,
+            folder_id=folder_id
         )
 
         return JSONResponse(
@@ -73,10 +78,36 @@ def upload_model(
 
 
 
+# Move model to a folder
+@router.post("/move_model/{model_id}")
+def move_model(
+    model_id: int,
+    request: Request,
+    folder_id: Optional[int] = Form(None),
+    db: Session = Depends(get_db)
+):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return JSONResponse(content={"error": "Not authenticated"}, status_code=401)
+    
+    model = db.query(Experiment).filter(Experiment.id == model_id, Experiment.user_id == int(user_id)).first()
+    if not model:
+        return JSONResponse(content={"error": "Model not found"}, status_code=404)
+    
+    model.folder_id = folder_id if folder_id else None
+    db.commit()
+    return JSONResponse(content={"message": "Model moved successfully"})
+
 # this route is used to view all models in model catalog
 @router.get("/view_models")
-def view_models(request: Request, db: Session = Depends(get_db), response_class=HTMLResponse):
-
+def view_models(
+    request: Request, 
+    db: Session = Depends(get_db), 
+    folder_id: Optional[int] = None,
+    search: Optional[str] = None,
+    date: Optional[str] = None,
+    response_class=HTMLResponse
+):
     user_id = get_current_user_id(request)
     if not user_id:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -85,9 +116,114 @@ def view_models(request: Request, db: Session = Depends(get_db), response_class=
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    models = get_user_models(db, int(user_id))
+    # Base query for models (Experiments with COMPLETED/DEPLOYED status)
+    model_query = db.query(Experiment).filter(
+        Experiment.user_id == int(user_id),
+        Experiment.status.in_(["COMPLETED", "DEPLOYED"])
+    )
     
-    return templates.TemplateResponse("view_models.html", {"request": request, "username": user.username, "models": models})
+    # Advanced Filtering (Search/Date)
+    is_search = False
+    if search or date:
+        is_search = True
+        filters = []
+        if search:
+            # Search by name OR algorithm
+            filters.append(or_(
+                Experiment.name.ilike(f"%{search}%"),
+                Experiment.algorithm.ilike(f"%{search}%")
+            ))
+        
+        if date:
+            try:
+                search_date = datetime.strptime(date, '%Y-%m-%d').date()
+                filters.append(db.func.date(Experiment.created_at) == search_date)
+            except ValueError:
+                pass
+        
+        if len(filters) > 1:
+            model_query = model_query.filter(or_(*filters))
+        elif len(filters) == 1:
+            model_query = model_query.filter(filters[0])
+    else:
+        # Filter by folder
+        model_query = model_query.filter(Experiment.folder_id == folder_id)
+
+    models = model_query.order_by(Experiment.created_at.desc()).all()
+    
+    # Fetch subfolders
+    folders = []
+    if not is_search:
+        folders = db.query(Folder).filter(
+            Folder.user_id == int(user_id),
+            Folder.folder_type == "model",
+            Folder.parent_id == folder_id
+        ).all()
+
+    # Breadcrumbs logic
+    breadcrumbs = []
+    if folder_id:
+        curr = db.query(Folder).filter(Folder.id == folder_id).first()
+        while curr:
+            breadcrumbs.insert(0, {"id": curr.id, "name": curr.name})
+            if curr.parent_id:
+                curr = db.query(Folder).filter(Folder.id == curr.parent_id).first()
+            else:
+                curr = None
+    
+    return templates.TemplateResponse("view_models.html", {
+        "request": request, 
+        "username": user.username, 
+        "models": models,
+        "folders": folders,
+        "current_folder_id": folder_id,
+        "breadcrumbs": breadcrumbs,
+        "search_query": search,
+        "search_date": date,
+        "is_search": is_search
+    })
+
+# API for fetching model catalog contents as JSON (used in selection modals)
+@router.get("/api/model_catalog/contents")
+def get_model_catalog_contents(
+    request: Request,
+    db: Session = Depends(get_db),
+    folder_id: Optional[int] = None
+):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Folders
+    folders = db.query(Folder).filter(
+        Folder.user_id == int(user_id),
+        Folder.folder_type == "model",
+        Folder.parent_id == folder_id
+    ).all()
+    
+    # Models (Experiments)
+    models = db.query(Experiment).filter(
+        Experiment.user_id == int(user_id),
+        Experiment.status.in_(["COMPLETED", "DEPLOYED"]),
+        Experiment.folder_id == folder_id
+    ).order_by(Experiment.created_at.desc()).all()
+    
+    # Breadcrumbs
+    breadcrumbs = []
+    if folder_id:
+        curr = db.query(Folder).filter(Folder.id == folder_id).first()
+        while curr:
+            breadcrumbs.insert(0, {"id": curr.id, "name": curr.name})
+            if curr.parent_id:
+                curr = db.query(Folder).filter(Folder.id == curr.parent_id).first()
+            else:
+                curr = None
+                
+    return {
+        "folders": [{"id": f.id, "name": f.name} for f in folders],
+        "models": [{"id": m.id, "name": m.name, "algorithm": m.algorithm, "created_at": m.created_at.strftime('%Y-%m-%d')} for m in models],
+        "breadcrumbs": breadcrumbs
+    }
 
 # this route is used to preview the model
 @router.get("/preview_model/{model_id}")

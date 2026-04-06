@@ -1,5 +1,5 @@
 # Has all the schemas for tables in the database
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base
 from datetime import datetime
 
@@ -16,6 +16,16 @@ class User(Base):
     profile_pic_url = Column(String(1024), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class Folder(Base):
+    __tablename__ = "folders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    parent_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
+    user_id = Column(Integer, nullable=False)
+    folder_type = Column(String(50), nullable=False) # "dataset" or "model"
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 class Dataset(Base):
     __tablename__ = "datasets"
 
@@ -29,6 +39,7 @@ class Dataset(Base):
     upload_date = Column(DateTime, default=datetime.utcnow)
     description = Column(String(255), nullable=True)
     feature_schema = Column(String(4096), nullable=True) # Storing JSON as string
+    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
 
 class Experiment(Base):
     __tablename__ = "experiments"
@@ -43,6 +54,7 @@ class Experiment(Base):
     status = Column(String(50), default="PENDING")
     model_artifact_path = Column(String(1024), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
 
 class TemporaryDataset(Base):
     __tablename__ = "temp"

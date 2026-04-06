@@ -31,7 +31,7 @@
             <div style="display: flex; flex-wrap: wrap; gap: 2rem; margin-bottom: 1.5rem;">
                 <div>
                     <span style="color: var(--text-secondary); display: block; font-size: 0.9rem;">Filename</span>
-                    <strong style="font-size: 1.1rem;">{{ active_dataset.s3_key.split('/')[-1] }}</strong>
+                    <strong style="font-size: 1.1rem;">{{ active_dataset.filename }}</strong>
                 </div>
                 <div>
                     <span style="color: var(--text-secondary); display: block; font-size: 0.9rem;">Rows</span>
@@ -86,20 +86,23 @@
     <div class="modal-overlay" id="catalogModal">
         <div class="modal-box">
             <button class="modal-close" id="closeCatalogBtn">&times;</button>
-            <div class="modal-title">Select from Catalog</div>
-            <form id="catalogForm">
-                <div class="form-group">
-                    <label for="dataset_id" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Choose
-                        Dataset</label>
-                    <select name="dataset_id" id="dataset_id" class="form-control">
-                        {% for dataset in datasets %}
-                        <option value="{{ dataset.id }}">{{ dataset.filename }} ({{
-                            dataset.upload_date.strftime('%Y-%m-%d') }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
-                    <button type="submit" class="btn btn-primary">Confirm Connection</button>
+            <div class="modal-title"><i class="fas fa-database"></i> Connect from Catalog</div>
+            
+            <!-- Breadcrumbs -->
+            <div id="catalogBreadcrumbs" style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+                <!-- Filled via JS -->
+            </div>
+
+            <div id="catalogExplorer" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-primary);">
+                <!-- Filled via JS -->
+                <div style="padding: 2rem; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Loading catalog...</div>
+            </div>
+
+            <form id="catalogForm" style="margin-top: 1.5rem;">
+                <input type="hidden" name="dataset_id" id="selected_dataset_id" value="">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="selectionStatus" style="font-size: 0.9rem; color: var(--text-muted); font-weight: 500;">No dataset selected</span>
+                    <button type="submit" id="confirmCatalogBtn" class="btn btn-primary" disabled>Confirm Connection</button>
                 </div>
             </form>
         </div>
@@ -179,21 +182,119 @@
     //catalog logic
     const openCatalogBtn = document.getElementById("openCatalogBtn");
     const catalogForm = document.getElementById("catalogForm");
+    const catalogExplorer = document.getElementById("catalogExplorer");
+    const catalogBreadcrumbs = document.getElementById("catalogBreadcrumbs");
+    const selectedDatasetIdInput = document.getElementById("selected_dataset_id");
+    const confirmCatalogBtn = document.getElementById("confirmCatalogBtn");
+    const selectionStatus = document.getElementById("selectionStatus");
 
     //open catalog modal
-    openCatalogBtn.addEventListener("click", () => showModal("catalogModal"));
+    openCatalogBtn.addEventListener("click", () => {
+        showModal("catalogModal");
+        loadCatalogContents(); // Start at root
+    });
+    
     document.getElementById("closeCatalogBtn").addEventListener("click", () => hideModal("catalogModal"));
+
+    async function loadCatalogContents(folderId = null) {
+        catalogExplorer.innerHTML = '<div style="padding: 2rem; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        
+        let url = '/api/catalog/contents';
+        if (folderId) url += `?folder_id=${folderId}`;
+        
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Failed to load catalog");
+            const data = await response.json();
+            renderExplorer(data);
+            renderBreadcrumbs(data.breadcrumbs);
+        } catch (error) {
+            catalogExplorer.innerHTML = `<div style="padding: 2rem; text-align: center; color: var(--error-color);">Error: ${error.message}</div>`;
+        }
+    }
+
+    function renderBreadcrumbs(crumbs) {
+        let html = `<a href="javascript:void(0)" onclick="loadCatalogContents()" style="text-decoration: none; color: var(--accent);">Root</a>`;
+        crumbs.forEach(crumb => {
+            html += `<i class="fas fa-chevron-right" style="font-size: 0.7rem; margin: 0 4px;"></i>`;
+            html += `<a href="javascript:void(0)" onclick="loadCatalogContents(${crumb.id})" style="text-decoration: none; color: var(--accent);">${crumb.name}</a>`;
+        });
+        catalogBreadcrumbs.innerHTML = html;
+    }
+
+    function renderExplorer(data) {
+        if (data.folders.length === 0 && data.datasets.length === 0) {
+            catalogExplorer.innerHTML = '<div style="padding: 3rem; text-align: center; color: var(--text-muted);">This folder is empty.</div>';
+            return;
+        }
+
+        let html = '<div style="display: flex; flex-direction: column;">';
+        
+        // Render Folders
+        data.folders.forEach(f => {
+            html += `
+                <div class="explorer-item" onclick="loadCatalogContents(${f.id})" style="padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); transition: background 0.2s;">
+                    <i class="fas fa-folder" style="color: #fbbf24; font-size: 1.2rem;"></i>
+                    <span style="font-weight: 600;">${f.name}</span>
+                    <i class="fas fa-chevron-right" style="margin-left: auto; color: var(--text-muted); font-size: 0.8rem;"></i>
+                </div>`;
+        });
+
+        // Render Datasets
+        data.datasets.forEach(d => {
+            const isSelected = selectedDatasetIdInput.value == d.id;
+            html += `
+                <div class="explorer-item dataset-item ${isSelected ? 'selected' : ''}" data-id="${d.id}" data-name="${d.filename}" onclick="selectDataset(this)" style="padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); transition: background 0.2s;">
+                    <i class="fas fa-file-csv" style="color: #6366f1; font-size: 1.2rem;"></i>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-weight: 500;">${d.filename}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">Uploaded: ${d.upload_date}</span>
+                    </div>
+                </div>`;
+        });
+
+        html += '</div>';
+        catalogExplorer.innerHTML = html;
+
+        // Add Hover Effect via CSS if not defined
+        if (!document.getElementById('explorer-styles')) {
+            const style = document.createElement('style');
+            style.id = 'explorer-styles';
+            style.textContent = `
+                .explorer-item:hover { background: var(--bg-secondary); }
+                .explorer-item.selected { background: rgba(99, 102, 241, 0.1); border-left: 4px solid var(--accent); }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    window.selectDataset = function(el) {
+        // Clear previous selection
+        document.querySelectorAll('.dataset-item').forEach(item => item.classList.remove('selected'));
+        
+        // Set new selection
+        el.classList.add('selected');
+        const id = el.getAttribute('data-id');
+        const name = el.getAttribute('data-name');
+        
+        selectedDatasetIdInput.value = id;
+        selectionStatus.innerHTML = `Selected: <strong>${name}</strong>`;
+        selectionStatus.style.color = 'var(--text-primary)';
+        confirmCatalogBtn.disabled = false;
+    }
 
     //catalog form submission
     catalogForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const formData = new FormData(catalogForm);
+        const datasetId = selectedDatasetIdInput.value;
+        if (!datasetId) return;
+
+        const formData = new FormData();
+        formData.append('dataset_id', datasetId);
 
         try {
-            //send the form data to the server by the backend route, where the dataset is duplicated into another s3 folder
             const response = await fetch("/connect_dataset", { method: "POST", body: formData });
             if (response.ok) {
-                // alert("Data connected successfully!"); // Removed alert for smoother UX
                 location.reload();
             } else {
                 alert("Failed to connect data.");
@@ -214,7 +315,7 @@
             showModal("previewModal");
 
             try {
-                const response = await fetch(`/preview_temporary_dataset/${tempId}`);
+                const response = await fetch(`/preview_dataset/${tempId}`);
                 if (!response.ok) throw new Error("Failed to load data");
 
                 const result = await response.json();

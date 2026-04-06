@@ -10,7 +10,7 @@
     <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--primary-color);">
         <h3 style="margin-top: 0; color: var(--primary-color);">Current Dataset Context</h3>
         <p style="margin-bottom: 0.5rem;"><i class="fas fa-database" style="margin-right: 8px; color: #6c757d;"></i>
-            <strong>Filename:</strong> {{ dataset.s3_key.split('/')[-1] }}</p>
+            <strong>Filename:</strong> {{ dataset.filename }}</p>
         <p style="margin-bottom: 0.5rem;"><i class="fas fa-table" style="margin-right: 8px; color: #6c757d;"></i>
             <strong>Rows:</strong> {{ dataset.row_count }}</p>
         <p style="margin-bottom: 0;"><i class="fas fa-file-alt" style="margin-right: 8px; color: #6c757d;"></i>

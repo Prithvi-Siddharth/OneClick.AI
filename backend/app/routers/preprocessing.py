@@ -62,7 +62,7 @@ def preprocessing_page(request: Request, db: Session = Depends(get_db)):
     datasets = db.query(Dataset).filter(Dataset.user_id == int(user_id)).all()
     
     #fetch the latest loaded dataset for preprocessing and display it in the preprocessing page
-    active_dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
+    active_dataset = db.query(Dataset).filter(Dataset.user_id == int(user_id)).order_by(Dataset.id.desc()).first()
     
     # Fetch user for navbar profile
     user = db.query(User).filter(User.user_id == int(user_id)).first()
@@ -95,31 +95,21 @@ def temporary_upload_dataset(
         if not bucket_name:
             raise ValueError("S3_BUCKET_NAME not configured in environment variables")
 
-        # Call the function
-        result = process_and_save_dataset_temporary(
+        # Call the main catalog saving service instead of temporary
+        from app.services.s3_operations import process_and_save_dataset
+        dataset = process_and_save_dataset(
             db=db,
             user_id=int(user_id),
             file_obj=dataset_file,
-            bucket_name=bucket_name
+            filename=dataset_file.filename,
+            bucket_name=bucket_name,
+            description="Uploaded via Preprocessing Studio"
         )
-
-        # Handle both dict and Dataset object responses
-        if isinstance(result, dict):
-            #returns dict with success/data/message
-            if not result["success"]:
-                return JSONResponse(
-                    content={"error": result["message"]},
-                    status_code=status.HTTP_400_BAD_REQUEST
-                )
-            dataset = result["data"]
-        else:
-            #returns dataset object directly
-            dataset = result
         
         # Return success response
         return JSONResponse(
             content={
-                "message": "File uploaded successfully",
+                "message": "File uploaded to Catalog successfully",
                 "dataset_id": dataset.id,
                 "row_count": dataset.row_count,
                 "file_size": dataset.file_size
@@ -158,68 +148,35 @@ def connect_dataset(
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
 
-    try:
-        bucket_name = os.getenv("S3_BUCKET_NAME")
-        
-        if not bucket_name:
-            raise ValueError("S3_BUCKET_NAME not configured in environment variables")
-
-        timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        source_ext = os.path.splitext(dataset.s3_key)[1]  # e.g. '.xlsx'
-
-        # Call the function with required metadata from the catalog record
-        temp_dataset = duplicate_dataset_in_s3(
-            db=db,
-            user_id=int(user_id),
-            bucket_name=bucket_name,
-            source_key=dataset.s3_key,
-            filename=dataset.filename,
-            row_count=dataset.row_count,
-            feature_schema=dataset.feature_schema,
-            file_size=dataset.file_size
-        )
-
-
-        
-        # Return success response
-        return JSONResponse(
-            content={
-                "message": "Dataset connected successfully",
-                "dataset_id": temp_dataset.id,
-                "row_count": temp_dataset.row_count,
-                "file_size": temp_dataset.file_size
-            },
-            status_code=status.HTTP_200_OK
-        )
-        
-    except HTTPException as e:
-        return JSONResponse(
-            content={"error": e.detail},
-            status_code=e.status_code
-        )
-    except Exception as e:
-        return JSONResponse(
-            content={"error": str(e)},
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+    # The user wants to use the main catalog directly. 
+    # Instead of duplicating, we simply return the dataset_id of the existing catalog entry.
+    return JSONResponse(
+        content={
+            "message": "Dataset connected successfully",
+            "dataset_id": dataset.id,
+            "row_count": dataset.row_count,
+            "file_size": dataset.file_size
+        },
+        status_code=status.HTTP_200_OK
+    )
 
 
 # this route is used to preview the temporary dataset
-@router.get("/preview_temporary_dataset/{temp_id}")
-def preview_temporary_dataset(temp_id: int, request: Request, db: Session = Depends(get_db)):
+@router.get("/preview_dataset/{dataset_id}")
+def preview_dataset(dataset_id: int, request: Request, db: Session = Depends(get_db)):
     user_id = get_current_user_id(request)
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    temp_dataset = db.query(TemporaryDataset).filter(TemporaryDataset.id == temp_id, TemporaryDataset.user_id == int(user_id)).first()
-    if not temp_dataset:
-        raise HTTPException(status_code=404, detail="Temporary dataset not found")
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
     
     # Read from S3 using existing service function
     data = read_dataset_from_s3(
-        bucket_name=temp_dataset.s3_bucket,
-        s3_key=temp_dataset.s3_key,
-        filename=temp_dataset.s3_key.split('/')[-1],  # Use actual filename from S3 key
+        bucket_name=dataset.s3_bucket,
+        s3_key=dataset.s3_key,
+        filename=dataset.s3_key.split('/')[-1],  # Use actual filename from S3 key
         preview_limit=5
     )
     
@@ -239,10 +196,10 @@ def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    #fetching the path of dataset from db
-    active_dataset = db.query(TemporaryDataset).filter(
-                TemporaryDataset.user_id == int(user_id)
-            ).order_by(TemporaryDataset.id.desc()).first()
+    #fetching the path of dataset from catalog
+    active_dataset = db.query(Dataset).filter(
+                Dataset.user_id == int(user_id)
+            ).order_by(Dataset.id.desc()).first()
     
     if not active_dataset:
         return RedirectResponse(url="/preprocessing?error=no_active_dataset")
@@ -335,7 +292,7 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
 
     async def send_history(temp_id):
         logs = db.query(PreprocessingLog).filter(
-            PreprocessingLog.temp_dataset_id == temp_id,
+            PreprocessingLog.temp_dataset_id == temp_id, # Keeping column name for now to avoid migration
             PreprocessingLog.user_id == int(user_id)
         ).order_by(PreprocessingLog.timestamp.asc()).all()
         
@@ -377,10 +334,10 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
             message = json.loads(data)
             action = message.get("action")
             
-            # Fetch latest active dataset for this user
-            active_dataset = db.query(TemporaryDataset).filter(
-                TemporaryDataset.user_id == int(user_id)
-            ).order_by(TemporaryDataset.id.desc()).first()
+            # Fetch latest active dataset for this user from catalog
+            active_dataset = db.query(Dataset).filter(
+                Dataset.user_id == int(user_id)
+            ).order_by(Dataset.id.desc()).first()
 
             if not active_dataset:
                 await send_status("No active dataset found. Please upload one first.")
@@ -528,13 +485,13 @@ def download_preprocessed_dataset(dataset_id: int, request: Request, db: Session
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
-    temp_dataset = db.query(TemporaryDataset).filter(
-        TemporaryDataset.id == dataset_id, 
-        TemporaryDataset.user_id == int(user_id)
+    dataset = db.query(Dataset).filter(
+        Dataset.id == dataset_id, 
+        Dataset.user_id == int(user_id)
     ).first()
 
-    if not temp_dataset:
-        raise HTTPException(status_code=404, detail="Temporary dataset not found")
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
     
     from app.services.s3_operations import create_presigned_download_url
     url = create_presigned_download_url(

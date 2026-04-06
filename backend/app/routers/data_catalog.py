@@ -6,8 +6,10 @@ import os
 from datetime import datetime
 
 from app.db import get_db
-from app.models import User, Dataset, TemporaryDataset
+from app.models import User, Dataset, TemporaryDataset, Folder, Experiment
 from app.security import get_current_user_id
+from sqlalchemy import or_
+from typing import Optional
 from app.services.s3_operations import (
     process_and_save_dataset, get_user_datasets, read_dataset_from_s3,
     s3_delete_object, create_presigned_download_url,
@@ -28,8 +30,9 @@ def upload_dataset(
     request: Request,
     db: Session = Depends(get_db),
     datasetFilename: str = Form(...),
-    datasetDescription: str = Form(...),
+    datasetDescription: Optional[str] = Form(None),
     dataset_file: UploadFile = File(...),
+    folder_id: Optional[int] = Form(None)
 ):
     user_id = get_current_user_id(request)
     if not user_id:
@@ -38,6 +41,12 @@ def upload_dataset(
     user = db.query(User).filter(User.user_id == int(user_id)).first()
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    
+    if not datasetDescription or not datasetDescription.strip():
+        return JSONResponse(
+            content={"error": "A description is required for the dataset."},
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
     
     try:
         bucket_name = os.getenv("S3_BUCKET_NAME")
@@ -60,6 +69,7 @@ def upload_dataset(
             file_obj=dataset_file,
             bucket_name=bucket_name,
             description=datasetDescription,
+            folder_id=folder_id
         )
 
         # Handle both dict and Dataset object responses
@@ -98,10 +108,91 @@ def upload_dataset(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+# Create a new folder
+@router.post("/create_folder")
+def create_folder(
+    request: Request,
+    db: Session = Depends(get_db),
+    name: str = Form(...),
+    parent_id: Optional[int] = Form(None),
+    folder_type: str = Form(...) # "dataset" or "model"
+):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return JSONResponse(content={"error": "Not authenticated"}, status_code=401)
+    
+    new_folder = Folder(
+        name=name,
+        parent_id=parent_id if parent_id else None,
+        user_id=int(user_id),
+        folder_type=folder_type
+    )
+    db.add(new_folder)
+    db.commit()
+    db.refresh(new_folder)
+    return JSONResponse(content={"message": "Folder created successfully", "id": new_folder.id})
+
+@router.delete("/api/delete_folder/{folder_id}")
+def delete_folder(folder_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Ownership Check
+    folder = db.query(Folder).filter(Folder.id == folder_id, Folder.user_id == int(user_id)).first()
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    
+    # Empty-Check: 1. Subfolders
+    subfolders_count = db.query(Folder).filter(Folder.parent_id == folder_id).count()
+    if subfolders_count > 0:
+        return JSONResponse(status_code=400, content={"error": "Folder is not empty (contains subfolders)"})
+    
+    # Empty-Check: 2. Catalog Items (based on folder type)
+    if folder.folder_type == "dataset":
+        item_count = db.query(Dataset).filter(Dataset.folder_id == folder_id).count()
+    else:
+        # Assuming folder_type == "model"
+        item_count = db.query(Experiment).filter(Experiment.folder_id == folder_id).count()
+        
+    if item_count > 0:
+        return JSONResponse(status_code=400, content={"error": f"Folder is not empty (contains {folder.folder_type}s)"})
+    
+    # All checks passed
+    db.delete(folder)
+    db.commit()
+    return {"message": "Folder deleted successfully"}
+
+# Move dataset to a folder
+@router.post("/move_dataset/{dataset_id}")
+def move_dataset(
+    dataset_id: int,
+    request: Request,
+    folder_id: Optional[int] = Form(None),
+    db: Session = Depends(get_db)
+):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return JSONResponse(content={"error": "Not authenticated"}, status_code=401)
+    
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
+    if not dataset:
+        return JSONResponse(content={"error": "Dataset not found"}, status_code=404)
+    
+    dataset.folder_id = folder_id if folder_id else None
+    db.commit()
+    return JSONResponse(content={"message": "Dataset moved successfully"})
+
 # rendering of the view_datasets.html to view all datasets in the data catalog
 @router.get("/view_datasets")
-def view_dataset(request: Request, db: Session = Depends(get_db), response_class=HTMLResponse):
-
+def view_dataset(
+    request: Request, 
+    db: Session = Depends(get_db), 
+    folder_id: Optional[int] = None,
+    search: Optional[str] = None,
+    date: Optional[str] = None,
+    response_class=HTMLResponse
+):
     user_id = get_current_user_id(request)
     if not user_id:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -110,9 +201,106 @@ def view_dataset(request: Request, db: Session = Depends(get_db), response_class
     if not user:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
-    datasets = get_user_datasets(db, int(user_id))
+    # Base query for datasets
+    dataset_query = db.query(Dataset).filter(Dataset.user_id == int(user_id))
     
-    return templates.TemplateResponse("view_datasets.html", {"request": request, "username": user.username, "datasets": datasets})
+    # Advanced Filtering (Search/Date)
+    is_search = False
+    if search or date:
+        is_search = True
+        filters = []
+        if search:
+            filters.append(Dataset.filename.ilike(f"%{search}%"))
+        
+        if date:
+            try:
+                search_date = datetime.strptime(date, '%Y-%m-%d').date()
+                filters.append(db.func.date(Dataset.upload_date) == search_date)
+            except ValueError:
+                pass
+        
+        if len(filters) > 1:
+            dataset_query = dataset_query.filter(or_(*filters))
+        elif len(filters) == 1:
+            dataset_query = dataset_query.filter(filters[0])
+    else:
+        # Filter by folder
+        dataset_query = dataset_query.filter(Dataset.folder_id == folder_id)
+
+    datasets = dataset_query.order_by(Dataset.upload_date.desc()).all()
+    
+    # Fetch subfolders (only if not searching globally)
+    folders = []
+    if not is_search:
+        folders = db.query(Folder).filter(
+            Folder.user_id == int(user_id),
+            Folder.folder_type == "dataset",
+            Folder.parent_id == folder_id
+        ).all()
+
+    # Breadcrumbs logic
+    breadcrumbs = []
+    if folder_id:
+        curr = db.query(Folder).filter(Folder.id == folder_id).first()
+        while curr:
+            breadcrumbs.insert(0, {"id": curr.id, "name": curr.name})
+            if curr.parent_id:
+                curr = db.query(Folder).filter(Folder.id == curr.parent_id).first()
+            else:
+                curr = None
+    
+    return templates.TemplateResponse("view_datasets.html", {
+        "request": request, 
+        "username": user.username, 
+        "datasets": datasets,
+        "folders": folders,
+        "current_folder_id": folder_id,
+        "breadcrumbs": breadcrumbs,
+        "search_query": search,
+        "search_date": date,
+        "is_search": is_search
+    })
+
+# API for fetching catalog contents as JSON (used in Preprocessing etc)
+@router.get("/api/catalog/contents")
+def get_catalog_contents(
+    request: Request,
+    db: Session = Depends(get_db),
+    folder_id: Optional[int] = None
+):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    # Folders
+    folders = db.query(Folder).filter(
+        Folder.user_id == int(user_id),
+        Folder.folder_type == "dataset",
+        Folder.parent_id == folder_id
+    ).all()
+    
+    # Datasets
+    datasets = db.query(Dataset).filter(
+        Dataset.user_id == int(user_id),
+        Dataset.folder_id == folder_id
+    ).order_by(Dataset.upload_date.desc()).all()
+    
+    # Breadcrumbs
+    breadcrumbs = []
+    if folder_id:
+        curr = db.query(Folder).filter(Folder.id == folder_id).first()
+        while curr:
+            breadcrumbs.insert(0, {"id": curr.id, "name": curr.name})
+            if curr.parent_id:
+                curr = db.query(Folder).filter(Folder.id == curr.parent_id).first()
+            else:
+                curr = None
+                
+    return {
+        "folders": [{"id": f.id, "name": f.name} for f in folders],
+        "datasets": [{"id": d.id, "filename": d.filename, "upload_date": d.upload_date.strftime('%Y-%m-%d')} for d in datasets],
+        "breadcrumbs": breadcrumbs
+    }
 
 #this route is used to preview the dataset
 @router.get("/preview_dataset/{dataset_id}")

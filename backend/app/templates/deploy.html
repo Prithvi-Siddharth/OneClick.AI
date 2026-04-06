@@ -366,16 +366,40 @@
     </div>
 
     <!-- Step 1: Select Model -->
-    <div class="selection-section">
-        <h3 class="section-title">
-            <i class="fas fa-brain" style="color: #6366f1; margin-right: 12px;"></i>Select Model to Deploy
-        </h3>
-        <select id="model-select">
-            <option value="" disabled selected>Choose a model from your catalog...</option>
-            {% for model in models %}
-            <option value="{{ model.id }}">{{ model.name }} ({{ model.created_at.strftime('%Y-%m-%d') }})</option>
-            {% endfor %}
-        </select>
+        <div id="selectedModelDisplay" class="glass-card" style="padding: 1rem; margin-bottom: 1rem; display: none; align-items: center; gap: 12px; border: 1.5px solid var(--primary);">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                <i class="fas fa-cube"></i>
+            </div>
+            <div>
+                <div id="displayModelName" style="font-weight: 700; color: var(--text-heading);"></div>
+                <div id="displayModelAlgo" style="font-size: 0.75rem; color: var(--text-muted);"></div>
+            </div>
+            <button class="btn btn-ghost" onclick="openModelCatalogModal()" style="margin-left: auto; font-size: 0.8rem;">Change</button>
+        </div>
+
+        <button id="openModelCatalogBtn" class="btn btn-secondary" style="width: 100%; padding: 1rem; border-radius: 12px; border: 1.5px dashed var(--primary); background: transparent; color: var(--primary); font-weight: 600;" onclick="openModelCatalogModal()">
+            <i class="fas fa-folder-open" style="margin-right: 8px;"></i> Choose Model from Catalog
+        </button>
+        <input type="hidden" id="model-select" value="">
+    </div>
+
+    <!-- Model Catalog Modal -->
+    <div class="modal-overlay" id="modelCatalogModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center;">
+        <div class="modal-box" style="background: var(--panel-bg); width: 90%; max-width: 600px; padding: 2rem; border-radius: 24px; position: relative; border: 1px solid var(--panel-border); box-shadow: var(--panel-shadow);">
+            <button class="modal-close" onclick="closeModelCatalogModal()" style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer;">&times;</button>
+            <h3 style="margin-top: 0; color: var(--text-heading); margin-bottom: 1.5rem;"><i class="fas fa-database"></i> Model Catalog</h3>
+            
+            <div id="modelBreadcrumbs" style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"></div>
+            
+            <div id="modelExplorer" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--panel-border); border-radius: 12px; background: var(--input-bg);">
+                <div style="padding: 2rem; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                <span id="modelSelectionStatus" style="font-size: 0.9rem; color: var(--text-muted);">No model selected</span>
+                <button class="btn btn-primary" id="confirmModelBtn" disabled onclick="confirmModelSelection()">Confirm Selection</button>
+            </div>
+        </div>
     </div>
 
     <!-- Step 2: Choose Strategy -->
@@ -470,23 +494,121 @@ resp = requests.post(api_url, json=payload)
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const modelSelect = document.getElementById('model-select');
-        const deployBtn = document.getElementById('deploy-btn');
-        const testInterface = document.getElementById('test-interface');
-
-        modelSelect.addEventListener('change', function () {
-            deployBtn.innerHTML = 'Deploy Now';
-            deployBtn.disabled = false;
-            deployBtn.style.background = '';
-            deployBtn.style.borderColor = '';
-            testInterface.style.display = 'none';
-            activeModelId = null;
-        });
-    });
-
-    let selectedStrategy = 'api';
     let activeModelId = null;
+    let selectedModelData = null;
+
+    // --- Model Catalog Modal Logic ---
+    function openModelCatalogModal() {
+        document.getElementById('modelCatalogModal').style.display = 'flex';
+        loadModelCatalogContents();
+    }
+
+    function closeModelCatalogModal() {
+        document.getElementById('modelCatalogModal').style.display = 'none';
+    }
+
+    async function loadModelCatalogContents(folderId = null) {
+        const explorer = document.getElementById('modelExplorer');
+        const breadcrumbs = document.getElementById('modelBreadcrumbs');
+        explorer.innerHTML = '<div style="padding: 2rem; text-align: center;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        
+        let url = '/api/model_catalog/contents';
+        if (folderId) url += `?folder_id=${folderId}`;
+        
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Failed to load catalog");
+            const data = await response.json();
+            
+            // Render Breadcrumbs
+            let bHtml = `<a href="javascript:void(0)" onclick="loadModelCatalogContents()" style="text-decoration: none; color: var(--primary);">Root</a>`;
+            data.breadcrumbs.forEach(crumb => {
+                bHtml += `<i class="fas fa-chevron-right" style="font-size: 0.7rem; margin: 0 4px;"></i>`;
+                bHtml += `<a href="javascript:void(0)" onclick="loadModelCatalogContents(${crumb.id})" style="text-decoration: none; color: var(--primary);">${crumb.name}</a>`;
+            });
+            breadcrumbs.innerHTML = bHtml;
+
+            // Render Explorer
+            if (data.folders.length === 0 && data.models.length === 0) {
+                explorer.innerHTML = '<div style="padding: 3rem; text-align: center; color: var(--text-muted);">Empty folder</div>';
+                return;
+            }
+
+            let html = '<div style="display: flex; flex-direction: column;">';
+            data.folders.forEach(f => {
+                html += `
+                    <div class="explorer-item" onclick="loadModelCatalogContents(${f.id})" style="padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--panel-border); transition: background 0.2s;">
+                        <i class="fas fa-folder" style="color: #fbbf24; font-size: 1.2rem;"></i>
+                        <span style="font-weight: 600; color: var(--text-heading);">${f.name}</span>
+                        <i class="fas fa-chevron-right" style="margin-left: auto; color: var(--text-dim); font-size: 0.8rem;"></i>
+                    </div>`;
+            });
+
+            data.models.forEach(m => {
+                const isSelected = activeModelId == m.id;
+                html += `
+                    <div class="explorer-item model-item ${isSelected ? 'selected' : ''}" data-id="${m.id}" data-name="${m.name}" data-algo="${m.algorithm}" onclick="selectModel(this)" style="padding: 12px 20px; cursor: pointer; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--panel-border); transition: background 0.2s;">
+                        <i class="fas fa-cube" style="color: var(--primary); font-size: 1.2rem;"></i>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-weight: 600; color: var(--text-heading);">${m.name}</span>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">${m.algorithm} • ${m.created_at}</span>
+                        </div>
+                    </div>`;
+            });
+            html += '</div>';
+            explorer.innerHTML = html;
+
+            // Simple styling for selection
+            if (!document.getElementById('explorer-select-styles')) {
+                const style = document.createElement('style');
+                style.id = 'explorer-select-styles';
+                style.textContent = `
+                    .explorer-item:hover { background: var(--card-hover-bg); }
+                    .explorer-item.selected { background: var(--card-active-bg); border-left: 4px solid var(--primary); }
+                `;
+                document.head.appendChild(style);
+            }
+
+        } catch (error) {
+            explorer.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444;">Error: ${error.message}</div>`;
+        }
+    }
+
+    window.selectModel = function(el) {
+        document.querySelectorAll('.model-item').forEach(m => m.classList.remove('selected'));
+        el.classList.add('selected');
+        
+        const id = el.getAttribute('data-id');
+        const name = el.getAttribute('data-name');
+        const algo = el.getAttribute('data-algo');
+        
+        selectedModelData = { id, name, algo };
+        document.getElementById('modelSelectionStatus').innerHTML = `Selected: <strong>${name}</strong>`;
+        document.getElementById('confirmModelBtn').disabled = false;
+    }
+
+    function confirmModelSelection() {
+        if (!selectedModelData) return;
+        
+        activeModelId = selectedModelData.id;
+        document.getElementById('model-select').value = activeModelId;
+        
+        // Update display
+        document.getElementById('displayModelName').textContent = selectedModelData.name;
+        document.getElementById('displayModelAlgo').textContent = selectedModelData.algo;
+        document.getElementById('selectedModelDisplay').style.display = 'flex';
+        document.getElementById('openModelCatalogBtn').style.display = 'none';
+        
+        // Reset deploy button state
+        const deployBtn = document.getElementById('deploy-btn');
+        deployBtn.innerHTML = 'Deploy Now';
+        deployBtn.disabled = false;
+        deployBtn.style.background = '';
+        deployBtn.style.borderColor = '';
+        document.getElementById('test-interface').style.display = 'none';
+        
+        closeModelCatalogModal();
+    }
 
     function selectStrategy(type) {
         selectedStrategy = type;

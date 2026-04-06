@@ -16,6 +16,7 @@ from app.models import Dataset, Experiment, TemporaryDataset
 from app.services.data_preprocessing import get_dataset_preview_and_stats
 from io import BytesIO
 import json
+from typing import Optional
 
 
 # Ensure that you have AWS credentials in your environment variables:
@@ -182,7 +183,8 @@ def process_and_save_dataset(
     file_obj,
     filename: str,
     bucket_name: str,
-    description: str
+    description: str,
+    folder_id: Optional[int] = None
 ) -> Dataset:
     """
     Orchestrator function to:
@@ -226,7 +228,8 @@ def process_and_save_dataset(
         file_size=file_size,
         row_count=row_count,
         description=description,
-        feature_schema=json.dumps(schema_dict) 
+        feature_schema=json.dumps(schema_dict),
+        folder_id=folder_id
     )
 
     db.add(new_dataset)
@@ -397,7 +400,8 @@ def upload_model_to_s3(
     bucket_name: str, 
     user_id: int, 
     model_name: str,
-    algorithm: str
+    algorithm: str,
+    folder_id: Optional[int] = None
 ) -> Experiment:
     """
     Uploads a trained model (joblib file) to S3 and saves metadata to TiDB.
@@ -424,7 +428,8 @@ def upload_model_to_s3(
         name=model_name,
         algorithm=algorithm,
         model_artifact_path=s3_key,
-        status="COMPLETED"
+        status="COMPLETED",
+        folder_id=folder_id
     )
     db.add(new_experiment)
     db.commit()
