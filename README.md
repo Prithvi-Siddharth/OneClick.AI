@@ -1,6 +1,6 @@
 # OneClick.AI
 
-OneClick.AI is a **No-Code Machine Learning Platform** designed to democratize AI. It allows users to upload datasets, automatically preprocess them, and build robust machine learning models without writing a single line of code.
+OneClick.AI is a **no-code ML tool for rapid development by data science and MLOPs teams used to accelerate experimentation.** It allows users to upload datasets, automatically preprocess them, and build robust machine learning models without writing a single line of code.
 
 ## 🚀 Features
 
