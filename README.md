@@ -38,11 +38,11 @@ OneClick.AI is a powerful **no-code Machine Learning platform** designed for dat
 *   **Auto-EDA Statistics**: Instant statistical summaries (Mean, Median, Std Dev, Variance) for numerical attributes.
 
 ### 🧠 Intelligent AutoML Pipeline
-*   **Smart Preprocessing**: Automated handling of missing values, encoding for categorical variables, and basic feature engineering.
-*   **Algorithm Arena**: Train multiple state-of-the-art algorithms simultaneously (including Random Forest, XGBoost, TensorFlow/Keras).
+*   **Smart Preprocessing**: Handle missing values, encoding for categorical variables, and advanced feature engineering with just a few clicks.
+*   **Algorithm Arena**: Train multiple state-of-the-art algorithms simultaneously (including Decision Tree, SVM, K-Nearest Neighbors).
 *   **Target Selection UI**: intuitive interface to select your target variable and define the ML task (Classification/Regression).
 
-### 🚀 One-Click Deployment
+### 🚀 One-Click Deployment (Upcoming)
 *   **Instant REST Endpoints**: Deploy your best-performing models to a production-ready API with one click.
 *   **Testing Playground**: Built-in specialized UI to test model predictions with manual inputs before full deployment.
 *   **Performance Metrics**: Track R², RMSE, Accuracy, F1-Score, and more in detailed model report cards.
