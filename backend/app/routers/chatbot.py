@@ -11,7 +11,8 @@ from app.security import get_current_user_id
 
 router = APIRouter()
 
-EXTERNAL_CHAT_API = "https://yexxsx2pz2.execute-api.us-east-1.amazonaws.com/prod/ask"
+EXTERNAL_CHAT_API = os.getenv("EXTERNAL_CHAT_API", "https://yexxsx2pz2.execute-api.us-east-1.amazonaws.com/prod/ask")
+
 
 @router.post("/api/chat")
 async def chat_proxy(request: Request, db: Session = Depends(get_db)):
