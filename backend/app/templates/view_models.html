@@ -26,7 +26,8 @@
     <!-- Search and Filter Bar -->
     <div class="glass-card" style="margin-bottom: 2rem; padding: 1.25rem;">
         <form method="get" action="/view_models" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <input type="hidden" name="folder_id" value="{{ current_folder_id or '' }}">
+            {% if current_folder_id %}<input type="hidden" name="folder_id" value="{{ current_folder_id }}">{% endif %}
+
             <div style="flex: 1; min-width: 250px; position: relative;">
                 <i class="fas fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
                 <input type="text" name="search" class="form-control" placeholder="Search models by name or algorithm..." value="{{ search_query or '' }}" style="padding-left: 42px; border-radius: 12px; height: 48px;">
@@ -37,8 +38,9 @@
             </div>
             <button type="submit" class="btn btn-primary" style="padding: 0 1.5rem; border-radius: 12px;">Search</button>
             {% if search_query or search_date %}
-                <a href="/view_models?folder_id={{ current_folder_id or '' }}" class="btn btn-ghost" style="color: #ef4444; display: flex; align-items: center;">Clear</a>
+                <a href="/view_models{% if current_folder_id %}?folder_id={{ current_folder_id }}{% endif %}" class="btn btn-ghost" style="color: #ef4444; display: flex; align-items: center;">Clear</a>
             {% endif %}
+
         </form>
     </div>
 
@@ -176,7 +178,8 @@
         <button class="modal-close" id="closeModelUploadModal">&times;</button>
         <div class="modal-title" style="font-family: var(--font-heading); font-weight: 800;">Upload Model</div>
         <form id="uploadModelForm" method="post" enctype="multipart/form-data" style="margin-top: 1.5rem;">
-            <input type="hidden" name="folder_id" value="{{ current_folder_id or '' }}">
+            {% if current_folder_id %}<input type="hidden" name="folder_id" value="{{ current_folder_id }}">{% endif %}
+
             <div class="form-group">
                 <span class="form-label">Selected File</span>
                 <div id="selectedModelFileText" style="padding: 1rem; background: var(--bg-secondary); border: 1px dashed var(--border); border-radius: 12px; color: var(--text-secondary); font-size: 0.9rem; text-align: center;">
@@ -207,7 +210,8 @@
         <button class="modal-close" onclick="closeCreateFolderModal()">&times;</button>
         <div class="modal-title" style="font-family: var(--font-heading); font-weight: 800;">Create Folder</div>
         <form onsubmit="submitCreateFolder(event)" style="margin-top: 1.5rem;">
-            <input type="hidden" id="folderParentId" value="{{ current_folder_id or '' }}">
+            {% if current_folder_id %}<input type="hidden" id="folderParentId" value="{{ current_folder_id }}">{% endif %}
+
             <div class="form-group">
                 <label class="form-label" for="folderNameInput">Folder Name</label>
                 <input class="form-control" type="text" id="folderNameInput" required placeholder="e.g. Production Models Jan">
@@ -332,8 +336,10 @@
     async function submitCreateFolder(e) {
         e.preventDefault();
         const name = document.getElementById('folderNameInput').value.trim();
-        const parentId = document.getElementById('folderParentId').value;
+        const parentIdElem = document.getElementById('folderParentId');
+        const parentId = parentIdElem ? parentIdElem.value : null;
         if (!name) return;
+
 
         const formData = new FormData();
         formData.append('name', name);

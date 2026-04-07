@@ -24,8 +24,14 @@ def upload_model(
     modelName: str = Form(...),
     modelAlgorithm: str = Form(...),
     model_file: UploadFile = File(...),
-    folder_id: Optional[int] = Form(None)
+    folder_id: Optional[str] = Form(None)
 ):
+    # Handle empty string from frontend
+    try:
+        folder_id = int(folder_id) if folder_id and str(folder_id).strip() else None
+    except (ValueError, TypeError):
+        folder_id = None
+
     user_id = get_current_user_id(request)
     if not user_id:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -83,9 +89,15 @@ def upload_model(
 def move_model(
     model_id: int,
     request: Request,
-    folder_id: Optional[int] = Form(None),
+    folder_id: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
+    # Handle empty string from frontend
+    try:
+        folder_id = int(folder_id) if folder_id and str(folder_id).strip() else None
+    except (ValueError, TypeError):
+        folder_id = None
+
     user_id = get_current_user_id(request)
     if not user_id:
         return JSONResponse(content={"error": "Not authenticated"}, status_code=401)
@@ -103,11 +115,17 @@ def move_model(
 def view_models(
     request: Request, 
     db: Session = Depends(get_db), 
-    folder_id: Optional[int] = None,
+    folder_id: Optional[str] = None,
     search: Optional[str] = None,
     date: Optional[str] = None,
     response_class=HTMLResponse
 ):
+    # Handle empty string from frontend
+    try:
+        folder_id = int(folder_id) if folder_id and str(folder_id).strip() else None
+    except (ValueError, TypeError):
+        folder_id = None
+
     user_id = get_current_user_id(request)
     if not user_id:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
@@ -188,8 +206,14 @@ def view_models(
 def get_model_catalog_contents(
     request: Request,
     db: Session = Depends(get_db),
-    folder_id: Optional[int] = None
+    folder_id: Optional[str] = None
 ):
+    # Handle empty string from frontend
+    try:
+        folder_id = int(folder_id) if folder_id and str(folder_id).strip() else None
+    except (ValueError, TypeError):
+        folder_id = None
+
     user_id = get_current_user_id(request)
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")

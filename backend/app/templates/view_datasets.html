@@ -299,7 +299,8 @@
     <!-- Search and Filter Bar -->
     <div class="card" style="margin-bottom: 1.5rem; padding: 1rem;">
         <form method="get" action="/view_datasets" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-            <input type="hidden" name="folder_id" value="{{ current_folder_id or '' }}">
+            {% if current_folder_id %}<input type="hidden" name="folder_id" value="{{ current_folder_id }}">{% endif %}
+
             <div style="flex: 1; min-width: 200px; position: relative;">
                 <i class="fas fa-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
                 <input type="text" name="search" class="form-control" placeholder="Search by name..." value="{{ search_query or '' }}" style="padding-left: 35px;">
@@ -310,8 +311,9 @@
             </div>
             <button type="submit" class="btn btn-primary">Filter</button>
             {% if search_query or search_date %}
-                <a href="/view_datasets?folder_id={{ current_folder_id or '' }}" class="btn btn-ghost" style="color: var(--error-color);">Clear</a>
+                <a href="/view_datasets{% if current_folder_id %}?folder_id={{ current_folder_id }}{% endif %}" class="btn btn-ghost" style="color: var(--error-color);">Clear</a>
             {% endif %}
+
         </form>
     </div>
 
@@ -517,7 +519,8 @@
         <button class="modal-close" onclick="closeCreateFolderModal()">&times;</button>
         <div class="modal-title" style="font-family: var(--font-heading); font-weight: 800;">Create Folder</div>
         <form onsubmit="submitCreateFolder(event)" style="margin-top: 1.5rem;">
-            <input type="hidden" id="folderParentId" value="{{ current_folder_id or '' }}">
+            {% if current_folder_id %}<input type="hidden" id="folderParentId" value="{{ current_folder_id }}">{% endif %}
+
             <div class="form-group">
                 <label class="form-label" for="folderNameInput">Folder Name</label>
                 <input class="form-control" type="text" id="folderNameInput" required placeholder="e.g. Q1 Project Data">
@@ -553,7 +556,8 @@
         <div class="modal-title" style="font-family: var(--font-heading); font-weight: 800;"><i class="fas fa-cloud-upload-alt" style="margin-right: 10px; color: var(--accent);"></i> Upload Dataset</div>
         
         <form id="uploadForm" style="margin-top: 1.5rem;">
-            <input type="hidden" id="uploadFolderId" value="{{ current_folder_id or '' }}">
+            {% if current_folder_id %}<input type="hidden" id="uploadFolderId" value="{{ current_folder_id }}">{% endif %}
+
             <div id="selectedFileText" style="padding: 1rem; background: var(--bg-secondary); border: 1px dashed var(--border); border-radius: 12px; color: var(--text-secondary); font-size: 0.9rem; text-align: center; margin-bottom: 1.5rem;">
                  <i class="fas fa-file-csv" style="display: block; font-size: 2rem; margin-bottom: 0.5rem; color: var(--text-muted);"></i>
                  No file selected
@@ -779,8 +783,10 @@
         if (!selectedUploadFile) { uploadStatusText.innerText = 'No file selected.'; return; }
         const finalName = datasetFilenameInput.value.trim();
         const desc = datasetDescriptionInput.value.trim();
-        const folderId = document.getElementById('uploadFolderId').value;
+        const folderIdElem = document.getElementById('uploadFolderId');
+        const folderId = folderIdElem ? folderIdElem.value : null;
         if (!finalName) { uploadStatusText.innerHTML = '<span style="color: #ef4444">Filename is required.</span>'; return; }
+
         if (!desc) { uploadStatusText.innerHTML = '<span style="color: #f59e0b">Please add a description for the dataset before uploading.</span>'; return; }
 
         uploadStatusText.innerText = 'Uploading...';
@@ -1001,8 +1007,10 @@
     async function submitCreateFolder(e) {
         e.preventDefault();
         const name = document.getElementById('folderNameInput').value.trim();
-        const parentId = document.getElementById('folderParentId').value;
+        const parentIdElem = document.getElementById('folderParentId');
+        const parentId = parentIdElem ? parentIdElem.value : null;
         if (!name) return;
+
 
         const formData = new FormData();
         formData.append('name', name);
