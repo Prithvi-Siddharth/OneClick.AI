@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+
+{% block title %}Model Comparison - OneClick.AI{% endblock %}
+
+{% block head %}
+<script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+<style>
+    :root {
+        --comparison-bg: #0f172a;
+        --card-bg: rgba(30, 41, 59, 0.7);
+        --accent-glow: rgba(99, 102, 241, 0.2);
+    }
+
+    .comparison-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .header-section {
+        margin-bottom: 2.5rem;
+        text-align: center;
+    }
+
+    .header-section h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+
+    .dataset-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: rgba(99, 102, 241, 0.1);
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        border-radius: 9999px;
+        color: #818cf8;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    /* Loader States */
+    #loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: var(--comparison-bg);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.5s ease;
+    }
+
+    .spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid rgba(129, 140, 248, 0.1);
+        border-top: 4px solid #818cf8;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 1.5rem;
+    }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    .loading-text {
+        font-size: 1.25rem;
+        color: #94a3b8;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+    }
+
+    /* Dashboard Layout */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+        margin-top: 2rem;
+        opacity: 0;
+        transform: translateY(20px);
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dashboard-grid.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .chart-card {
+        background: var(--card-bg);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(12px);
+        transition: transform 0.3s ease;
+    }
+
+    .chart-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(129, 140, 248, 0.3);
+    }
+
+    .full-width {
+        grid-column: span 2;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #f8fafc;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .card-title i {
+        color: #818cf8;
+    }
+
+    /* Metrics Table */
+    .metrics-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 0.5rem;
+    }
+
+    .metrics-table th {
+        text-align: left;
+        color: #64748b;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        padding: 0.75rem 1rem;
+    }
+
+    .metrics-table td {
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        color: #e2e8f0;
+        font-weight: 500;
+    }
+
+    .metrics-table tr td:first-child { border-radius: 0.75rem 0 0 0.75rem; border-left: 2px solid transparent; }
+    .metrics-table tr td:last-child { border-radius: 0 0.75rem 0.75rem 0; }
+
+    .metrics-table tr:hover td { background: rgba(129, 140, 248, 0.05); }
+    .metrics-table tr.best-model td:first-child { border-left-color: #22c55e; }
+
+    .rank-badge {
+        background: #22c55e;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        margin-left: 8px;
+    }
+
+    @media (max-width: 900px) {
+        .dashboard-grid { grid-template-columns: 1fr; }
+        .full-width { grid-column: span 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Analyzing models in parallel...</div>
+    <div style="color: #64748b; margin-top: 10px; font-size: 0.9rem;">Sampling 10,000 rows for instant results</div>
+</div>
+
+<div class="comparison-container">
+    <div class="header-section">
+        <h1>Model Performance Insight</h1>
+        <div class="dataset-badge">
+            <i class="fas fa-database"></i> {{ dataset.filename }}
+        </div>
+    </div>
+
+    <div id="dashboard" class="dashboard-grid">
+        <!-- Summary Table -->
+        <div class="chart-card full-width">
+            <div class="card-title">
+                <i class="fas fa-table"></i> Benchmarking Summary
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="metrics-table">
+                    <thead>
+                        <tr>
+                            <th>Algorithm</th>
+                            <th>Accuracy</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>F1-Score</th>
+                            <th>Train Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="metrics-tbody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ROC Curves -->
+        <div class="chart-card">
+            <div class="card-title">
+                <i class="fas fa-chart-line"></i> ROC Comparison
+            </div>
+            <div id="roc-plot" style="height: 350px;"></div>
+        </div>
+
+        <!-- Radar Metrics -->
+        <div class="chart-card">
+            <div class="card-title">
+                <i class="fas fa-bullseye"></i> Multi-Metric Radar
+            </div>
+            <div id="radar-plot" style="height: 350px;"></div>
+        </div>
+
+        <!-- Time Comparison -->
+        <div class="chart-card full-width">
+            <div class="card-title">
+                <i class="fas fa-bolt"></i> Latency Analysis (seconds)
+            </div>
+            <div id="time-plot" style="height: 300px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const datasetId = "{{ dataset.id }}";
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const dashboard = document.getElementById('dashboard');
+
+        try {
+            const response = await fetch(`/api/compare-models/${datasetId}`);
+            const data = await response.json();
+
+            if (!data.success) {
+                alert("Error running comparison: " + data.error);
+                return;
+            }
+
+            renderResults(data.results);
+            
+            // Hide loader and show dash
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+                dashboard.classList.add('visible');
+            }, 500);
+
+        } catch (err) {
+            console.error(err);
+            alert("Failed to fetch comparison data.");
+        }
+    });
+
+    function renderResults(results) {
+        // 1. Populate Table
+        const tbody = document.getElementById('metrics-tbody');
+        results.sort((a, b) => (b.metrics.accuracy || 0) - (a.metrics.accuracy || 0));
+        
+        results.forEach((r, index) => {
+            if (r.error) return;
+            const tr = document.createElement('tr');
+            if (index === 0) tr.className = 'best-model';
+            
+            tr.innerHTML = `
+                <td>
+                    ${r.name} 
+                    ${index === 0 ? '<span class="rank-badge">BEST</span>' : ''}
+                </td>
+                <td>${(r.metrics.accuracy * 100).toFixed(2)}%</td>
+                <td>${r.metrics.precision.toFixed(3)}</td>
+                <td>${r.metrics.recall.toFixed(3)}</td>
+                <td>${r.metrics.f1.toFixed(3)}</td>
+                <td>${r.metrics.training_time.toFixed(4)}s</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // 2. ROC Plot
+        const rocData = results
+            .filter(r => r.roc)
+            .map(r => ({
+                x: r.roc.fpr,
+                y: r.roc.tpr,
+                name: `${r.name} (AUC: ${r.roc.auc.toFixed(3)})`,
+                type: 'scatter',
+                mode: 'lines',
+                line: { width: 3 }
+            }));
+        
+        // Add random guess line
+        rocData.push({
+            x: [0, 1],
+            y: [0, 1],
+            name: 'Random',
+            type: 'scatter',
+            mode: 'lines',
+            line: { dash: 'dash', color: 'rgba(255,255,255,0.2)' },
+            showlegend: false
+        });
+
+        const layoutBase = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#94a3b8', family: 'Inter, sans-serif' },
+            margin: { t: 20, r: 20, l: 50, b: 50 },
+            hovermode: 'closest',
+            legend: { x: 1, xanchor: 'right', y: 0 }
+        };
+
+        Plotly.newPlot('roc-plot', rocData, {
+            ...layoutBase,
+            xaxis: { title: 'False Positive Rate', gridcolor: 'rgba(255,255,255,0.05)' },
+            yaxis: { title: 'True Positive Rate', gridcolor: 'rgba(255,255,255,0.05)' }
+        });
+
+        // 3. Radar Plot
+        const metrics_keys = ['accuracy', 'precision', 'recall', 'f1'];
+        const radarData = results
+            .filter(r => r.metrics)
+            .map(r => ({
+                type: 'scatterpolar',
+                r: metrics_keys.map(k => r.metrics[k]),
+                theta: metrics_keys.map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+                fill: 'toself',
+                name: r.name
+            }));
+
+        Plotly.newPlot('radar-plot', radarData, {
+            ...layoutBase,
+            polar: {
+                bgcolor: 'rgba(255,255,255,0.02)',
+                radialaxis: { visible: true, range: [0.5, 1], gridcolor: 'rgba(255,255,255,0.1)' },
+                angularaxis: { gridcolor: 'rgba(255,255,255,0.1)' }
+            },
+            margin: { t: 40, r: 40, l: 40, b: 40 }
+        });
+
+        // 4. Time Plot
+        const timeData = [{
+            x: results.map(r => r.name),
+            y: results.map(r => r.metrics.training_time),
+            type: 'bar',
+            marker: {
+                color: results.map((_, i) => i === 0 ? '#818cf8' : 'rgba(129, 140, 248, 0.4)')
+            }
+        }];
+
+        Plotly.newPlot('time-plot', timeData, {
+            ...layoutBase,
+            xaxis: { gridcolor: 'transparent' },
+            yaxis: { title: 'Seconds', gridcolor: 'rgba(255,255,255,0.05)' }
+        });
+    }
+</script>
+{% endblock %}

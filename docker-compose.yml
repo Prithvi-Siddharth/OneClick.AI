@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./backend/static:/app/backend/static
+      - ./backend/templates:/app/backend/templates
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Optional: Add other services if needed in future (e.g., redis for caching)
+# networks:
+#   oneclick-net:
+#     driver: bridge
