@@ -7,7 +7,13 @@
 
     function connectWebSocket() {
         console.log("Connecting to WebSocket...");
-        socket = new WebSocket(`${protocol}//${window.location.host}/preprocess-dataset/ws`);
+        const urlParams = new URLSearchParams(window.location.search);
+        const datasetId = urlParams.get('dataset_id');
+        const wsUrl = datasetId 
+            ? `${protocol}//${window.location.host}/preprocess-dataset/ws/${datasetId}`
+            : `${protocol}//${window.location.host}/preprocess-dataset/ws`;
+            
+        socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
             console.log("WebSocket connected");

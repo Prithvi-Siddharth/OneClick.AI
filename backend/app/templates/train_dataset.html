@@ -412,7 +412,50 @@
             alert("Failed to connect to the server.");
         }
     }
+    
+    // Dataset Preview Loading Logic
+    document.addEventListener("DOMContentLoaded", async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const datasetId = urlParams.get('dataset_id') || "{{ dataset.id if dataset else '' }}";
+        const previewContainer = document.getElementById("preview-container");
+        const loadingSpinner = document.getElementById("preview-loading");
 
+        if (!datasetId) {
+            previewContainer.innerHTML = "<p style='color: var(--text-muted);'>No dataset selected for preview.</p>";
+            return;
+        }
 
+        loadingSpinner.style.display = "block";
+
+        try {
+            const response = await fetch(`/preview_dataset/${datasetId}`);
+            if (!response.ok) throw new Error("Failed to load preview");
+            
+            const result = await response.json();
+            const data = result.data_preview;
+
+            if (!data || data.length === 0) {
+                previewContainer.innerHTML = "<p>No data found to preview.</p>";
+                return;
+            }
+
+            // Simple table render
+            let tableHtml = `<table class="table" style="width: 100%; font-size: 0.9rem;">`;
+            const headers = Object.keys(data[0]);
+            tableHtml += '<thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';
+            tableHtml += '<tbody>';
+            data.forEach(row => {
+                tableHtml += '<tr>' + headers.map(h => `<td>${row[h] ?? ''}</td>`).join('') + '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+            
+            previewContainer.innerHTML = tableHtml;
+        } catch (error) {
+            console.error("Preview failed:", error);
+            previewContainer.innerHTML = `<p style="color: var(--error-color);">Preview unavailable: ${error.message}</p>`;
+        } finally {
+            loadingSpinner.style.display = "none";
+        }
+    });
 </script>
 {% endblock %}

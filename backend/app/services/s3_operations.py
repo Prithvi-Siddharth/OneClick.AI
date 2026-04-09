@@ -325,6 +325,8 @@ def duplicate_dataset_in_s3(
     
     return new_dataset
 
+    return new_dataset
+
 def inspect_temporary_dataset_metadata(file_obj):
     """
     Reads the file to extract metadata (rows, schema).

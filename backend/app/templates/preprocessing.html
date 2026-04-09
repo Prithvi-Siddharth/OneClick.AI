@@ -47,7 +47,7 @@
                 <button type="button" id="viewPreviewBtn" data-id="{{ active_dataset.id }}" class="btn btn-secondary">
                     <i class="fas fa-table"></i> View Preview & Stats
                 </button>
-                <button type="button" class="btn btn-primary" onclick="window.location.href='/preprocess-dataset'">
+                <button type="button" class="btn btn-primary" onclick="window.location.href='/preprocess-dataset?dataset_id={{ active_dataset.id }}'">
                     <i class="fas fa-magic"></i> Start Preprocessing
                 </button>
             </div>
@@ -295,7 +295,8 @@
         try {
             const response = await fetch("/connect_dataset", { method: "POST", body: formData });
             if (response.ok) {
-                location.reload();
+                const result = await response.json();
+                window.location.href = `/preprocessing?dataset_id=${result.dataset_id}`;
             } else {
                 alert("Failed to connect data.");
             }
@@ -316,8 +317,11 @@
 
             try {
                 const response = await fetch(`/preview_dataset/${tempId}`);
-                if (!response.ok) throw new Error("Failed to load data");
-
+                if (!response.ok) {
+                    const errorDetail = await response.json().catch(() => ({}));
+                    throw new Error(errorDetail.detail || "Failed to load data");
+                }
+                
                 const result = await response.json();
                 const data = result.data_preview;
                 const stats = result.stats;
@@ -450,7 +454,11 @@
                 datasetPreview.innerHTML = tableHtml + statsHtml + extraStatsHtml;
 
             } catch (error) {
-                datasetPreview.innerHTML = `<p style="color:red; text-align: center;">Error: ${error.message}</p>`;
+                console.error("Preview failed:", error);
+                datasetPreview.innerHTML = `<p style="color:#e74c3c; text-align: center; padding: 2rem;">
+                    <strong><i class="fas fa-exclamation-triangle"></i> Preview Failed</strong><br>
+                    <span style="font-size: 0.9em; margin-top: 10px; display: block;">${error.message}</span>
+                </p>`;
             }
         });
     }

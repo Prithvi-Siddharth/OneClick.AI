@@ -338,19 +338,33 @@ def preview_dataset(dataset_id: int, request: Request, db: Session = Depends(get
     user_id = get_current_user_id(request)
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
+    # First, check the permanent Catalog (Dataset table)
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
+    
+    # If not found, check the temporary Sandbox (TemporaryDataset table)
     if not dataset:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    #read from s3, the preview and stats of the dataset
-    data = read_dataset_from_s3(
-        bucket_name=dataset.s3_bucket,
-        s3_key=dataset.s3_key,
-        filename=dataset.filename,
-        preview_limit=5
-    )
-    if isinstance(data, dict) and "error" in data:
-        raise HTTPException(status_code=500, detail=data["error"])
-    return JSONResponse(content=data) #return the data
+        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.id == dataset_id, TemporaryDataset.user_id == int(user_id)).first()
+        
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found in Catalog or Sandbox")
+    
+    # Read from S3 using existing service function
+    try:
+        data = read_dataset_from_s3(
+            bucket_name=dataset.s3_bucket,
+            s3_key=dataset.s3_key,
+            filename=dataset.s3_key.split('/')[-1], # Use actual filename from S3 key
+            preview_limit=5
+        )
+        
+        if isinstance(data, dict) and "error" in data:
+            raise HTTPException(status_code=500, detail=data["error"])
+        
+        return JSONResponse(content=data)
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Server error during preview: {str(e)}")
 
 # this route is used to delete the dataset
 @router.delete("/delete_dataset/{dataset_id}")

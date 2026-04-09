@@ -11,6 +11,7 @@ from app.db import get_db
 from app.models import User, Dataset, TemporaryDataset, PreprocessingLog
 from app.security import get_current_user_id
 from app.services.s3_operations import get_s3_client, process_and_save_dataset_temporary, duplicate_dataset_in_s3, read_dataset_from_s3
+from typing import Optional
 from app.services.data_preprocessing import apply_preprocessing
 
 router = APIRouter()
@@ -61,8 +62,8 @@ def preprocessing_page(request: Request, db: Session = Depends(get_db)):
     #fetch the users uploaded datasats in catalog, so that the user can select the dataset to preprocess
     datasets = db.query(Dataset).filter(Dataset.user_id == int(user_id)).all()
     
-    #fetch the latest loaded dataset for preprocessing and display it in the preprocessing page
-    active_dataset = db.query(Dataset).filter(Dataset.user_id == int(user_id)).order_by(Dataset.id.desc()).first()
+    # fetch the latest loaded dataset for preprocessing and display it in the preprocessing page
+    active_dataset = db.query(TemporaryDataset).filter(TemporaryDataset.user_id == int(user_id)).order_by(TemporaryDataset.id.desc()).first()
     
     # Fetch user for navbar profile
     user = db.query(User).filter(User.user_id == int(user_id)).first()
@@ -95,24 +96,23 @@ def temporary_upload_dataset(
         if not bucket_name:
             raise ValueError("S3_BUCKET_NAME not configured in environment variables")
 
-        # Call the main catalog saving service instead of temporary
-        from app.services.s3_operations import process_and_save_dataset
-        dataset = process_and_save_dataset(
+        # Save to TemporaryDataset (Sandbox)
+        from app.services.s3_operations import process_and_save_dataset_temporary
+        temp_dataset = process_and_save_dataset_temporary(
             db=db,
             user_id=int(user_id),
             file_obj=dataset_file,
             filename=dataset_file.filename,
-            bucket_name=bucket_name,
-            description="Uploaded via Preprocessing Studio"
+            bucket_name=bucket_name
         )
         
         # Return success response
         return JSONResponse(
             content={
-                "message": "File uploaded to Catalog successfully",
-                "dataset_id": dataset.id,
-                "row_count": dataset.row_count,
-                "file_size": dataset.file_size
+                "message": "File uploaded for preprocessing successfully",
+                "dataset_id": temp_dataset.id,
+                "row_count": temp_dataset.row_count,
+                "file_size": temp_dataset.file_size
             },
             status_code=status.HTTP_200_OK
         )
@@ -139,26 +139,41 @@ def connect_dataset(
     if not user_id:
         raise HTTPException(status_code=401, detail="Not logged in")
     
-    # 1. Find the dataset in the Catalog (Dataset table)
-    dataset = db.query(Dataset).filter(
+    # 1. Find the source dataset in the Catalog (Dataset table)
+    source_dataset = db.query(Dataset).filter(
         Dataset.id == dataset_id, 
         Dataset.user_id == int(user_id)
     ).first()
 
-    if not dataset:
+    if not source_dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
 
-    # The user wants to use the main catalog directly. 
-    # Instead of duplicating, we simply return the dataset_id of the existing catalog entry.
-    return JSONResponse(
-        content={
-            "message": "Dataset connected successfully",
-            "dataset_id": dataset.id,
-            "row_count": dataset.row_count,
-            "file_size": dataset.file_size
-        },
-        status_code=status.HTTP_200_OK
-    )
+    # 2. Duplicate it to the TemporaryDataset table (Sandbox)
+    # this also makes it the newest entry in the database (Latest ID)
+    from app.services.s3_operations import duplicate_dataset_in_s3
+    try:
+        new_temp = duplicate_dataset_in_s3(
+            db=db,
+            user_id=int(user_id),
+            bucket_name=source_dataset.s3_bucket,
+            source_key=source_dataset.s3_key,
+            filename=source_dataset.filename,
+            row_count=source_dataset.row_count,
+            feature_schema=source_dataset.feature_schema,
+            file_size=source_dataset.file_size
+        )
+        
+        return JSONResponse(
+            content={
+                "message": "Dataset connected to Studio successfully",
+                "dataset_id": new_temp.id,
+                "row_count": new_temp.row_count,
+                "file_size": new_temp.file_size
+            },
+            status_code=status.HTTP_200_OK
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # this route is used to preview the temporary dataset
@@ -168,22 +183,41 @@ def preview_dataset(dataset_id: int, request: Request, db: Session = Depends(get
     if not user_id:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
+    # First, check the permanent Catalog (Dataset table)
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
+    
+    # If not found, check the temporary Sandbox (TemporaryDataset table)
     if not dataset:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        dataset = db.query(TemporaryDataset).filter(TemporaryDataset.id == dataset_id, TemporaryDataset.user_id == int(user_id)).first()
+        
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found in Catalog or Sandbox")
     
     # Read from S3 using existing service function
-    data = read_dataset_from_s3(
-        bucket_name=dataset.s3_bucket,
-        s3_key=dataset.s3_key,
-        filename=dataset.s3_key.split('/')[-1],  # Use actual filename from S3 key
-        preview_limit=5
-    )
-    
-    if isinstance(data, dict) and "error" in data:
-        raise HTTPException(status_code=500, detail=data["error"])
-    
-    return JSONResponse(content=data)
+    try:
+        print(f"DEBUG: Previewing dataset {dataset_id} for user {user_id}")
+        print(f"DEBUG: Found record: {dataset.filename} (Table: {'Dataset' if hasattr(dataset, 'description') else 'TemporaryDataset'})")
+        print(f"DEBUG: S3 Path: s3://{dataset.s3_bucket}/{dataset.s3_key}")
+        
+        data = read_dataset_from_s3(
+            bucket_name=dataset.s3_bucket,
+            s3_key=dataset.s3_key,
+            filename=dataset.s3_key.split('/')[-1],
+            preview_limit=5
+        )
+        
+        if isinstance(data, dict) and "error" in data:
+            print(f"DEBUG: read_dataset_from_s3 returned error: {data['error']}")
+            raise HTTPException(status_code=500, detail=data["error"])
+        
+        return JSONResponse(content=data)
+    except Exception as e:
+        print(f"DEBUG: Exception in preview_dataset: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail=f"Server error during preview: {str(e)}")
 
 # this route is used to preprocess the dataset
 @router.get("/preprocess-dataset")
@@ -196,10 +230,10 @@ def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    #fetching the path of dataset from catalog
-    active_dataset = db.query(Dataset).filter(
-                Dataset.user_id == int(user_id)
-            ).order_by(Dataset.id.desc()).first()
+    # fetching the path of dataset from temp table
+    active_dataset = db.query(TemporaryDataset).filter(
+                TemporaryDataset.user_id == int(user_id)
+            ).order_by(TemporaryDataset.id.desc()).first()
     
     if not active_dataset:
         return RedirectResponse(url="/preprocessing?error=no_active_dataset")
@@ -268,8 +302,9 @@ def preprocess_dataset(request: Request, db: Session = Depends(get_db)):
 # this route is used to save the preprocessed dataset to the data catalog
 
 #websocket route for preprocessing the dataset
+@router.websocket("/preprocess-dataset/ws/{dataset_id}")
 @router.websocket("/preprocess-dataset/ws")
-async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_db)):
+async def websocket_preprocess(websocket: WebSocket, dataset_id: Optional[int] = None, db: Session = Depends(get_db)):
     #accept the websocket connection
     await websocket.accept()
     
@@ -331,13 +366,21 @@ async def websocket_preprocess(websocket: WebSocket, db: Session = Depends(get_d
     while True:
         try:
             data = await websocket.receive_text()
+            print(f"DEBUG: WebSocket message received: {data}")
             message = json.loads(data)
             action = message.get("action")
+            print(f"DEBUG: Action: {action}, Dataset ID from URL: {dataset_id}")
             
-            # Fetch latest active dataset for this user from catalog
-            active_dataset = db.query(Dataset).filter(
-                Dataset.user_id == int(user_id)
-            ).order_by(Dataset.id.desc()).first()
+            # Fetch active dataset - prioritize the specific ID if passed via WS URL
+            if dataset_id:
+                active_dataset = db.query(TemporaryDataset).filter(
+                    TemporaryDataset.id == dataset_id,
+                    TemporaryDataset.user_id == int(user_id)
+                ).first()
+            else:
+                active_dataset = db.query(TemporaryDataset).filter(
+                    TemporaryDataset.user_id == int(user_id)
+                ).order_by(TemporaryDataset.id.desc()).first()
 
             if not active_dataset:
                 await send_status("No active dataset found. Please upload one first.")
@@ -495,8 +538,8 @@ def download_preprocessed_dataset(dataset_id: int, request: Request, db: Session
     
     from app.services.s3_operations import create_presigned_download_url
     url = create_presigned_download_url(
-        bucket_name=temp_dataset.s3_bucket,
-        s3_key=temp_dataset.s3_key,
+        bucket_name=dataset.s3_bucket,
+        s3_key=dataset.s3_key,
         filename=f"preprocessed_{dataset_id}.csv"
     )
     

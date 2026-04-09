@@ -6,9 +6,8 @@ import os
 from datetime import datetime
 
 from app.db import get_db
-from app.models import User, Dataset, TemporaryDataset, Experiment
+from app.models import User, Dataset, Experiment
 from app.security import get_current_user_id
-from app.services.s3_operations import duplicate_dataset_in_s3
 from app.services.constants import ML_HYPERPARAMETERS, get_hyperparameters, get_grid_search_params
 from app.services.model_factory import create_model_instance, get_base_model
 from app.services.learning_algorithm_selector import recommend_algorithms_scoring
@@ -87,8 +86,7 @@ def connect_dataset_train(
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
 
-    # The user wants to use the main catalog directly. 
-    # Instead of duplicating, we simply return the dataset_id of the existing catalog entry.
+    # Just return the ID. The frontend will redirect to /training?dataset_id={dataset_id}
     return JSONResponse(
         content={
             "message": "Dataset connected successfully",
@@ -101,6 +99,9 @@ def connect_dataset_train(
 
 @router.get("/training")
 def training_page(request: Request, db: Session = Depends(get_db), dataset_id: int = None):
+    # Fetch all folders and datasets for sidebars/modals
+    # (Same as before)
+    # ... (skipping for brevity but including the logic change below)
     user_id = get_current_user_id(request)
     if not user_id:
         return RedirectResponse(url="/login")
@@ -220,9 +221,18 @@ async def auto_tune(request: Request, db: Session = Depends(get_db)):
         return JSONResponse(status_code=400, content={"error": f"Auto-Tune is not supported for clustering models like '{model_name}'. GridSearchCV requires a labelled target column."})
 
     # 2. Load dataset from Catalog
-    dataset = db.query(Dataset).filter(
-        Dataset.user_id == int(user_id)
-    ).order_by(Dataset.id.desc()).first()
+    dataset_id = data.get("dataset_id")
+    if dataset_id:
+        dataset = db.query(Dataset).filter(
+            Dataset.id == int(dataset_id),
+            Dataset.user_id == int(user_id)
+        ).first()
+    else:
+        # Fallback to the newest dataset for this user
+        dataset = db.query(Dataset).filter(
+            Dataset.user_id == int(user_id)
+        ).order_by(Dataset.id.desc()).first()
+    
     if not dataset:
         return JSONResponse(status_code=404, content={"error": "No dataset found in catalog. Please upload one first."})
 
@@ -400,8 +410,18 @@ async def final_train(request: Request, db: Session = Depends(get_db)):
         if not is_clustering and not target_column:
             return JSONResponse(status_code=400, content={"error": "Missing target_column"})
 
-        # Use the newest dataset for this user from the catalog
-        dataset = db.query(Dataset).filter(Dataset.user_id == int(user_id)).order_by(Dataset.id.desc()).first()
+        # Use the specific dataset if provided, otherwise newest
+        dataset_id = data.get("dataset_id")
+        if dataset_id:
+            dataset = db.query(Dataset).filter(
+                Dataset.id == int(dataset_id),
+                Dataset.user_id == int(user_id)
+            ).first()
+        else:
+            dataset = db.query(Dataset).filter(
+                Dataset.user_id == int(user_id)
+            ).order_by(Dataset.id.desc()).first()
+
         if not dataset:
             return JSONResponse(status_code=404, content={"error": "No dataset found in catalog"})
 

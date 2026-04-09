@@ -1,10 +1,52 @@
 import importlib
 from app.services.constants import ML_HYPERPARAMETERS
 
+def cast_hyperparameters(model_name: str, params: dict) -> dict:
+    """Casts string hyperparameter values to their correct types (bool, int, float) based on metadata."""
+    model_config = ML_HYPERPARAMETERS.get(model_name)
+    if not model_config:
+        return params
+    
+    meta = model_config.get("hyperparameters", {})
+    casted_params = {}
+
+    for key, value in params.items():
+        if key not in meta:
+            casted_params[key] = value
+            continue
+        
+        expected_type = meta[key].get("type")
+        
+        # Handle "None" strings
+        if value == "None" or value is None:
+            casted_params[key] = None
+            continue
+
+        try:
+            if expected_type == "bool":
+                if isinstance(value, str):
+                    casted_params[key] = value.lower() in ("true", "1", "yes")
+                else:
+                    casted_params[key] = bool(value)
+            elif expected_type == "int":
+                casted_params[key] = int(value)
+            elif expected_type == "float":
+                casted_params[key] = float(value)
+            else:
+                casted_params[key] = value
+        except (ValueError, TypeError):
+            print(f"WARNING: Failed to cast {key}={value} to {expected_type}. Using raw value.")
+            casted_params[key] = value
+            
+    return casted_params
+
 def create_model_instance(model_name: str, hyperparameters: dict):
     model_config = ML_HYPERPARAMETERS.get(model_name)
     if not model_config:
         raise ValueError(f"Model '{model_name}' is not supported.")
+
+    # Cast hyperparameters to correct types before instantiation
+    casted_params = cast_hyperparameters(model_name, hyperparameters)
 
     class_path = model_config["model_class"]
     module_path, class_name = class_path.rsplit(".", 1)
@@ -12,7 +54,7 @@ def create_model_instance(model_name: str, hyperparameters: dict):
     module = importlib.import_module(module_path)
     model_class = getattr(module, class_name)
 
-    model_instance = model_class(**hyperparameters)
+    model_instance = model_class(**casted_params)
 
     return model_instance
 

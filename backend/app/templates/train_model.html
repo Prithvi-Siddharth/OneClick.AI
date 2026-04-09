@@ -355,7 +355,8 @@
                 //send the form data to the server by the backend route
                 const response = await fetch("/connect_dataset_train", { method: "POST", body: formData });
                 if (response.ok) {
-                    location.reload();
+                    const result = await response.json();
+                    window.location.href = `/training?dataset_id=${result.dataset_id}`;
                 } else {
                     alert("Failed to connect data.");
                 }
