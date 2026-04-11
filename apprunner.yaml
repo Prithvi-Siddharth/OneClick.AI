@@ -6,7 +6,7 @@ build:
       - pip install --upgrade pip
       - pip install -r requirements.txt
 run:
-  command: uvicorn app.main:app --host 0.0.0.0 --port 8080
+  command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8080
   network:
     port: 8080
   env:
@@ -22,10 +22,6 @@ run:
       secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:DB_NAME::
     - name: DB_SSL_CA
       secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:DB_SSL_CA::
-    - name: AWS_ACCESS_KEY_ID
-      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_ACCESS_KEY_ID::
-    - name: AWS_SECRET_ACCESS_KEY
-      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_SECRET_ACCESS_KEY::
     - name: AWS_REGION
       secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_REGION::
     - name: S3_BUCKET_NAME
@@ -38,14 +34,3 @@ run:
       secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:JWT_ALGORITHM::
     - name: JWT_EXPIRE_MINUTES
       secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:JWT_EXPIRE_MINUTES::
-    - name: AWS_ACCESS_KEY_ID
-      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_ACCESS_KEY_ID::
-    - name: AWS_SECRET_ACCESS_KEY
-      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_SECRET_ACCESS_KEY::
-    - name: AWS_REGION
-      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_REGION::
-    - name: S3_BUCKET_NAME
-      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:S3_BUCKET_NAME::
-    - name: EXTERNAL_CHAT_API
-      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:EXTERNAL_CHAT_API::
-  
