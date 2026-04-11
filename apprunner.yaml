@@ -1,9 +1,51 @@
 version: 1.0
-runtime: python-311
+runtime: python311
 build:
   commands:
-    - pip install -r requirements.txt
+    build:
+      - pip install --upgrade pip
+      - pip install -r requirements.txt
 run:
-  command: uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port 8000
+  command: uvicorn app.main:app --host 0.0.0.0 --port 8080
   network:
-    port: 8000
+    port: 8080
+  env:
+    - name: DB_PASSWORD
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:DB_PASSWORD::
+    - name: DB_HOST
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:DB_HOST::
+    - name: DB_PORT
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:DB_PORT::
+    - name: DB_USERNAME
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:DB_USERNAME::
+    - name: DB_NAME
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:DB_NAME::
+    - name: DB_SSL_CA
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:DB_SSL_CA::
+    - name: AWS_ACCESS_KEY_ID
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_ACCESS_KEY_ID::
+    - name: AWS_SECRET_ACCESS_KEY
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_SECRET_ACCESS_KEY::
+    - name: AWS_REGION
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_REGION::
+    - name: S3_BUCKET_NAME
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:S3_BUCKET_NAME::
+    - name: EXTERNAL_CHAT_API
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:EXTERNAL_CHAT_API::
+    - name: JWT_SECRET_KEY
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:JWT_SECRET_KEY::
+    - name: JWT_ALGORITHM
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:JWT_ALGORITHM::
+    - name: JWT_EXPIRE_MINUTES
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:JWT_EXPIRE_MINUTES::
+    - name: AWS_ACCESS_KEY_ID
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_ACCESS_KEY_ID::
+    - name: AWS_SECRET_ACCESS_KEY
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_SECRET_ACCESS_KEY::
+    - name: AWS_REGION
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:AWS_REGION::
+    - name: S3_BUCKET_NAME
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:S3_BUCKET_NAME::
+    - name: EXTERNAL_CHAT_API
+      secret: arn:aws:secretsmanager:us-east-1:157549686651:secret:aditya-noml-secrets-pGtW83:EXTERNAL_CHAT_API::
+  
