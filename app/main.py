@@ -20,7 +20,7 @@ from app.routers import auth, dashboard, data_catalog, model_catalog, preprocess
 from app.services.cleanup_tasks import cleanup_expired_temp_data
 from apscheduler.schedulers.background import BackgroundScheduler
 
-load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 app = FastAPI(title="ML SaaS Platform")
 

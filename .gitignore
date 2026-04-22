@@ -52,3 +52,5 @@ backend/experiments/
 *.tmp
 *.temp
 *.bak
+
+CLAUDE.md

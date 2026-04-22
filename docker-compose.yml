@@ -8,8 +8,8 @@ services:
     env_file:
       - .env
     volumes:
-      - ./backend/static:/app/backend/static
-      - ./backend/templates:/app/backend/templates
+      - ./app/static:/app/app/static
+      - ./app/templates:/app/app/templates
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]

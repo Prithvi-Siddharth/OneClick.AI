@@ -27,9 +27,5 @@ COPY . .
 # Expose the API port
 EXPOSE 8000
 
-# Set the working directory to the backend folder where 'app' resides
-# This ensures that 'from app.api import ...' style imports work correctly
-WORKDIR /app/backend
-
 # Start the application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
