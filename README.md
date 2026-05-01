@@ -16,7 +16,7 @@
 
 ---
 
-## 🎯 Project Overview
+## Project Overview
 
 OneClick.AI is a powerful **no-code Machine Learning platform** designed for data scientists and MLOps teams to accelerate the bridge between raw data and production-ready models. By automating the "messy" parts of the ML lifecycle—data cleaning, feature engineering, and model selection—we allow you to focus on high-level strategy and results.
 
