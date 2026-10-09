@@ -242,7 +242,8 @@ def process_and_save_dataset_temporary(
     db: Session,
     user_id: int,
     file_obj,
-    bucket_name: str
+    bucket_name: str,
+    filename: Optional[str] = None
 ) -> TemporaryDataset:
     
     # 1. First, calculate Metadata & Size (Must be done first so we have the values)
@@ -253,12 +254,13 @@ def process_and_save_dataset_temporary(
     file_size = actual_file.tell()
     actual_file.seek(0)
     
-    # Get Schema and Rows
-    row_count, schema_dict = inspect_temporary_dataset_metadata(file_obj)
-    actual_file.seek(0) # Always reset stream for upload
-
     # 2. Get the filename
-    filename = getattr(file_obj, 'filename', 'dataset.csv')
+    if not filename:
+        filename = getattr(file_obj, 'filename', 'dataset.csv')
+
+    # Get Schema and Rows
+    row_count, schema_dict = inspect_temporary_dataset_metadata(file_obj, filename)
+    actual_file.seek(0) # Always reset stream for upload
 
     # 3. Phase A: Create DB Record with Placeholder (Now we have file_size, etc.)
     new_dataset = TemporaryDataset(
@@ -325,9 +327,7 @@ def duplicate_dataset_in_s3(
     
     return new_dataset
 
-    return new_dataset
-
-def inspect_temporary_dataset_metadata(file_obj):
+def inspect_temporary_dataset_metadata(file_obj, filename: Optional[str] = None):
     """
     Reads the file to extract metadata (rows, schema).
     Supports CSV, JSON, and Excel.
@@ -338,8 +338,7 @@ def inspect_temporary_dataset_metadata(file_obj):
         print(f"DEBUG: file_obj type: {type(file_obj)}")
         print(f"DEBUG: file_obj dir: {dir(file_obj)}")
         actual_file = getattr(file_obj, "file", file_obj)
-        # Use a placeholder since we don't rely on the original name
-        upload_name = getattr(file_obj, "filename", "temp_dataset.csv") 
+        upload_name = filename or getattr(file_obj, "filename", "temp_dataset.csv") 
         ext = upload_name.lower().split('.')[-1]
         
         # 1. Reset buffer
