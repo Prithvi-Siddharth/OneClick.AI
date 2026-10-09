@@ -3,7 +3,11 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-import os, json, pandas as pd, duckdb
+import os, json, pandas as pd
+try:
+    import duckdb
+except ImportError:
+    duckdb = None
 from io import BytesIO
 from datetime import datetime
 

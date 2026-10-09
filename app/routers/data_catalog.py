@@ -19,7 +19,11 @@ from app.services.s3_operations import (
 from app.services.visualization_service import calculate_eda_stats, get_plot_data
 from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
-import json, pandas as pd, duckdb
+import json, pandas as pd
+try:
+    import duckdb
+except ImportError:
+    duckdb = None
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "..", "templates"))

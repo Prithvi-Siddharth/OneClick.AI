@@ -73,7 +73,10 @@ def get_base_model(model_name: str):
     # Return with no args — GridSearchCV will set params via param_grid
     return model_class()
 
-from sklearn import metrics
+try:
+    from sklearn import metrics
+except ImportError:
+    metrics = None
 
 def get_model_stats(task_type: str, y_true, y_pred):
     if task_type == "regression":

@@ -19,10 +19,13 @@ import pandas as pd
 import numpy as np
 from io import BytesIO
 from app.services.algorithm_info import ALGORITHM_DETAILS
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
-from sklearn.impute import SimpleImputer
+try:
+    from sklearn.pipeline import Pipeline
+    from sklearn.compose import ColumnTransformer
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder, LabelEncoder
+    from sklearn.impute import SimpleImputer
+except ImportError:
+    pass
 
 ALGO_MAPPING = {
     "Linear Regression": "LinearRegression",
@@ -370,15 +373,18 @@ def select_target_page(
     })
 
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import (
-    r2_score, mean_absolute_error, mean_squared_error,
-    explained_variance_score, median_absolute_error, max_error,
-    accuracy_score, precision_score, f1_score, recall_score,
-    fbeta_score, confusion_matrix, cohen_kappa_score, matthews_corrcoef,
-    roc_auc_score, log_loss, brier_score_loss,
-    silhouette_score, calinski_harabasz_score, davies_bouldin_score,
-)
+try:
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import (
+        r2_score, mean_absolute_error, mean_squared_error,
+        explained_variance_score, median_absolute_error, max_error,
+        accuracy_score, precision_score, f1_score, recall_score,
+        fbeta_score, confusion_matrix, cohen_kappa_score, matthews_corrcoef,
+        roc_auc_score, log_loss, brier_score_loss,
+        silhouette_score, calinski_harabasz_score, davies_bouldin_score,
+    )
+except ImportError:
+    pass
 from app.services.s3_operations import load_dataset_as_dataframe
 
 @router.post("/final_train")

@@ -18,7 +18,10 @@ from app.security import get_current_user_id
 # Import all routers
 from app.routers import auth, dashboard, data_catalog, model_catalog, preprocessing, training, notes, deploy, prediction, profile, chatbot, model_comparison
 from app.services.cleanup_tasks import cleanup_expired_temp_data
-from apscheduler.schedulers.background import BackgroundScheduler
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+except ImportError:
+    BackgroundScheduler = None
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
@@ -40,6 +43,10 @@ Base.metadata.create_all(bind=engine)
 # ── Background Scheduler Setup ────────────────────────────────────────────────
 @app.on_event("startup")
 def start_scheduler():
+    if os.getenv("VERCEL") or BackgroundScheduler is None:
+        print("Serverless/Vercel environment detected: Background Scheduler skipped.")
+        return
+
     # 1. Run the cleanup once immediately on startup
     print(f"[{datetime.utcnow()}] Initializing Startup Cleanup...")
     try:
@@ -48,15 +55,17 @@ def start_scheduler():
         print(f"[{datetime.utcnow()}] Error during startup cleanup: {e}")
 
     # 2. Schedule to run every 6 hours thereafter
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(cleanup_expired_temp_data, 'interval', hours=6, id="cleanup_id")
-    scheduler.start()
-    print(f"[{datetime.utcnow()}] Background Scheduler started: Cleanup task scheduled every 6 hours.")
+    try:
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(cleanup_expired_temp_data, 'interval', hours=6, id="cleanup_id")
+        scheduler.start()
+        print(f"[{datetime.utcnow()}] Background Scheduler started: Cleanup task scheduled every 6 hours.")
+    except Exception as e:
+        print(f"[{datetime.utcnow()}] Could not start Background Scheduler: {e}")
 
 @app.on_event("shutdown")
 def shutdown_scheduler():
-    # Use a more robust way to shutdown if we want, but for now we'll just let it exit
-    print("Background Scheduler shutting down.")
+    print("Application shutting down.")
 
 # ── Register all routers ──────────────────────────────────────────────────────
 app.include_router(auth.router)

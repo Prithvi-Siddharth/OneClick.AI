@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from scipy import stats as scipy_stats
 
 
 def calculate_eda_stats(df: pd.DataFrame, column: str) -> dict:
@@ -41,15 +40,18 @@ def calculate_eda_stats(df: pd.DataFrame, column: str) -> dict:
         mode_series = clean.mode()
         mode_val = round(float(mode_series.iloc[0]), 4) if not mode_series.empty else None
 
+        skew_val = float(clean.skew()) if len(clean) > 2 else 0.0
+        kurt_val = float(clean.kurt()) if len(clean) > 3 else 0.0
+
         result.update({
             "mean": round(float(clean.mean()), 4),
             "median": round(float(clean.median()), 4),
             "mode": mode_val,
-            "std": round(float(clean.std()), 4),
+            "std": round(float(clean.std()), 4) if len(clean) > 1 else 0.0,
             "min": round(float(clean.min()), 4),
             "max": round(float(clean.max()), 4),
-            "skewness": round(float(scipy_stats.skew(clean)), 4),
-            "kurtosis": round(float(scipy_stats.kurtosis(clean)), 4),
+            "skewness": round(skew_val, 4),
+            "kurtosis": round(kurt_val, 4),
             "q1": round(q1, 4),
             "q3": round(q3, 4),
             "iqr": round(iqr, 4),
