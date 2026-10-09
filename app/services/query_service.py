@@ -1,4 +1,8 @@
-import duckdb
+try:
+    import duckdb
+except ImportError:
+    duckdb = None
+
 import os
 from dotenv import load_dotenv
 
@@ -23,6 +27,8 @@ def init_duckdb_connection():
     """
     Initialize DuckDB connection with S3 support
     """
+    if duckdb is None:
+        raise RuntimeError("DuckDB is not installed on this serverless environment. Please use client-side DuckDB-Wasm.")
     con = duckdb.connect()
 
     # Install & load S3 extension

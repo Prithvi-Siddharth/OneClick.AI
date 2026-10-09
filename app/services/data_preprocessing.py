@@ -1,12 +1,15 @@
 import pandas as pd
 import numpy as np
 from io import BytesIO
-from sklearn import preprocessing
-from sklearn.impute import KNNImputer
 from fastapi import HTTPException
-from sklearn.decomposition import PCA, TruncatedSVD
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.feature_selection import VarianceThreshold, SelectKBest, f_classif, f_regression, chi2
+try:
+    from sklearn import preprocessing
+    from sklearn.impute import KNNImputer
+    from sklearn.decomposition import PCA, TruncatedSVD
+    from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+    from sklearn.feature_selection import VarianceThreshold, SelectKBest, f_classif, f_regression, chi2
+except ImportError:
+    pass
 
 def get_dataset_preview_and_stats(file_buffer, extension, preview_limit=5):
     try:

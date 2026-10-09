@@ -305,6 +305,8 @@
     let currentExperimentId = Number("{{ experiment_id }}");
     const currentMode = "{{ mode }}";
     const modelTask = "{{ model_task }}";
+    const datasetId = "{{ dataset_id }}";
+    const experimentModelName = "{{ model_name }}";
 
     // Set mode-aware loading text
     if (currentMode === 'auto_tune') {
@@ -373,15 +375,66 @@
                 document.getElementById('loading-subtitle').textContent = 'Almost done! Fitting the model and evaluating.';
             }
 
-            // ── TRAIN: always runs ──
-            const trainResponse = await fetch('/final_train', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ experiment_id: finalExperimentId, target_column: targetColumn })
-            });
-            const result = await trainResponse.json();
+            // ── TRAIN: Check for In-Browser WebAssembly Compute Engine first ──
+            let result = null;
+            let usedClientCompute = false;
 
-            if (trainResponse.ok) {
+            if (window.OneClickCompute && window.OneClickCompute.isReady && currentMode !== 'auto_tune') {
+                try {
+                    document.getElementById('loading-title').textContent = '⚡ In-Browser Training...';
+                    document.getElementById('loading-subtitle').textContent = 'Training model directly on your local CPU (zero server load).';
+
+                    const csvRes = await fetch(`/get_dataset_raw_csv/${datasetId}`);
+                    if (csvRes.ok) {
+                        const csvText = await csvRes.text();
+                        
+                        // Execute on Web Worker
+                        result = await window.OneClickCompute.train({
+                            csvData: csvText,
+                            targetColumn: targetColumn,
+                            algorithm: modelName || experimentModelName,
+                            task: modelTask
+                        }, (progress) => {
+                            if (progress.step) {
+                                document.getElementById('loading-subtitle').textContent = progress.step;
+                            }
+                        });
+
+                        // Sync metrics to backend
+                        await fetch('/client_train_complete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                experiment_id: finalExperimentId,
+                                metrics: result.metrics,
+                                features_used: result.features_used,
+                                model_task: result.model_task
+                            })
+                        });
+
+                        usedClientCompute = true;
+                    }
+                } catch (clientErr) {
+                    console.warn('Client compute warning, falling back to server:', clientErr);
+                }
+            }
+
+            // Fallback to server if client compute did not complete
+            if (!usedClientCompute) {
+                document.getElementById('loading-title').textContent = 'Training Model...';
+                document.getElementById('loading-subtitle').textContent = 'Fitting the model and evaluating on server.';
+                const trainResponse = await fetch('/final_train', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ experiment_id: finalExperimentId, target_column: targetColumn })
+                });
+                result = await trainResponse.json();
+                if (!trainResponse.ok) {
+                    throw new Error(result.error || 'Training failed');
+                }
+            }
+
+            if (result && (result.status === 'success' || result.metrics)) {
                 loadingPhase.style.display = 'none';
                 resultsPhase.style.display = 'block';
                 document.getElementById('test-model-btn').href = `/test_model/${finalExperimentId}`;
