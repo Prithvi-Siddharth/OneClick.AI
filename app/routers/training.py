@@ -362,6 +362,7 @@ def select_target_page(
         "request": request,
         "username": user.username if user else None,
         "experiment_id": experiment_id,
+        "dataset_id": dataset.id,
         "columns": columns,
         "mode": mode,
         "model_name": model_name or experiment.algorithm,
@@ -733,3 +734,49 @@ async def save_to_catalog(request: Request, db: Session = Depends(get_db)):
     db.commit()
     
     return {"status": "success", "message": "Model saved to catalog as " + custom_name}
+
+
+@router.get("/get_dataset_raw_csv/{dataset_id}")
+async def get_dataset_raw_csv(dataset_id: int, request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id, Dataset.user_id == int(user_id)).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    from app.services.s3_operations import get_s3_client
+    from fastapi.responses import Response
+    s3 = get_s3_client()
+    try:
+        obj = s3.get_object(Bucket=dataset.s3_bucket, Key=dataset.s3_key)
+        raw_content = obj['Body'].read()
+        return Response(content=raw_content, media_type="text/csv")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch dataset from S3: {str(e)}")
+
+
+@router.post("/client_train_complete")
+async def client_train_complete(request: Request, db: Session = Depends(get_db)):
+    user_id = get_current_user_id(request)
+    if not user_id:
+        return JSONResponse(status_code=401, content={"error": "Not authenticated"})
+
+    data = await request.json()
+    experiment_id = data.get("experiment_id")
+    metrics = data.get("metrics", {})
+    features_used = data.get("features_used", [])
+    model_task = data.get("model_task", "classification")
+
+    experiment = db.query(Experiment).filter(Experiment.id == int(experiment_id), Experiment.user_id == int(user_id)).first()
+    if not experiment:
+        return JSONResponse(status_code=404, content={"error": "Experiment not found"})
+
+    experiment.status = "SUCCESS"
+    experiment.metrics = json.dumps(metrics)
+    experiment.feature_schema = json.dumps(features_used)
+    experiment.model_task = model_task
+    db.commit()
+
+    return {"status": "success", "message": "Experiment synced from in-browser compute"}

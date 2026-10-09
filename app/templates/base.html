@@ -805,6 +805,8 @@
         });
     </script>
     {% block modals %}{% endblock %}
+    <!-- Client Compute Engine (WebAssembly Pyodide Worker) -->
+    <script src="{{ url_for('static', path='/js/client-compute.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 
